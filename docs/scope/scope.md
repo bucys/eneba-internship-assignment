@@ -13,7 +13,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
-| 1 | Stack & architecture | Foundation | in-progress |
+| 1 | Stack & architecture | Foundation | done |
 | 2 | Coding standards & tooling | Foundation | planned |
 | 3 | Data model | Foundation | planned |
 | 4 | Design system & Eneba UI foundation | Foundation | planned |
@@ -32,14 +32,14 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## Foundations
 
-### 1. Stack & architecture · Beta · in-progress
+### 1. Stack & architecture · Beta · done
 Choose the frontend, backend, database, and free tier hosting, then scaffold `client/` and `server/` so every later feature builds on real structure.
 **Done when:** the stack and repo layout are recorded in a spec, and both apps boot locally and pass a build.
-spec [0001](../specs/0001-stack-architecture/index.md) · code in _(set by /develop)_
+spec [0001](../specs/0001-stack-architecture/index.md) · code in `client/`, `server/`, `docker-compose.yml`
 - [x] Decide the stack (spec): `/architect stack & architecture`
-- [ ] Scaffold from the decision: `/develop stack & architecture` (AC-1 to AC-3)
-- [ ] Verify it: `/check verify stack & architecture`
-- [ ] Test it: `/test stack & architecture`
+- [x] Scaffold from the decision: `/develop stack & architecture` (AC-1 to AC-3)
+- [x] Verify it: `/check verify stack & architecture`
+- [x] Test it: `/test stack & architecture`
 
 ### 2. Coding standards & tooling
 Capture conventions from the real scaffold, then install lint, format, and type checks for both apps.

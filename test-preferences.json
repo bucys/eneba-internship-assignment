@@ -1,0 +1,27 @@
+{
+  "tool": "vitest",
+  "gate": null,
+  "additionalTools": [],
+  "e2eTool": "none",
+  "testDir": "beside the source",
+  "filePattern": "*.test.ts",
+  "packageManager": "npm",
+  "packages": {
+    "client": {
+      "tool": "vitest",
+      "additionalTools": [],
+      "testDir": "beside the source",
+      "filePattern": "*.test.ts",
+      "packageManager": "npm",
+      "runCommand": "npm test"
+    },
+    "server": {
+      "tool": "pest",
+      "additionalTools": [],
+      "testDir": "tests/",
+      "filePattern": "*Test.php",
+      "packageManager": "composer",
+      "runCommand": "php artisan test"
+    }
+  }
+}

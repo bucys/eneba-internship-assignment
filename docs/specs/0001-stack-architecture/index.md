@@ -1,7 +1,7 @@
 # 0001. Stack and architecture: React SPA, Laravel REST API, Postgres on free hosting
 
 **Date**: 2026-11-11
-**Status**: Proposed
+**Status**: Accepted
 
 ## Summary
 
