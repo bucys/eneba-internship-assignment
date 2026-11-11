@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read int|null $cheapest_price_cents Only present on queries using withCheapestPrice().
+ */
 #[Fillable([
     'slug',
     'name',
@@ -50,6 +53,23 @@ class Product extends Model
     protected function active(Builder $query): void
     {
         $query->where('is_active', true);
+    }
+
+    /**
+     * Adds `cheapest_price_cents`: the lowest price among active offers that still have a key to sell.
+     *
+     * @param  Builder<Product>  $query
+     */
+    #[Scope]
+    protected function withCheapestPrice(Builder $query): void
+    {
+        $query->select('products.*')->addSelect([
+            'cheapest_price_cents' => Offer::query()
+                ->selectRaw('MIN(offers.price_cents)')
+                ->whereColumn('offers.product_id', 'products.id')
+                ->where('offers.is_active', true)
+                ->whereHas('availableKeys'),
+        ]);
     }
 
     /**

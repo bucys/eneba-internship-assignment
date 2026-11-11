@@ -18,7 +18,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 3 | Data model | Foundation | done |
 | 4 | Design system & Eneba UI foundation | Foundation | done |
 | 5 | Seed catalog data | Foundation | done |
-| 6 | Walking skeleton + public deploy | Skeleton | planned |
+| 6 | Walking skeleton + public deploy | Skeleton | in-progress |
 | 7 | Authentication | Journey 1: Purchase | planned |
 | 8 | Product page with seller offers | Journey 1: Purchase | planned |
 | 9 | Cart | Journey 1: Purchase | planned |
@@ -92,10 +92,18 @@ spec [0004](../specs/0004-seed-catalog-data/index.md) · code in `server/databas
 
 ## Skeleton
 
-### 6. Walking skeleton + public deploy
+### 6. Walking skeleton + public deploy · in-progress
 Prove the stack is wired end to end and deployable before feature work: one product read from the database, served by the API, and rendered in the React app on a public URL.
 **Done when:** the public frontend URL shows a product fetched from the deployed backend and database, with no hardcoded hosts and secrets kept in environment variables.
+spec [0005](../specs/0005-walking-skeleton-deploy/index.md) · code in `server/`, `client/`
+- [x] Design it (spec): `/architect walking skeleton + public deploy`
 - [ ] Build it: `/develop walking skeleton + public deploy`
+  - [x] Products list API: cheapest price, discount, resource, rate limit (AC-1 to AC-5)
+  - [x] CORS and proxy trust (AC-6, AC-12)
+  - [x] Client data layer and home page grid with all states (AC-7 to AC-9)
+  - [ ] Dockerfile, checks green, CI on `main` (AC-10, AC-13)
+  - [ ] Deploy to Neon, Render, Vercel; seed and production checks (AC-11, AC-12)
+- [ ] Verify it: `/check verify walking skeleton + public deploy`
 
 ## Journey 1: Purchase
 
