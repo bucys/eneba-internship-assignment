@@ -15,7 +15,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 |---|---------|-------|--------|
 | 1 | Stack & architecture | Foundation | done |
 | 2 | Coding standards & tooling | Foundation | done |
-| 3 | Data model | Foundation | in-progress |
+| 3 | Data model | Foundation | done |
 | 4 | Design system & Eneba UI foundation | Foundation | planned |
 | 5 | Seed catalog data | Foundation | planned |
 | 6 | Walking skeleton + public deploy | Skeleton | planned |
@@ -54,17 +54,17 @@ code in `client/` (Prettier), `server/pint.json`, `server/phpstan.neon`, `.githu
   - [x] Commands documented in root and nested `AGENTS.md`
 - [x] Verify it: `/check verify coding standards & tooling` (CI goes green on a real push, and red on a deliberate lint error)
 
-### 3. Data model · in-progress
+### 3. Data model · done
 Core entities every journey rests on: users, products, platforms, regions, sellers, offers, key stock, carts, orders, and order items.
 **Done when:** the schema supports offers per seller, a unique key per purchased unit, a guest cart that merges on login, and order history, without a breaking migration later.
 spec [0002](../specs/0002-data-model/index.md) · code in `server/app/Models/`, `server/app/Enums/`, `server/database/migrations/`, `server/database/factories/`, `server/tests/Feature/DataModel/`, `server/tests/Migrations/`
 - [x] Design it (spec): `/architect data model`
-- [ ] Build it: `/develop data model`
+- [x] Build it: `/develop data model`
   - [x] Enums and the nine migrations with named checks, unique constraints, and indexes (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7)
   - [x] Eloquent models with relations, casts, scopes, and the order ULID, plus factories with states (AC-3, AC-5, AC-8)
   - [x] Pest schema tests, one violation per test, plus an isolated rollback test (AC-1 to AC-7)
-  - [ ] Pint, PHPStan, and Pest green locally and in CI (AC-9)
-- [ ] Verify it: `/check verify data model`
+  - [x] Pint, PHPStan, and Pest green locally and in CI (AC-9)
+- [x] Verify it: `/check verify data model`
 
 ### 4. Design system & Eneba UI foundation · needs a decision
 Eneba look and feel: colors, type, spacing, header, product card, buttons, and form fields, mobile first and accessible.

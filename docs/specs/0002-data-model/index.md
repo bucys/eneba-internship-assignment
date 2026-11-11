@@ -1,7 +1,7 @@
 # 0002. Relational data model for catalog, keys, cart, and orders
 
 **Date**: 2026-11-11
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
