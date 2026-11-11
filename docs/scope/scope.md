@@ -14,7 +14,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
 | 1 | Stack & architecture | Foundation | done |
-| 2 | Coding standards & tooling | Foundation | in-progress |
+| 2 | Coding standards & tooling | Foundation | done |
 | 3 | Data model | Foundation | planned |
 | 4 | Design system & Eneba UI foundation | Foundation | planned |
 | 5 | Seed catalog data | Foundation | planned |
@@ -41,7 +41,7 @@ spec [0001](../specs/0001-stack-architecture/index.md) · code in `client/`, `se
 - [x] Verify it: `/check verify stack & architecture`
 - [x] Test it: `/test stack & architecture`
 
-### 2. Coding standards & tooling · in-progress
+### 2. Coding standards & tooling · done
 Capture conventions from the real scaffold, then add lint, format, type and static analysis checks for both apps, and run them all in CI.
 **Done when:** root `AGENTS.md` reflects the real stack; in `client/`, Prettier, oxlint, and `tsc -b` run clean; in `server/`, Pint and PHPStan (Larastan) run clean; and a GitHub Actions workflow runs lint, format check, type and static analysis, tests, and the client build on every push and pull request, failing on any error.
 code in `client/` (Prettier), `server/pint.json`, `server/phpstan.neon`, `.github/workflows/ci.yml`
@@ -52,7 +52,7 @@ code in `client/` (Prettier), `server/pint.json`, `server/phpstan.neon`, `.githu
   - [x] Server: PHPStan with Larastan configured (`phpstan.neon`) at an agreed level, passing with no baseline errors hidden
   - [x] CI: GitHub Actions workflow with a server job (PHP 8.4, Postgres 17 service with `eneba_test`, Pint check, PHPStan, Pest) and a client job (`npm ci`, Prettier check, oxlint, typecheck, Vitest, build)
   - [x] Commands documented in root and nested `AGENTS.md`
-- [ ] Verify it: `/check verify coding standards & tooling` (CI goes green on a real push, and red on a deliberate lint error)
+- [x] Verify it: `/check verify coding standards & tooling` (CI goes green on a real push, and red on a deliberate lint error)
 
 ### 3. Data model · needs a decision
 Core entities every journey rests on: users, products, platforms, regions, sellers, offers, key stock, carts, orders, and order items.
