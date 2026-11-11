@@ -16,8 +16,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 1 | Stack & architecture | Foundation | done |
 | 2 | Coding standards & tooling | Foundation | done |
 | 3 | Data model | Foundation | done |
-| 4 | Design system & Eneba UI foundation | Foundation | planned |
-| 5 | Seed catalog data | Foundation | planned |
+| 4 | Design system & Eneba UI foundation | Foundation | done |
+| 5 | Seed catalog data | Foundation | in-progress |
 | 6 | Walking skeleton + public deploy | Skeleton | planned |
 | 7 | Authentication | Journey 1: Purchase | planned |
 | 8 | Product page with seller offers | Journey 1: Purchase | planned |
@@ -66,15 +66,29 @@ spec [0002](../specs/0002-data-model/index.md) · code in `server/app/Models/`, 
   - [x] Pint, PHPStan, and Pest green locally and in CI (AC-9)
 - [x] Verify it: `/check verify data model`
 
-### 4. Design system & Eneba UI foundation · needs a decision
+### 4. Design system & Eneba UI foundation · done
 Eneba look and feel: colors, type, spacing, header, product card, buttons, and form fields, mobile first and accessible.
 **Done when:** `design.md` covers tokens and base components, the shared header and layout render on mobile and desktop, and base components handle focus, keyboard, and contrast.
-- [ ] Design it (spec): `/architect design system & Eneba UI foundation`
+spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `client/src/components/`, `client/design.md`
+- [x] Design it (spec): `/architect design system & Eneba UI foundation`
+- [x] Build it: `/develop design system & Eneba UI foundation`
+  - [x] Tokens, Metropolis font, starter removed (AC-1, AC-2, AC-6, AC-15, AC-17)
+  - [x] Router layout shell: header, search, cart, footer, 404 (AC-3, AC-4, AC-5)
+  - [x] Base components: buttons, form fields, price, product card and grid, states, alert, toast (AC-8 to AC-13)
+  - [x] Dev only `/ui` showcase, `client/design.md` with contrast table, all checks green (AC-7, AC-14, AC-16, AC-17)
+- [x] Verify it: `/check verify design system & Eneba UI foundation`
 
-### 5. Seed catalog data · needs a decision
+### 5. Seed catalog data · in-progress
 A repeatable seed of about 60 to 100 games across platforms and regions, with 2 to 5 seller offers each and a pool of keys per offer.
 **Done when:** one command resets and seeds the database, with images, prices, and stock varied enough to make filters, sorting, and typo search meaningful.
-- [ ] Design it (spec): `/architect seed catalog data`
+spec [0004](../specs/0004-seed-catalog-data/index.md) · code in `server/database/data/catalog.php`, `server/database/seeders/`
+- [x] Design it (spec): `/architect seed catalog data`
+- [x] Build it: `/develop seed catalog data`
+  - [x] Catalog data file: 34 titles, 81 listings, sellers, facts from Steam (AC-2)
+  - [x] `OfferPlanner` with unit tests (AC-3, AC-4)
+  - [x] `CatalogSeeder` + `DatabaseSeeder` rewrite, with feature tests for rerun, top up, and environment guard (AC-1, AC-5, AC-6, AC-7)
+  - [x] Card ratio 2:3, cover URL check, all checks green (AC-8, AC-9, AC-10)
+- [ ] Verify it: `/check verify seed catalog data`
 
 ## Skeleton
 

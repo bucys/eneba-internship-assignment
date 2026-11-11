@@ -11,15 +11,17 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * No factories or Faker here, so `db:seed` runs without dev dependencies (spec 0004).
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call(CatalogSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        if (! app()->isProduction()) {
+            User::firstOrCreate(
+                ['email' => 'test@example.com'],
+                ['name' => 'Test User', 'password' => 'password'],
+            );
+        }
     }
 }

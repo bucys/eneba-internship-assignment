@@ -129,7 +129,7 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | Component | Props | Notes |
 |---|---|---|
 | `Price` | `price: Money \| null`, `listPrice?`, `discountPercent?`, `size?` (`md`, `lg`) | Price in `price` color. Strike plus `-NN%` badge only when `discountPercent > 0` and `listPrice` is set. `null` price shows "Out of stock" |
-| `ProductCard` | `slug`, `name`, `coverImageUrl`, `platformName`, `regionName`, `price`, `listPrice`, `discountPercent` | One link to `/products/<slug>`. 3:4 cover (`COVER_ASPECT_CLASS`), lazy image, `Gamepad2` placeholder when missing or broken. Name clamped to 2 lines. Sits on `surface`, hover `surface-deep` |
+| `ProductCard` | `slug`, `name`, `coverImageUrl`, `platformName`, `regionName`, `price`, `listPrice`, `discountPercent` | One link to `/products/<slug>`. 2:3 cover (`COVER_ASPECT_CLASS`, matches Steam portrait art), lazy image, `Gamepad2` placeholder when missing or broken. Name clamped to 2 lines. Sits on `surface`, hover `surface-deep` |
 | `ProductCardSkeleton` | none | Loading stand in with the same shape |
 | `ProductGrid` | `children` (cards) | `<ul>` grid: 2, 3 (`md`), 4 (`lg`), 5 (`xl`) columns, `gap-4` |
 

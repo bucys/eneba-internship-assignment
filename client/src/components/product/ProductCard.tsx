@@ -6,7 +6,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { Price } from "./Price";
 
 // One place to change the cover ratio once feature 5 picks the seed images.
-const COVER_ASPECT_CLASS = "aspect-[3/4]";
+const COVER_ASPECT_CLASS = "aspect-[2/3]";
 
 type ProductCardProps = {
   slug: string;

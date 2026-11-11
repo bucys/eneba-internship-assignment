@@ -88,7 +88,7 @@ A single repository containing separate frontend and backend applications, confi
 
 Decided in [spec 0001](docs/specs/0001-stack-architecture/index.md). Installed versions:
 
-- **Client** (`client/`): React 19.3, Vite 8, TypeScript 7, Node 24, npm, oxlint, Prettier (defaults), Vitest 5. Planned, not installed yet: React Router, TanStack Query, Tailwind CSS, React Testing Library.
+- **Client** (`client/`): React 19.3, Vite 8, TypeScript 7, Node 24, npm, oxlint, Prettier (defaults), Vitest 5, React Router 8 (data mode), Tailwind CSS 4, lucide-react, Fontsource Metropolis. Planned, not installed yet: TanStack Query, React Testing Library.
 - **Server** (`server/`): Laravel 13, PHP 8.4, Composer, Pest 4, Pint (`laravel` preset), PHPStan with Larastan (level 6, no baseline). Planned: Sanctum Bearer tokens. Deferred (not installed): Laravel Boost.
 - **Database**: PostgreSQL 17 (Docker Compose locally, Neon in production).
 - **Hosting**: Vercel (client), Render with Docker (server). Both deploy production from `main`.
@@ -131,6 +131,7 @@ Stored in `docs/specs/NNNN-title/` (`index.md`, `rationale.md`, `verify.md`). Sc
 - [vitest](.claude/skills/vitest/): `antfu/skills`, client tests
 - [tailwind-css-patterns](.claude/skills/tailwind-css-patterns/): `giuseppe-trisciuoglio/developer-kit`, styling
 - [deploy-to-vercel](.claude/skills/deploy-to-vercel/): `vercel-labs/agent-skills`, client deploys only
+- [react-router-data-mode](.claude/skills/react-router-data-mode/): `remix-run/agent-skills`, client routing (`createBrowserRouter`, loaders, actions)
 
 Declined: Pest skill, GitHub Actions skill, neon-serverless, render-mcp · MCP servers declined: Neon, Render
 

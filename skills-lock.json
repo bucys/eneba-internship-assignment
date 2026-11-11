@@ -13,6 +13,12 @@
       "skillPath": ".ai/laravel/skill/laravel-best-practices/SKILL.md",
       "computedHash": "a92d7c727eaa27cb5153af54203ff6dbf283bf4b6b31aad6f6a12517b471a306"
     },
+    "react-router-data-mode": {
+      "source": "remix-run/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-router-data-mode/SKILL.md",
+      "computedHash": "5d40bb993c36820762725a90d452b2dcc6055aac7f7ecc75e592303c486247cc"
+    },
     "tailwind-css-patterns": {
       "source": "giuseppe-trisciuoglio/developer-kit",
       "sourceType": "github",
