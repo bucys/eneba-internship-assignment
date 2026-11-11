@@ -40,20 +40,46 @@ it('allows only the frontend origin and matching previews', function (string $or
     'preview from another scope' => ['https://eneba-abc123xyz-other-team.vercel.app', null],
 ]);
 
-// With one origin and no patterns, the CORS package always sends that one origin,
-// so a browser on any other origin is still refused.
 it('allows no previews when the pattern is blank', function (string $origin) {
     loadCorsConfig(FRONTEND, '');
 
-    expect(config('cors.allowed_origins_patterns'))->toBe([]);
-
     $this->getJson('/api/v1/products', ['Origin' => $origin])
         ->assertOk()
-        ->assertHeader('Access-Control-Allow-Origin', FRONTEND);
+        ->assertHeaderMissing('Access-Control-Allow-Origin');
 })->with([
     'preview' => ['https://eneba-abc123xyz-team-slug.vercel.app'],
     'arbitrary origin' => ['https://evil.example.com'],
 ]);
+
+it('still allows the frontend when the pattern is blank', function () {
+    loadCorsConfig(FRONTEND, '');
+
+    $this->getJson('/api/v1/products', ['Origin' => FRONTEND])
+        ->assertOk()
+        ->assertHeader('Access-Control-Allow-Origin', FRONTEND);
+});
+
+it('matches the frontend origin exactly, not as a prefix or a regex', function (string $origin) {
+    loadCorsConfig(FRONTEND, '');
+
+    $this->getJson('/api/v1/products', ['Origin' => $origin])
+        ->assertOk()
+        ->assertHeaderMissing('Access-Control-Allow-Origin');
+})->with([
+    'longer host' => ['https://eneba.example.com.evil.test'],
+    'dot as wildcard' => ['https://enebaxexample.com'],
+    'other scheme' => ['http://eneba.example.com'],
+]);
+
+it('allows no origin when nothing is configured', function () {
+    loadCorsConfig('', '');
+
+    expect(config('cors.allowed_origins_patterns'))->toBe([]);
+
+    $this->getJson('/api/v1/products', ['Origin' => FRONTEND])
+        ->assertOk()
+        ->assertHeaderMissing('Access-Control-Allow-Origin');
+});
 
 it('never sends credentials', function () {
     loadCorsConfig(FRONTEND, PREVIEW_PATTERN);

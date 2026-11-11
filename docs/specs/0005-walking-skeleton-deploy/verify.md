@@ -38,7 +38,7 @@ _Steps derived from spec 0005 acceptance criteria. `/check verify` runs these; `
 - [ ] First visit after 15+ min idle shows the waking notice, then the grid → AC-8
 - [ ] `curl -sI -H "Origin: <vercel prod origin>" <render>/api/v1/products` → `Access-Control-Allow-Origin: <vercel prod origin>` → AC-6
 - [ ] A Vercel preview URL loads the grid (its origin matches `CORS_PREVIEW_ORIGIN_PATTERN`) → AC-6
-- [ ] `curl -sI -H "Origin: https://evil-eneba.vercel.app" <render>/api/v1/products` → no `Access-Control-Allow-Origin` header with the pattern set (with a blank pattern the header is the `FRONTEND_URL` origin, never the foreign one) → AC-6
+- [ ] `curl -sI -H "Origin: https://evil-eneba.vercel.app" <render>/api/v1/products` → no `Access-Control-Allow-Origin` header (true with the preview pattern set or blank) → AC-6
 - [ ] Temporary `Log::info($request->ip())` shows your real public IP in Render logs; then remove the line and redeploy → AC-12
 - [ ] `git grep -n -i -E "onrender\.com|neon\.tech|vercel\.app" -- ':!docs'` finds nothing → AC-11
 
