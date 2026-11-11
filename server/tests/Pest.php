@@ -18,6 +18,9 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
+// No RefreshDatabase here: these tests change the schema itself (see tests/Migrations).
+pest()->extend(TestCase::class)->in('Migrations');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
