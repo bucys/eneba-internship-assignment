@@ -75,11 +75,11 @@ Prioritize a working end-to-end purchasing flow, correct backend behavior and re
 A single repository containing separate frontend and backend applications, confirmed in [spec 0001](docs/specs/0001-stack-architecture/index.md):
 
 - `client/` — Vite React TS app (deployed to Vercel)
-- `server/` — Laravel 13 API (Dockerfile, deployed to Render)
+- `server/` — Laravel 13 API (Dockerfile planned for deployment, feature 6; deployed to Render)
 - `docs/` — specs, scope, reference, agent logs
 - `scripts/` — repo tooling (agent log export)
 - `docker/` — local Postgres init script
-- `.github/workflows/` — CI (planned, feature 2)
+- `.github/workflows/ci.yml` — CI on every push and PR: server job (Pint, PHPStan, Pest on Postgres 17) and client job (Prettier, oxlint, typecheck, Vitest, build)
 - `docker-compose.yml` — local Postgres only
 
 `docs/agent-logs/` is gitignored until the exported transcripts are reviewed and redacted. Remove that ignore line before submission.
@@ -88,8 +88,8 @@ A single repository containing separate frontend and backend applications, confi
 
 Decided in [spec 0001](docs/specs/0001-stack-architecture/index.md). Installed versions:
 
-- **Client** (`client/`): React 19.3, Vite 8, TypeScript 7, Node 24, npm, oxlint, Vitest 5. Planned, not installed yet: React Router, TanStack Query, Tailwind CSS, React Testing Library.
-- **Server** (`server/`): Laravel 13, PHP 8.4, Composer, Pest 4, Pint. Planned: Sanctum Bearer tokens. Deferred (not installed): Laravel Boost.
+- **Client** (`client/`): React 19.3, Vite 8, TypeScript 7, Node 24, npm, oxlint, Prettier (defaults), Vitest 5. Planned, not installed yet: React Router, TanStack Query, Tailwind CSS, React Testing Library.
+- **Server** (`server/`): Laravel 13, PHP 8.4, Composer, Pest 4, Pint (`laravel` preset), PHPStan with Larastan (level 6, no baseline). Planned: Sanctum Bearer tokens. Deferred (not installed): Laravel Boost.
 - **Database**: PostgreSQL 17 (Docker Compose locally, Neon in production).
 - **Hosting**: Vercel (client), Render with Docker (server). Both deploy production from `main`.
 
@@ -103,8 +103,11 @@ Decided in [spec 0001](docs/specs/0001-stack-architecture/index.md). Installed v
 docker compose up -d                        # local Postgres (eneba + eneba_test)
 cd client && npm install && npm run dev     # :5173
 cd server && composer install && php artisan migrate && php artisan serve   # :8000
-cd client && npm run build && npm run typecheck && npm run lint && npm test
+cd client && npm run format:check && npm run lint && npm run typecheck && npm test && npm run build
+cd client && npm run format              # Prettier write
 cd server && php artisan test               # Pest, against eneba_test
+cd server && composer format:check && composer analyse   # Pint check, PHPStan
+cd server && composer format                # Pint write
 python3 scripts/export-agent-logs.py        # export transcripts to docs/agent-logs/
 ```
 
@@ -134,3 +137,4 @@ Declined: Pest skill, GitHub Actions skill, neon-serverless, render-mcp · MCP s
 ## Context files
 
 - [client/AGENTS.md](client/AGENTS.md) (React SPA: commands, env and API conventions, test gotchas)
+- [server/AGENTS.md](server/AGENTS.md) (Laravel API: key files, error rendering, test DB gotchas)

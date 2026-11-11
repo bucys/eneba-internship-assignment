@@ -73,7 +73,7 @@ Reasoning, options, and sources: see [rationale.md](rationale.md).
 
 ```
 client/            Vite React TS app (deployed to Vercel)
-server/            Laravel 13 API (Dockerfile, deployed to Render)
+server/            Laravel 13 API (Dockerfile planned for deployment, feature 6; deployed to Render)
 docs/              specs, scope, reference, agent-logs
 scripts/           repo tooling (agent log export)
 .github/workflows/ CI
@@ -148,5 +148,5 @@ Client (Vercel, set for **both** Production and Preview; local in `client/.env.e
 - [ ] **Deployment risk, preview pattern:** the Vercel project name and scope slug are only known once the Vercel project exists. Fill in `CORS_PREVIEW_ORIGIN_PATTERN` then. Long branch names may be truncated at 63 characters, which the regex must allow.
 - [ ] Check that Neon supports the `pg_trgm` extension before the search spec (feature 14) relies on it.
 - [ ] The GitHub Actions CI workflow belongs with feature 2 (Coding standards & tooling), next to lint, format, and type checks.
-- [ ] Update root `AGENTS.md` (`/audit` or `/sync`): confirm `server/` is Laravel 13, and add an `## Agent skills` section listing the 6 installed skills (`laravel-best-practices`, `tanstack-query`, `vite`, `vitest`, `tailwind-css-patterns`, `deploy-to-vercel`). All are project wide except `deploy-to-vercel`, which is deploy only. Record as declined: the Pest and GitHub Actions skills, `neon-serverless` (a JS driver, not used from PHP), `render-mcp`, and the Neon and Render MCP servers, so they aren't offered again.
+- [x] Update root `AGENTS.md` (`/audit` or `/sync`): confirm `server/` is Laravel 13, and add an `## Agent skills` section listing the 6 installed skills (`laravel-best-practices`, `tanstack-query`, `vite`, `vitest`, `tailwind-css-patterns`, `deploy-to-vercel`). All are project wide except `deploy-to-vercel`, which is deploy only. Record as declined: the Pest and GitHub Actions skills, `neon-serverless` (a JS driver, not used from PHP), `render-mcp`, and the Neon and Render MCP servers, so they aren't offered again.
 - [ ] Consider adding `docs/.agent-cache/` to `.gitignore` (it holds research caches, not project docs).

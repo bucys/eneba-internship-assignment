@@ -12,6 +12,7 @@ The Vite + React + TypeScript single page app, deployed as static files to Verce
 | `src/env.d.ts` | Types for `import.meta.env` |
 | `vercel.json` | Rewrites every path to `/index.html` (SPA routing) |
 | `.oxlintrc.json` | Lint rules (react, typescript, oxc plugins) |
+| `.prettierrc.json` | Prettier defaults; `.prettierignore` skips `dist`, the lockfile and Markdown |
 | `.nvmrc` | Node 24, matches `engines` in `package.json` |
 
 ## Commands
@@ -21,7 +22,8 @@ npm install
 npm run dev        # Vite on :5173
 npm run build      # tsc -b && vite build
 npm run typecheck  # tsc -b
-npm run lint       # oxlint
+npm run lint       # oxlint --deny-warnings
+npm run format     # Prettier write (format:check in CI)
 npm test           # vitest run
 ```
 
