@@ -72,11 +72,65 @@ Prioritize a working end-to-end purchasing flow, correct backend behavior and re
 
 ## Repository structure
 
-Prefer a single repository containing separate frontend and backend applications.
+A single repository containing separate frontend and backend applications, confirmed in [spec 0001](docs/specs/0001-stack-architecture/index.md):
 
-Proposed directories:
-- `client/` — React frontend
-- `server/` — Laravel backend
-- `docs/` — specifications, decisions and agent logs
+- `client/` — Vite React TS app (deployed to Vercel)
+- `server/` — Laravel 13 API (Dockerfile, deployed to Render)
+- `docs/` — specs, scope, reference, agent logs
+- `scripts/` — repo tooling (agent log export)
+- `docker/` — local Postgres init script
+- `.github/workflows/` — CI (planned, feature 2)
+- `docker-compose.yml` — local Postgres only
 
-Final structure must be confirmed during `/architect`.
+`docs/agent-logs/` is gitignored until the exported transcripts are reviewed and redacted. Remove that ignore line before submission.
+
+## Stack
+
+Decided in [spec 0001](docs/specs/0001-stack-architecture/index.md). Installed versions:
+
+- **Client** (`client/`): React 19.3, Vite 8, TypeScript 7, Node 24, npm, oxlint, Vitest 5. Planned, not installed yet: React Router, TanStack Query, Tailwind CSS, React Testing Library.
+- **Server** (`server/`): Laravel 13, PHP 8.4, Composer, Pest 4, Pint. Planned: Sanctum Bearer tokens. Deferred (not installed): Laravel Boost.
+- **Database**: PostgreSQL 17 (Docker Compose locally, Neon in production).
+- **Hosting**: Vercel (client), Render with Docker (server). Both deploy production from `main`.
+
+## Build approach
+
+**Journey**: finish one whole user path, with all its states, before starting the next.
+
+## Commands
+
+```bash
+docker compose up -d                        # local Postgres (eneba + eneba_test)
+cd client && npm install && npm run dev     # :5173
+cd server && composer install && php artisan migrate && php artisan serve   # :8000
+cd client && npm run build && npm run typecheck && npm run lint && npm test
+cd server && php artisan test               # Pest, against eneba_test
+python3 scripts/export-agent-logs.py        # export transcripts to docs/agent-logs/
+```
+
+## Specs
+
+Stored in `docs/specs/NNNN-title/` (`index.md`, `rationale.md`, `verify.md`). Scope lives in `docs/scope/scope.md`.
+
+## Rules
+
+- All API routes live under `/api/v1` and return JSON (API Resource `{ data }` wrapper, Laravel default error shape).
+- Server code shape: thin controllers → Form Requests → service/action classes → API Resources.
+- Money is integer cents plus an ISO currency code (EUR only). Never floats.
+- Every host and secret comes from env variables; each app commits a `.env.example`.
+- Tests run against Postgres, never SQLite.
+
+## Agent skills
+
+- [laravel-best-practices](.claude/skills/laravel-best-practices/): `laravel/boost`, Laravel code in `server/`
+- [tanstack-query](.claude/skills/tanstack-query/): `tanstack-skills/tanstack-skills`, client server data
+- [vite](.claude/skills/vite/): `antfu/skills`, client build config
+- [vitest](.claude/skills/vitest/): `antfu/skills`, client tests
+- [tailwind-css-patterns](.claude/skills/tailwind-css-patterns/): `giuseppe-trisciuoglio/developer-kit`, styling
+- [deploy-to-vercel](.claude/skills/deploy-to-vercel/): `vercel-labs/agent-skills`, client deploys only
+
+Declined: Pest skill, GitHub Actions skill, neon-serverless, render-mcp · MCP servers declined: Neon, Render
+
+## Context files
+
+- [client/AGENTS.md](client/AGENTS.md) (React SPA: commands, env and API conventions, test gotchas)

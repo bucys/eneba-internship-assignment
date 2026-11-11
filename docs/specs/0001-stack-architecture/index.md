@@ -139,7 +139,7 @@ Client (Vercel, set for **both** Production and Preview; local in `client/.env.e
 ## Follow-up
 
 - [ ] Create the GitHub repository and push (there's no remote or commit yet). Render, Vercel, and CI all deploy from it.
-- [ ] After scaffolding `server/`, install Laravel Boost as a dev dependency (`composer require laravel/boost --dev`), then connect its MCP server (`php artisan boost:mcp`) in your MCP settings. You chose this.
+- [ ] **Deferred (not installed yet):** after scaffolding `server/`, install Laravel Boost as a dev dependency (`composer require laravel/boost --dev`), then connect its MCP server (`php artisan boost:mcp`) in your MCP settings. You chose this.
 - [ ] Check at scaffold time: the current stable versions of React, Vite (the installed `vite` skill mentions Vite 8), Tailwind, TanStack Query, and React Router, and that the `serversideup/php:8.4-fpm-nginx` tag exists (otherwise use `8.5-fpm-nginx` and pin PHP 8.5). `/audit` records the real versions in `AGENTS.md`.
 - [ ] Check at scaffold time that `DB::prohibitDestructiveCommands()` exists in Laravel 13 (it isn't in the docs fetched for this spec). If it doesn't, guard the four destructive commands yourself.
 - [ ] **Deployment risk, proxy spoofing (verify in feature 6):** after the first deploy, send 6 login attempts for one email, each with a different fake `X-Forwarded-For`. The 6th must return 429. Also log `$request->ip()` once, then remove the log, to confirm it shows your real IP rather than a Render internal address. If it shows the internal address, set the image's `TRUSTED_PROXY` accordingly or switch the per IP limits to the email or user keys only.
