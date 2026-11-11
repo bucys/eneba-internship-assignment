@@ -17,7 +17,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 2 | Coding standards & tooling | Foundation | done |
 | 3 | Data model | Foundation | done |
 | 4 | Design system & Eneba UI foundation | Foundation | done |
-| 5 | Seed catalog data | Foundation | in-progress |
+| 5 | Seed catalog data | Foundation | done |
 | 6 | Walking skeleton + public deploy | Skeleton | planned |
 | 7 | Authentication | Journey 1: Purchase | planned |
 | 8 | Product page with seller offers | Journey 1: Purchase | planned |
@@ -78,7 +78,7 @@ spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `clie
   - [x] Dev only `/ui` showcase, `client/design.md` with contrast table, all checks green (AC-7, AC-14, AC-16, AC-17)
 - [x] Verify it: `/check verify design system & Eneba UI foundation`
 
-### 5. Seed catalog data · in-progress
+### 5. Seed catalog data · done
 A repeatable seed of about 60 to 100 games across platforms and regions, with 2 to 5 seller offers each and a pool of keys per offer.
 **Done when:** one command resets and seeds the database, with images, prices, and stock varied enough to make filters, sorting, and typo search meaningful.
 spec [0004](../specs/0004-seed-catalog-data/index.md) · code in `server/database/data/catalog.php`, `server/database/seeders/`
@@ -88,7 +88,7 @@ spec [0004](../specs/0004-seed-catalog-data/index.md) · code in `server/databas
   - [x] `OfferPlanner` with unit tests (AC-3, AC-4)
   - [x] `CatalogSeeder` + `DatabaseSeeder` rewrite, with feature tests for rerun, top up, and environment guard (AC-1, AC-5, AC-6, AC-7)
   - [x] Card ratio 2:3, cover URL check, all checks green (AC-8, AC-9, AC-10)
-- [ ] Verify it: `/check verify seed catalog data`
+- [x] Verify it: `/check verify seed catalog data`
 
 ## Skeleton
 

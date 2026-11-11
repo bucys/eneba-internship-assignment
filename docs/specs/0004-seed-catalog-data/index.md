@@ -1,7 +1,7 @@
 # 0004. Seed catalog: curated PHP data file, deterministic offer planner, idempotent upserts
 
 **Date**: 2026-11-11
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
