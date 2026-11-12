@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PRODUCT_TYPE_LABELS, productQuery } from "./products";
+
+vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
 describe("PRODUCT_TYPE_LABELS", () => {
   it("labels every product type", () => {
