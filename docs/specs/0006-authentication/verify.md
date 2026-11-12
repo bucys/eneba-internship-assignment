@@ -32,11 +32,11 @@ _Steps derived from spec 0006 acceptance criteria and its Value sourcing table. 
 - [x] `cd server && php artisan test tests/Feature/Auth` → all pass (AC-1 to AC-6) → AC-15
 - [x] `cd server && composer format:check && composer analyse` → pass → AC-15
 - [x] `cd client && npm run format:check && npm run lint && npm run typecheck && npm test && npm run build` → pass → AC-15
-- [ ] CI on the pushed commit → server and client jobs green → AC-15
+- [x] CI on the pushed commit → server and client jobs green → AC-15
 - [x] `curl -i -X POST $API/api/v1/auth/logout` (no Accept header, no token) → 401 JSON `{"message":"Unauthenticated."}`, not HTML and not 500 → AC-4
 - [x] `curl -i -X POST -H 'Origin: <a preview URL>' $API/api/v1/auth/logout` → 403 `{"message":"Preview deployments are read only."}` → AC-6
-- [ ] Production smoke test: register, `GET /auth/me`, logout, then the same token on `/auth/me` → 201, 200, 204, 401 → AC-1, AC-4
-- [ ] `curl -sI <production site>` → `Content-Security-Policy: frame-ancestors 'none'`; the page source has the CSP `<meta>` with `connect-src` naming the production API origin → security model (CSP)
+- [x] Production smoke test: register, `GET /auth/me`, logout, then the same token on `/auth/me` → 201, 200, 204, 401 → AC-1, AC-4
+- [x] `curl -sI <production site>` → `Content-Security-Policy: frame-ancestors 'none'`; the page source has the CSP `<meta>` with `connect-src` naming the production API origin → security model (CSP)
 
 ## Value sourcing checks
 - [x] Token: the response token's id part matches a `personal_access_tokens` row named `spa` → AC-1
@@ -46,8 +46,8 @@ _Steps derived from spec 0006 acceptance criteria and its Value sourcing table. 
 - [x] Password byte limit: 36 × `é` (72 bytes) is accepted, 37 × `é` (74 bytes) is rejected even though it is only 37 characters → AC-2
 - [x] Wrong password text equals Laravel's `auth.failed` line → AC-3
 - [x] `Retry-After` on a 429 is readable from the browser (`Access-Control-Expose-Headers: Retry-After`); a header of `0` shows "1 second", missing shows "60 seconds" → AC-5, AC-8
-- [ ] Login limiter key: `"  Ana@X.com "` and `"ana@x.com"` share one bucket; 20 different emails from one IP hit the IP limit on the 21st → AC-5
-- [ ] Account limiter key is the user: two users from one IP each get 60 `/me` calls → AC-5
+- [x] Login limiter key: `"  Ana@X.com "` and `"ana@x.com"` share one bucket; 20 different emails from one IP hit the IP limit on the 21st → AC-5
+- [x] Account limiter key is the user: two users from one IP each get 60 `/me` calls → AC-5
 - [x] Preview guard reads `Origin` against `CORS_PREVIEW_ORIGIN_PATTERN`: a blank pattern blocks nothing; `FRONTEND_URL` is never blocked → AC-6
 - [x] Active tab and `<h1>` follow the route path (`/login` → Sign in, `/register` → Create account) → AC-7
 - [x] Post sign in destination is `safeRedirect(redirectTo)`: `/orders?x=1` kept, `/register` → `/` → AC-9
@@ -55,10 +55,10 @@ _Steps derived from spec 0006 acceptance criteria and its Value sourcing table. 
 - [x] An unknown 422 key (for example `errors.name` on sign in) shows in the form alert, not under a field → AC-8 _(verified 2026-11-12, `/check verify`: mocked 422 `errors.name` on `/login` rendered "Name problem from server." in the form `role="alert"`, production build)_
 - [x] Header name comes from the `['me']` cache: after sign in no `/me` call; after a reload exactly one → AC-8, AC-11
 - [x] Header shows the placeholder only while a token exists and `['me']` is pending → AC-11
-- [ ] 401 handler acts only when the sent token equals the current one and the path is not `/auth/logout` → AC-12, AC-13
+- [x] 401 handler acts only when the sent token equals the current one and the path is not `/auth/logout` → AC-12, AC-13
 - [x] Protected route detection: only routes with `handle.requiresAuth` navigate on a 401 → AC-13
-- [ ] `redirectTo` built by the app is `encodeURIComponent(pathname + search)`, with the hash dropped → AC-9, AC-13
-- [ ] Other tab changes arrive through the `storage` event for key `eneba.auth_token` → AC-14
+- [x] `redirectTo` built by the app is `encodeURIComponent(pathname + search)`, with the hash dropped → AC-9, AC-13
+- [x] Other tab changes arrive through the `storage` event for key `eneba.auth_token` → AC-14
 - [x] Toast text is exactly "You're signed out."; placeholder name is exactly "Loading account"; orders placeholder copy matches → AC-10, AC-11, AC-12
 
 ## Acceptance-criteria coverage

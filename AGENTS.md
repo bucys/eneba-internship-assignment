@@ -89,7 +89,7 @@ A single repository containing separate frontend and backend applications, confi
 Decided in [spec 0001](docs/specs/0001-stack-architecture/index.md). Installed versions:
 
 - **Client** (`client/`): React 19.3, Vite 8, TypeScript 7, Node 24, npm, oxlint, Prettier (defaults), Vitest 5, React Router 8 (data mode), Tailwind CSS 4, lucide-react, Fontsource Metropolis, TanStack Query. Planned, not installed yet: React Testing Library.
-- **Server** (`server/`): Laravel 13, PHP 8.4, Composer, Pest 4, Pint (`laravel` preset), PHPStan with Larastan (level 6, no baseline). Planned: Sanctum Bearer tokens. Deferred (not installed): Laravel Boost.
+- **Server** (`server/`): Laravel 13, PHP 8.4, Composer, Pest 4, Pint (`laravel` preset), PHPStan with Larastan (level 6, no baseline). Sanctum 4 (Bearer tokens, [spec 0006](docs/specs/0006-authentication/index.md)). Deferred (not installed): Laravel Boost.
 - **Database**: PostgreSQL 17 (Docker Compose locally, Neon in production).
 - **Hosting**: Vercel (client), Render with Docker (server). Both deploy production from `main`.
 

@@ -19,7 +19,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 4 | Design system & Eneba UI foundation | Foundation | done |
 | 5 | Seed catalog data | Foundation | done |
 | 6 | Walking skeleton + public deploy | Skeleton | done |
-| 7 | Authentication | Journey 1: Purchase | in-progress |
+| 7 | Authentication | Journey 1: Purchase | done |
 | 8 | Product page with seller offers | Journey 1: Purchase | planned |
 | 9 | Cart | Journey 1: Purchase | planned |
 | 10 | Checkout & simulated payment | Journey 1: Purchase | planned |
@@ -109,17 +109,17 @@ spec [0005](../specs/0005-walking-skeleton-deploy/index.md) · code in `server/`
 
 The assignment's core path, built completely first: product page → cart → sign in → pay → receive key → find it again in order history.
 
-### 7. Authentication · in-progress
+### 7. Authentication · done
 Create an account, sign in, sign out, and guard the parts only signed in users may reach (checkout, orders).
 **Done when:** a visitor can register and sign in, protected pages redirect to sign in and return afterward, and validation and wrong password errors render clearly.
 spec [0006](../specs/0006-authentication/index.md) · code in `server/app/Actions/Auth/`, `client/src/lib/auth.ts`, `client/src/pages/AuthPage.tsx`
 - [x] Design it (spec): `/architect authentication`
-- [ ] Build it: `/develop authentication`
+- [x] Build it: `/develop authentication`
   - [x] Server auth API: Sanctum, register, login, me, logout (AC-1 to AC-4)
   - [x] Rate limits, exposed `Retry-After`, preview write guard (AC-5, AC-6)
   - [x] Client auth core: token store, `apiFetch` Bearer and 401 handling, `safeRedirect`, Vitest (AC-8, AC-9, AC-12 to AC-15)
-  - [ ] Auth page with tabs, header account menu, sign out, `/orders` guard, checks green and deployed (AC-7 to AC-15)
-- [ ] Verify it: `/check verify authentication`
+  - [x] Auth page with tabs, header account menu, sign out, `/orders` guard, checks green and deployed (AC-7 to AC-15)
+- [x] Verify it: `/check verify authentication`
 
 ### 8. Product page with seller offers · needs a decision
 One game's details plus the offers from several sellers, so a buyer can compare price and seller and pick one.

@@ -9,16 +9,18 @@ The Vite + React + TypeScript single page app, deployed as static files to Verce
 | File | Owns |
 |---|---|
 | [`design.md`](design.md) | Design system: tokens, contrast table, type, layout, focus, motion, every component's props and states |
-| `src/router.tsx` | All routes under one `AppLayout`; `*` renders the 404; dev only `/ui` showcase behind `import.meta.env.DEV` |
+| `src/router.tsx` | All routes under one `AppLayout`; `*` renders the 404; dev only `/ui` showcase behind `import.meta.env.DEV`; `/login` and `/register` share `AuthPage`, `/orders` is guarded |
 | `src/index.css` | Tailwind v4 `@theme` tokens (default palette cleared), base focus ring, reduced motion rule |
 | `src/lib/money.ts` | `formatPrice`, the only place cents are divided by 100 |
 | `src/components/` | `layout/` (shell, header, footer), `ui/` (base components, toasts), `product/` (price, card, grid) |
-| `src/api/` | `client.ts` (`apiFetch`, `ApiError`, 90 s timeout) and one typed file per resource (`products.ts`) |
+| `src/api/` | `client.ts` (`apiFetch`, `ApiError`, 90 s timeout, Bearer token, 401 handler hook) and one typed file per resource (`products.ts`, `auth.ts`) |
+| `src/lib/auth.ts`, `src/lib/authToken.ts`, `src/lib/safeRedirect.ts` | Auth ([spec 0006](../docs/specs/0006-authentication/index.md)): `['me']` query, `signOut`, `requireAuth` / `redirectIfSignedIn` loaders, 401 and other tab handlers; the token store (`eneba.auth_token` in `localStorage`); the only place a `redirectTo` is checked or built |
 | `src/lib/queryClient.ts` | TanStack Query client: retry once after 3 s on network errors and 5xx, never mutations |
 | `src/lib/useSlowPending.ts` | True after 3 s of pending; drives the "waking up the server" notice |
 | `src/lib/env.ts` | The only reader of `VITE_API_URL`; strips trailing slashes, throws if unset |
 | `src/env.d.ts` | Types for `import.meta.env` |
-| `vercel.json` | Rewrites every path to `/index.html` (SPA routing) |
+| `vite.config.ts` | Production build injects the CSP `<meta>`, with `connect-src` taken from `VITE_API_URL` |
+| `vercel.json` | Rewrites every path to `/index.html` (SPA routing); sends `Content-Security-Policy: frame-ancestors 'none'` |
 | `.oxlintrc.json` | Lint rules (react, typescript, oxc plugins) |
 | `.prettierrc.json` | Prettier defaults; `.prettierignore` skips `dist`, the lockfile and Markdown |
 | `.nvmrc` | Node 24, matches `engines` in `package.json` |
@@ -45,10 +47,13 @@ npm test           # vitest run
 - Style only with token utilities from `src/index.css` (`bg-surface`, `text-fg-muted`); no hex or arbitrary `[#...]` colors. A new color needs a token plus a contrast row in `design.md`.
 - Each page renders exactly one `<h1>`; components never render one. Routes not built yet fall through to the 404 page.
 - Check new or changed components on `/ui` in `npm run dev` (it does not exist in production builds).
+- A signed in only route gets `loader: ({ request }) => requireAuth(request)` and `handle: { requiresAuth: true }` (the 401 handler navigates only from routes with that handle).
+- Send every post sign in or sign in redirect through `safeRedirect` / `loginPath`; never trust `redirectTo` directly.
 
 ## Gotchas
 
 - `env.ts` reads the variable at import time, so tests stub it with `vi.stubEnv` and re import with `vi.resetModules()` (see `src/lib/env.test.ts`).
+- `npm run build` throws when `VITE_API_URL` is unset (the CSP needs the API origin), so CI sets it on the build step. Dev has no CSP.
 - `VITE_API_URL` must be set in Vercel for both Production and Preview. Previews call the production API, which blocks their writes (403), so test checkout locally.
 
 ## Agent skills
