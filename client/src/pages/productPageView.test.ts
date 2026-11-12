@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
+
 import { ApiError } from "../api/client";
 import { getProductPageView, productPageTitle } from "./productPageView";
 
