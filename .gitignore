@@ -7,3 +7,4 @@ vendor/
 agent-logs-backup/
 docs/agent-logs/
 docs/.agent-cache/
+.playwright-mcp/

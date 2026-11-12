@@ -37,10 +37,19 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    'exposed_headers' => ['Retry-After'],
 
     'max_age' => 0,
 
     'supports_credentials' => false,
+
+    /*
+    | Not read by the CORS package. BlockPreviewWrites uses them to return 403
+    | for writes from preview origins (spec 0006 AC-6).
+    */
+
+    'frontend_url' => $frontendUrl,
+
+    'preview_origin_pattern' => $previewPattern,
 
 ];

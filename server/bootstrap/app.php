@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\BlockPreviewWrites;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
             at: '*',
             headers: Request::HEADER_X_FORWARDED_PROTO,
         );
+
+        // Before throttling and auth:sanctum, so a preview write gets 403 rather than 401 or 429.
+        $middleware->prependToGroup('api', BlockPreviewWrites::class);
+
+        // This API has no login page, so a guest gets the 401 JSON even without an Accept header (spec 0006 AC-4).
+        $middleware->redirectGuestsTo(null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

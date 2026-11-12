@@ -1,3 +1,4 @@
+import { authToken } from "../lib/authToken";
 import { env } from "../lib/env";
 
 export type ApiErrorKind = "http" | "network" | "timeout";
@@ -7,6 +8,7 @@ type ApiErrorInit = {
   status: number;
   message: string;
   errors?: Record<string, string[]>;
+  retryAfter?: number;
 };
 
 // `status` is 0 for network and timeout failures, which never got a response.
@@ -14,13 +16,16 @@ export class ApiError extends Error {
   readonly kind: ApiErrorKind;
   readonly status: number;
   readonly errors?: Record<string, string[]>;
+  /** Seconds to wait, set only on a 429. */
+  readonly retryAfter?: number;
 
-  constructor({ kind, status, message, errors }: ApiErrorInit) {
+  constructor({ kind, status, message, errors, retryAfter }: ApiErrorInit) {
     super(message);
     this.name = "ApiError";
     this.kind = kind;
     this.status = status;
     this.errors = errors;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -44,6 +49,31 @@ export type Paginated<T> = {
 export const API_TIMEOUT_MS = 90_000;
 
 const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
+
+const DEFAULT_RETRY_AFTER_SECONDS = 60;
+
+/** Seconds from a Retry-After header: at least 1, or 60 when missing or not a number. */
+export function parseRetryAfter(header: string | null): number {
+  if (header === null || !/^\d+$/.test(header.trim())) {
+    return DEFAULT_RETRY_AFTER_SECONDS;
+  }
+  return Math.max(1, Number.parseInt(header, 10));
+}
+
+export type UnauthorizedEvent = {
+  /** The token the failed request carried. */
+  token: string;
+  path: string;
+};
+
+let unauthorizedHandler: ((event: UnauthorizedEvent) => void) | null = null;
+
+/** Registered once in main.tsx, which keeps this file free of router imports. */
+export function setUnauthorizedHandler(
+  handler: ((event: UnauthorizedEvent) => void) | null,
+) {
+  unauthorizedHandler = handler;
+}
 
 type LaravelErrorBody = {
   message?: unknown;
@@ -69,6 +99,10 @@ async function toHttpError(response: Response): Promise<ApiError> {
       typeof body.errors === "object" && body.errors !== null
         ? (body.errors as Record<string, string[]>)
         : undefined,
+    retryAfter:
+      response.status === 429
+        ? parseRetryAfter(response.headers.get("Retry-After"))
+        : undefined,
   });
 }
 
@@ -81,6 +115,11 @@ export async function apiFetch<T>(
   headers.set("Accept", "application/json");
   if (init.body !== undefined && init.body !== null) {
     headers.set("Content-Type", "application/json");
+  }
+  // A caller that sends its own token (sign out) handles its own 401, so only the stored token is reported.
+  const sentToken = headers.has("Authorization") ? null : authToken.get();
+  if (sentToken !== null) {
+    headers.set("Authorization", `Bearer ${sentToken}`);
   }
 
   const timeoutSignal = AbortSignal.timeout(API_TIMEOUT_MS);
@@ -115,7 +154,11 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
-    throw await toHttpError(response);
+    const error = await toHttpError(response);
+    if (response.status === 401 && sentToken !== null) {
+      unauthorizedHandler?.({ token: sentToken, path });
+    }
+    throw error;
   }
 
   if (response.status === 204) {

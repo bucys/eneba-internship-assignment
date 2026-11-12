@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { API_TIMEOUT_MS, ApiError, apiFetch } from "./client";
+import { authToken } from "../lib/authToken";
+import {
+  API_TIMEOUT_MS,
+  ApiError,
+  apiFetch,
+  parseRetryAfter,
+  setUnauthorizedHandler,
+} from "./client";
 
 vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
@@ -144,5 +151,97 @@ describe("apiFetch", () => {
 
     expect(error).not.toBeInstanceOf(ApiError);
     expect((error as DOMException).name).toBe("AbortError");
+  });
+});
+
+describe("parseRetryAfter", () => {
+  // covers: AC-8
+  it.each([
+    ["30", 30],
+    ["0", 1],
+    [" 5 ", 5],
+    [null, 60],
+    ["soon", 60],
+    ["", 60],
+    ["1.5", 60],
+  ])("parses %j as %i seconds", (header, expected) => {
+    expect(parseRetryAfter(header)).toBe(expected);
+  });
+});
+
+describe("apiFetch auth", () => {
+  afterEach(() => {
+    authToken.clear();
+    setUnauthorizedHandler(null);
+  });
+
+  // covers: AC-8
+  it("sends the Bearer token when one is stored, and none otherwise", async () => {
+    const fetchMock = stubFetch(async () => jsonResponse(200, {}));
+
+    await apiFetch("/auth/me");
+    authToken.set("abc");
+    await apiFetch("/auth/me");
+
+    const first = new Headers(fetchMock.mock.calls[0][1]?.headers);
+    const second = new Headers(fetchMock.mock.calls[1][1]?.headers);
+    expect(first.has("Authorization")).toBe(false);
+    expect(second.get("Authorization")).toBe("Bearer abc");
+  });
+
+  // covers: AC-8
+  it("puts Retry-After seconds on a 429 error", async () => {
+    stubFetch(
+      async () =>
+        new Response(JSON.stringify({ message: "Too Many Attempts." }), {
+          status: 429,
+          headers: { "Retry-After": "42" },
+        }),
+    );
+
+    const error = await catchError(apiFetch("/auth/login"));
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).retryAfter).toBe(42);
+  });
+
+  // covers: AC-13
+  it("calls the unauthorized handler with the token it sent on a 401", async () => {
+    const handler = vi.fn();
+    setUnauthorizedHandler(handler);
+    stubFetch(async () => jsonResponse(401, { message: "Unauthenticated." }));
+
+    await catchError(apiFetch("/auth/me"));
+    expect(handler).not.toHaveBeenCalled();
+
+    authToken.set("sent-token");
+    const error = await catchError(apiFetch("/auth/me"));
+
+    expect((error as ApiError).status).toBe(401);
+    expect(handler).toHaveBeenCalledExactlyOnceWith({
+      token: "sent-token",
+      path: "/auth/me",
+    });
+  });
+
+  // covers: AC-12
+  it("keeps a caller's own token and leaves its 401 to the caller", async () => {
+    const handler = vi.fn();
+    setUnauthorizedHandler(handler);
+    const fetchMock = stubFetch(async () =>
+      jsonResponse(401, { message: "Unauthenticated." }),
+    );
+    authToken.set("stored-token");
+
+    await catchError(
+      apiFetch("/auth/logout", {
+        method: "POST",
+        headers: { Authorization: "Bearer own-token" },
+      }),
+    );
+
+    const sent = new Headers(fetchMock.mock.calls[0][1]?.headers);
+    expect(sent.get("Authorization")).toBe("Bearer own-token");
+    expect(handler).not.toHaveBeenCalled();
   });
 });
