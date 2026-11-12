@@ -1,6 +1,8 @@
 # Verify: Walking skeleton + public deploy · spec 0005 · updated 2026-11-12
 _Steps derived from spec 0005 acceptance criteria. `/check verify` runs these; `/test` locks the durable ones._
 
+**Current status (2026-11-12): Feature 6 PASS.** All 13 acceptance criteria are met, see the final verdict at the end of this file. The older logs below each record the status at their own time.
+
 ## UI / manual (local: `php artisan serve` + `npm run dev`, seeded dev DB)
 - [x] Open `/` → one `<h1>`, then an `<h2>` "Browse games" with 24 product cards (cover, name, platform · region, price, strikethrough list price, discount badge) → AC-7 · passed on production 2026-11-12, see V11
 - [x] Click a card → goes to `/products/<slug>` (shows the 404 page until feature 8) → AC-7 · passed on production 2026-11-12, see V12
@@ -20,30 +22,30 @@ _Steps derived from spec 0005 acceptance criteria. `/check verify` runs these; `
 - [x] `discount_percent`: list 3999, price 1299 → 67; list 1000, price 999 → no badge (rounds to 0) → AC-4 · passed at the API on an isolated local DB 2026-11-12 (67, then `null`), see D9
 - [x] Waking notice: shows only while fetching with no data, after 3 s → AC-8 · passed 2026-11-12, see V13, V14
 - [x] Loading count 12 and empty copy match the spec → AC-7 · passed 2026-11-12, see V13, V15
-- [ ] `apiFetch` base URL comes only from `VITE_API_URL` (`grep -rn "import.meta.env" client/src` only hits `src/lib/env.ts`) → AC-9
+- [x] `apiFetch` base URL comes only from `VITE_API_URL`: `git grep -n -F 'import.meta.env' -- client/src ':!client/src/**/*.test.ts' ':!client/src/**/*.test.tsx' | grep -v -F 'import.meta.env.DEV'` → exactly one line, `client/src/lib/env.ts:1` (`import.meta.env.DEV`, the dev route switch, is allowed) → AC-9 · reworded 2026-11-12 (the old `grep -rn "import.meta.env"` also hit the allowed `DEV` reads); passed, see W1
 - [x] Timeout 90 s, retry once, no mutation retry: covered by `src/api/client.test.ts` and `src/lib/queryClient.test.ts` → AC-8 · passed, evidence: GitHub CI run 43173320123 on `a12f635`, 2026-11-12 (not run locally for this record), `client` job Vitest step
 - [x] CORS origins come from `FRONTEND_URL` and `CORS_PREVIEW_ORIGIN_PATTERN` (see production steps) → AC-6 · passed on production 2026-11-12, see C1 to C4
-- [ ] Rate limit keyed by IP after proxy trust (see production steps) → AC-5, AC-12
+- [x] Rate limit keyed by IP after proxy trust (see production steps) → AC-5, AC-12 · passed on production 2026-11-12, see A1
 
 ## Commands
 - [x] `cd server && composer format:check && composer analyse && php artisan test` → all pass → AC-1 to AC-6, AC-13 · passed, evidence: GitHub CI run 43173320123 on `a12f635`, 2026-11-12 (not run locally for this record), `server` job (Pint, PHPStan, Pest on Postgres 17)
 - [x] `cd client && npm run format:check && npm run lint && npm run typecheck && npm test && npm run build` → all pass → AC-8, AC-9, AC-13 · passed, evidence: GitHub CI run 43173320123 on `a12f635`, 2026-11-12 (not run locally for this record), `client` job (Prettier, oxlint, TypeScript, Vitest, build)
 - [x] CI run for the push to `main` is green (`gh run list --branch main --limit 1`) → AC-13 · passed 2026-11-12: run 43173320123 on `a12f635` (includes `349b0d7` and `362eb44`), `server` job (Pint, PHPStan, Pest) and `client` job (Prettier, oxlint, TypeScript, Vitest, build) both green. Earlier runs 43096577646 and 43098464245 stayed stuck in GitHub's queue and were not retried. Rechecked 2026-11-12: run 43200375403 on `99123a1` (the proxy trust fix) is green too.
 - [x] `cd server && docker build -t eneba-server:local .` then run it with the spec 0001 env vars against an empty DB → logs show migrations, no seed; `curl localhost:8080/up` → 200; container health `healthy` → AC-10 · passed locally 2026-11-12 against a fresh isolated Postgres 17, see D1 to D4, D11
-- [x] `for i in $(seq 121); do curl -s -o /dev/null -w "%{http_code}\n" <api>/api/v1/products; done | tail -1` → 429, and the response has `Retry-After` → AC-5 · passed against the local container 2026-11-12 (same image, not Render), see D10; the production run is still not done
+- [x] `for i in $(seq 121); do curl -s -o /dev/null -w "%{http_code}\n" <api>/api/v1/products; done | tail -1` → 429, and the response has `Retry-After` → AC-5 · passed against the local container 2026-11-12 (same image, not Render), see D10; the production run is still not done; a production run is not required by the spec, see W3; the "per client IP on Render" part is proven by A1
 
 ## Production (after Neon, Render, Vercel setup)
 - [x] Render first deploy log shows the migrations and a passing `/up` health check → AC-10 · passed, evidence: Render dashboard checked by you 2026-11-12, see R2 to R6
 - [x] Vercel production URL shows seeded games; DevTools shows the request to the Render origin → AC-11 · passed 2026-11-12, see V11
-- [ ] First visit after 15+ min idle shows the waking notice, then the grid → AC-8
+- [x] First visit after 15+ min idle shows the waking notice, then the grid → AC-8 · passed on production 2026-11-12, real cold start (API 35.5 s), see K1
 - [x] `curl -sI -H "Origin: <vercel prod origin>" <render>/api/v1/products` → `Access-Control-Allow-Origin: <vercel prod origin>` → AC-6 · passed, evidence: production run 2026-11-12, see Verification log V6
-- [ ] A Vercel preview URL loads the grid (its origin matches `CORS_PREVIEW_ORIGIN_PATTERN`) → AC-6 · still open 2026-11-12: no Preview deployment exists, and Render refuses preview shaped origins, see P1 to P5; update: the Render CORS side now passes (C1 to C4), only the browser load of a real Preview remains
+- [x] A Vercel preview URL loads the grid (its origin matches `CORS_PREVIEW_ORIGIN_PATTERN`) → AC-6 · still open 2026-11-12: no Preview deployment exists, and Render refuses preview shaped origins, see P1 to P5; update: the Render CORS side now passes (C1 to C4), only the browser load of a real Preview remains; **passed 2026-11-12** in your Chrome on the real Preview, see PV5 and the AC-6 verdict
 - [x] `curl -sI -H "Origin: https://evil-eneba.vercel.app" <render>/api/v1/products` → no `Access-Control-Allow-Origin` header (true with the preview pattern set or blank) → AC-6 · passed, evidence: production run 2026-11-12, see Verification log V7
-- [ ] Temporary `Log::info($request->ip())` shows your real public IP in Render logs; then remove the line and redeploy → AC-12
-- [ ] `git grep -n -i -E "onrender\.com|neon\.tech|vercel\.app" -- ':!docs'` finds nothing → AC-11
+- [x] Real client IP on Render, by one of the two AC-12 methods: the cache lookup (one IPv4 request with a forged `X-Forwarded-For`, then a read only query on the Neon `cache` table), or the fallback temporary `Log::info($request->ip())` (deploy, compare, remove, redeploy) → AC-12 · reworded 2026-11-12 to match the updated AC-12 (the old step named only the log line); passed on production 2026-11-12 with the cache lookup, no code deployed, see A1
+- [x] No real host committed (two commands, both must print nothing): `git grep -n -i -E 'onrender\.com|neon\.tech|vercel\.app' -- ':!docs' ':!server/tests'` and `git grep -n -i -E 'onrender\.com|neon\.tech|eneba-internship-assignment' -- ':!docs'` → AC-11 · reworded 2026-11-12 (the old single grep also hit the made up fixture origins in `server/tests/Feature/CorsTest.php`); passed, see W2
 
 ## Acceptance criteria coverage
-- AC-1: Pest list tests; value sourcing steps 1 to 3 · AC-2: Pest shape test; item steps · AC-3: Pest price rule; price step · AC-4: Pest unit `DiscountTest`; discount step · AC-5: Pest `CatalogRateLimitTest`; 121 request curl · AC-6: Pest `CorsTest`; production CORS steps · AC-7: UI steps; Vitest mapping · AC-8: UI throttling and stopped API steps; Vitest timeout and retry · AC-9: Vitest `apiFetch`; Network tab step · AC-10: Docker run; Render deploy log · AC-11: production URL; git grep · AC-12: Render IP log · AC-13: command steps and CI
+- AC-1: Pest list tests; value sourcing steps 1 to 3 · AC-2: Pest shape test; item steps · AC-3: Pest price rule; price step · AC-4: Pest unit `DiscountTest`; discount step · AC-5: Pest `CatalogRateLimitTest`; 121 request curl · AC-6: Pest `CorsTest`; production CORS steps · AC-7: UI steps; Vitest mapping · AC-8: UI throttling and stopped API steps; Vitest timeout and retry · AC-9: Vitest `apiFetch`; Network tab step · AC-10: Docker run; Render deploy log · AC-11: production URL; git grep · AC-12: Pest proxy trust tests in `CatalogRateLimitTest`; Neon cache lookup (or the log line fallback) · AC-13: command steps and CI
 
 ## Verification log · `/check verify` · 2026-11-12
 
@@ -252,3 +254,175 @@ Context: you set `CORS_PREVIEW_ORIGIN_PATTERN` on Render (the spec 0001 shape fo
 - C4 · `supports_credentials` false: an allowed preview origin gets no `Access-Control-Allow-Credentials` header.
 
 AC-6 server side: **met** (`FRONTEND_URL` allowed, pattern origins allowed, others refused, no credentials). The finding in P4 is resolved. Still open for AC-6: the step "A Vercel preview URL loads the grid", which needs a real Preview deployment opened while logged in to Vercel (steps 2 and 3 of "To finish AC-6" above). Feature 6 stays **BLOCKED**.
+
+
+## Verification log · `/check verify` (AC-6 real Preview) · 2026-11-12
+
+Result: **BLOCKED** at the browser step. The Preview exists and Render allows its origins, but the page could not be opened behind Vercel Deployment Protection.
+
+- PV1 · Evidence committed on `main` as `858db01` (local only, `main` not pushed). Branch `verify/preview-cors` created at `858db01` and pushed alone. `git ls-remote`: `origin/main` stays at `99123a1`, `origin/verify/preview-cors` is at `858db01`.
+- PV2 · Vercel built a Preview automatically from the push: the GitHub status on `858db01` is "Vercel success Deployment has completed" about 20 s later. `vercel ls … --environment preview` → 1 Ready Preview. `vercel inspect` → target `preview`, status Ready, created 2026-11-12 17:52:24 (UTC+2).
+  - Deployment URL: `https://eneba-internship-assignment-4f3v45uwi-<scope>.vercel.app`
+  - Branch alias: `https://eneba-internship-assignment-git-3bef42-<scope>.vercel.app` (Vercel shortened the branch name to `3bef42`; it still matches the `git-[a-z0-9-]+` form of the pattern)
+  - No manual deploy was made.
+- PV3 · Render CORS for both real Preview origins (`GET /api/v1/products?page=1`, `Accept: application/json`): 200, and `Access-Control-Allow-Origin` equals the origin exactly, for both.
+- PV4 · Both Preview URLs answer `302` to `https://vercel.com/sso-api` (Vercel Deployment Protection). A Vercel share link (`get_access_to_vercel_url`) was tried as authorized access and was **denied by the session permission check**. Protection was not disabled and no other bypass was tried.
+
+Not verified (needs authorized access to the Preview): the React app loading, 24 products, the browser request to Render succeeding, the `Access-Control-Allow-Origin` seen by the browser, and a clean console. The preview step stays unticked; AC-6 stays open.
+
+How to finish (your call):
+- Open `https://eneba-internship-assignment-4f3v45uwi-<scope>.vercel.app` in your own browser while logged in to Vercel. Check: 24 cards; DevTools → Network → `products?page=1` → 200 with `access-control-allow-origin` equal to the Preview origin; Console → no errors. Send the result (or screenshots) to record here.
+- Or allow the share link permission for this session (`mcp__claude_ai_Vercel__get_access_to_vercel_url`, a 23 hour link on this Preview only) and rerun this check with Playwright.
+- Afterwards, delete the temporary branch (`git push origin --delete verify/preview-cors`, `git branch -D verify/preview-cors`) if you no longer need it.
+
+
+## Verification log · AC-6 Preview browser check (reported by you) · 2026-11-12
+
+Source: you opened the Preview in Chrome, logged in to Vercel, on 2026-11-12 and reported the results. This was not reobserved from this session (the share link was denied, PV4).
+
+- PV5 · `https://eneba-internship-assignment-4f3v45uwi-<scope>.vercel.app` (the Preview from PV2): the React app loads; 24 product cards render; `GET https://eneba-api.onrender.com/api/v1/products?page=1` → 200; `Access-Control-Allow-Origin` equals the Preview origin exactly; the browser console has no errors.
+
+### AC-6 verdict: **PASS** ✅
+
+| AC-6 part | Evidence |
+|---|---|
+| `Origin` equal to `FRONTEND_URL` gets `Access-Control-Allow-Origin` set to that origin | V6, C1 |
+| An origin matching `CORS_PREVIEW_ORIGIN_PATTERN` is allowed | C1 (deployment and branch forms), C3 (preflight), PV3 (both real Preview origins), PV5 (real Preview in a browser) |
+| Any other origin, for example `https://evil-eneba.vercel.app`, gets no header | V7, C2 (10 lookalike and unrelated origins), C3 |
+| An empty pattern allows no previews | P3 (preview shaped origins refused before the pattern was set on Render; the Render value was not read at that time), Pest `CorsTest` in CI |
+| `supports_credentials` is false | C4 |
+| Applies to `api/*` | every check above hit `/api/v1/products` |
+
+### Feature 6 status after this update: **BLOCKED** (not complete)
+
+Met: AC-1, AC-2, AC-3, AC-4, AC-6, AC-7, AC-9, AC-10, AC-11, AC-13.
+Still open:
+- AC-5: the 121 request check on Render (passed only on the local container, D10).
+- AC-8: a real cold start after 15+ minutes idle (passed only with a simulated delay, V13).
+- AC-12: the real client IP log check on Render.
+- The wording fixes owed for the V9 (AC-9) and V10 (AC-11) steps.
+- Cleanup: the temporary branch `verify/preview-cors` is still on origin.
+
+
+## Verification log · documentation review (V9, V10, AC-5, AC-12) · 2026-11-12
+
+No requests were sent to Render or the production frontend. No code, configuration, or infrastructure changed. Only this file changed.
+
+- W1 · V9 fix (AC-9). The old step's `grep -rn "import.meta.env" client/src` also matches the allowed `import.meta.env.DEV` reads in `src/router.tsx` (line 8 and a comment on line 6) and a comment in `src/pages/UiShowcasePage.tsx`, so it could never pass. The new command excludes `import.meta.env.DEV` and test files. On the current tree it prints exactly `client/src/lib/env.ts:1:const apiUrl = import.meta.env.VITE_API_URL;`. Negative control (a throwaway repo outside the project): it catches both `import.meta.env.VITE_API_URL` and `const { VITE_API_URL } = import.meta.env` in another file, and ignores a `.test.ts` file. Note: `git grep -E` on macOS does not support `\b`; a first draft using it matched nothing at all (a false pass), so the fixed string form `-F` is used.
+- W2 · V10 fix (AC-11). The old single grep matched 5 made up fixture origins in `server/tests/Feature/CorsTest.php` (`eneba-abc123xyz-team-slug.vercel.app`, `evil-eneba.vercel.app`, and similar). The new step runs two greps: the first excludes `server/tests` (catches any host in app code or config), the second scans tests too but only for real hosts (`onrender.com`, `neon.tech`, and this project's Vercel name `eneba-internship-assignment`). Both print nothing on the current tree. Negative control: a hard coded `https://eneba-api.onrender.com` in `client/src` and a `*.onrender.com` in `server/` are caught by both; the real production Vercel origin inside a test file is caught by the second.
+- W3 · AC-5 finding: **a production 121 request test is not explicitly required.**
+  - AC-5's text sets the rule (120 per minute per client IP, `catalog` limiter, `database` store, 429 with `Retry-After` on the 121st) but names no environment. The spec's test plan assigns it to Pest ("Rate limit (Pest): 120 requests pass, the 121st returns 429 with `Retry-After`"). The spec's manual production list ("Deployed", and build step 11) covers AC-8, AC-10, AC-11, and AC-12, not AC-5. The curl step sits under Commands with a generic `<api>`, not under Production.
+  - Evidence in hand: Pest `CatalogRateLimitTest` green in CI (run 43200375403 on `99123a1`, which also added the forged header regression test); D10, the production image in production mode on the `database` store, gave 120 × 200, then 429 with `Retry-After: 54`; V3 shows production sends `x-ratelimit-limit: 120`, so the limiter is live on Render; you reported that 5 forged `X-Forwarded-For` values shared one bucket on Render.
+  - What this does not prove: that the production bucket is keyed on the **real** client IP (it could in theory be one shared proxy address), and that Render uses the `database` store (`config/cache.php` defaults to `database`, but the Render `CACHE_STORE` value was not read). Both close with the W4 check below, so AC-5 needs no separate production load test.
+  - Recommendation: treat AC-5 as met for the limit, 429, and `Retry-After`, and close its "per client IP on Render" part together with AC-12.
+- W4 · AC-12 review and proposal.
+  - **Resolved later on 2026-11-12:** spec 0001 (`index.md`, `rationale.md`) and spec 0005 (`index.md`, `rationale.md`) now record the NGINX `CF-Connecting-IP` design, Laravel trusting only `X-Forwarded-Proto`, and the cache lookup as the preferred AC-12 method. The original note follows for the record.
+  - Spec drift (needs `/architect`, not fixed here): AC-12 says "`bootstrap/app.php` trusts proxies as spec 0001 states". Spec 0001 (Proxy trust) says `trustProxies(at: '*', headers: X_FORWARDED_FOR | X_FORWARDED_HOST | X_FORWARDED_PORT | X_FORWARDED_PROTO)`. Since `99123a1` the code trusts only `HEADER_X_FORWARDED_PROTO`, on purpose (forged `X-Forwarded-For` bypassed the limit), with `TRUSTED_PROXY=cloudflare` pinned in the Dockerfile. The code is the safer choice, but the first half of AC-12 cannot pass as written until spec 0001 records the new design.
+  - How the IP is set (read from the local image, no network): access logging is off in every NGINX site config, so Render logs never show client IPs. `TRUSTED_PROXY=cloudflare` includes `/etc/nginx/trusted-proxy/cloudflare.conf`: `real_ip_header CF-Connecting-IP`, `real_ip_recursive on`, and 28 `set_real_ip_from` ranges (Cloudflare plus the private ranges `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1`, `fd00::/8`). Laravel trusts only the scheme, so `$request->ip()` is `REMOTE_ADDR` as NGINX sets it.
+  - **Least invasive check (proposed, no code change, no deploy):** the `catalog` limiter stores its counter in the `cache` table under `<prefix>` + `md5('catalog' . $request->ip())` (`ThrottleRequests` hashes named limiter keys with `md5($limiterName.$limit->key)`; the prefix is `CACHE_PREFIX`, else `slug(APP_NAME)-cache-`). So:
+    1. Find your public IPv4 (for example your router, or `curl -4 https://api.ipify.org`).
+    2. Send one request over the same IPv4: `curl -4 -s -o /dev/null https://eneba-api.onrender.com/api/v1/products`.
+    3. In the Neon SQL editor, run this read only query: `SELECT key, expiration FROM cache WHERE key LIKE '%' || md5('catalog' || '<your IPv4>') || '%';`
+    4. Expect 2 rows (the counter and its `:timer`). A match proves `$request->ip()` equals your real IP on Render. It also proves the `database` store (W3). No rows means a different IP was used. Then `SELECT count(*) FROM cache WHERE key LIKE '%-cache-%';` shows whether any limiter rows exist at all.
+  - This reads one production table and changes nothing. It differs from the method named in AC-12 ("a temporary log line"), so either accept it as equivalent or ask `/architect` to reword AC-12. The spec's own method (add `Log::info($request->ip())`, deploy, read the Render log, remove, deploy again) remains the fallback; it needs a code change and two deploys.
+  - Derived from code, not yet observed: the key formula comes from the installed `ThrottleRequests` source and `config/cache.php`. Step 4 is the observation.
+
+### Feature 6 status after this review: **BLOCKED** (not complete)
+
+Met: AC-1, AC-2, AC-3, AC-4, AC-6, AC-7, AC-9, AC-10, AC-11, AC-13. AC-5 met except its "per client IP on Render" part (W3).
+Still open:
+- AC-8: a real cold start after 15+ minutes idle (you are running it now).
+- AC-12: the real client IP on Render (W4 step 4, or the spec's log line method), plus the spec 0001 drift, which needs `/architect`.
+- AC-5: the "per client IP on Render" part, which closes with AC-12.
+- Cleanup: the temporary branch `verify/preview-cors` is still on origin.
+
+
+## Verification log · `/check verify` (AC-8 real cold start) · 2026-11-12
+
+Result: AC-8 **met**. Overall Feature 6 stays **BLOCKED** (AC-12 and the AC-5 per IP part are open).
+
+How it ran: Playwright MCP (Chromium), one page load of `https://eneba-internship-assignment.vercel.app/` at 2026-11-12 16:20:51 UTC (18:20:51 EET). No route, mock, or interception was active (`unrouteAll` first). No warm up request was sent: the last request from this session to Render was the PV3 check, about 27 minutes earlier (requests from other people, such as your PV5 Chrome check, are not visible here). The page state was sampled every 250 ms, so the times below are accurate to about ±0.25 s. Screenshots `v18-cold-skeletons.png`, `v18-cold-notice.png`, and `v18-cold-loaded.png` are in the session scratch folder under `evidence/`.
+
+- K1 · Timeline (ms after navigation start):
+
+  | t | Observed |
+  |---|---|
+  | 266 | `GET https://eneba-api.onrender.com/api/v1/products?page=1` sent |
+  | 454 | section rendered: 12 skeleton cards, 0 product cards, no notice |
+  | 3329 | `role="status"` notice: "Waking up the server. The first visit after a quiet spell can take up to a minute." (about 3.06 s after the request started); still 12 skeletons |
+  | 35759 | API response 200 (request took 35.5 s), `rndr-id` header present, `access-control-allow-origin: https://eneba-internship-assignment.vercel.app` |
+  | 35831 | 24 product cards, 0 skeletons, notice gone |
+  | +1.5 s | still 24 cards, 0 `role="status"` elements, one `<h1>` |
+
+- The 35.5 s response shows the service really was asleep (warm responses earlier in this file took about 0.8 s or less, for example V2 and R1).
+- One API request only: no retry (correct, the request did not fail) and no "Try again" click; the grid loaded on its own. It finished well inside the 90 s `apiFetch` timeout.
+- Console: 0 errors, 0 warnings, 0 uncaught page errors during the whole run.
+
+### Feature 6 status after this run: **BLOCKED** (not complete)
+
+Met: AC-1, AC-2, AC-3, AC-4, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-13. AC-5 met except its "per client IP on Render" part.
+Still open:
+- AC-12: the real client IP on Render (W4 query, or the spec's log line method), plus the spec 0001 drift, which needs `/architect`.
+- AC-5: the "per client IP on Render" part, which closes with AC-12.
+- Cleanup: the temporary branch `verify/preview-cors` is still on origin.
+
+
+## Verification log · AC-12 production check (reported by you) · 2026-11-12
+
+Source: you ran the cache lookup procedure (the preferred method in AC-12) on 2026-11-12 and reported the results. It was not reobserved from this session: this session sent no request to Render and ran no query on Neon. Your public IPv4 and its hash are left out on purpose. The forged `X-Forwarded-For` values were TEST-NET addresses (`198.51.100.0/24`).
+
+- A0 · Code half, checked locally (read only): `server/Dockerfile` line 6 `ENV TRUSTED_PROXY=cloudflare`; `server/bootstrap/app.php` `trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_PROTO)`, so `X-Forwarded-For` is never trusted. Pest `CatalogRateLimitTest` has "ignores a forged X-Forwarded-For when keying the limit" and "still builds https links from X-Forwarded-Proto" (added in `99123a1`, green in CI run 43200375403, V8). How the key is built was read from the installed Laravel 13.42.0 source and checked on a throwaway local container: `<cache prefix>` + `md5('catalog' . $request->ip())`, plus a second row with `:timer`, in the `cache` table (`key`, `value`, `expiration`).
+- A1 · Production, one IPv4 request to `GET https://eneba-api.onrender.com/api/v1/products` with a forged `X-Forwarded-For`, then a read only transaction in the Neon SQL editor:
+
+  | Item | Reported value | Reading |
+  |---|---|---|
+  | Request start `T0` | `1794501469` | |
+  | Request end `T1` | `1794501494` | 25 s, so the service was likely waking up |
+  | Q1 · rows whose key contains `md5('catalog' \|\| '<your public IPv4>')` | 2 (the counter and its `:timer`) | `$request->ip()` on Render is your real public IPv4 |
+  | Expiration of those rows | `1794501554` | `T0 < 1794501554 ≤ T1 + 60`: equal to `T1 + 60`, so the window opened with this request (fresh, not stale) |
+  | Q2 · rows for the forged `X-Forwarded-For` addresses | `forged_rows = 0` | a forged `X-Forwarded-For` opens no bucket |
+  | Q3 · limiter shaped rows (`[0-9a-f]{32}(:timer)?$`) | `limiter_rows = 8`, `fresh_rows = 2` | the limiter writes to the `cache` table in Neon, so production uses the `database` store; the 2 fresh rows are exactly this request's pair |
+
+  Not reported, and not needed for the verdict: the counter value `i:N;`, and the optional forged `CF-Connecting-IP` request.
+
+### AC-12 verdict: **PASS** ✅
+
+| AC-12 part | Evidence |
+|---|---|
+| NGINX resolves the IP from `CF-Connecting-IP`, `TRUSTED_PROXY=cloudflare` pinned in the Dockerfile | A0; W4 (the image's `cloudflare.conf`) |
+| `bootstrap/app.php` trusts only `X-Forwarded-Proto` | A0; Pest proxy trust tests in CI (V8) |
+| On Render, `$request->ip()` equals your real public IP | A1 Q1 with a fresh expiration |
+| A forged `X-Forwarded-For` does not change it | A1 Q2; your earlier report of 5 forged values sharing one bucket |
+| Observed once in production, no diagnostic code deployed | A1 used the cache lookup; no code change and no deploy were made for it |
+
+### AC-5: now met in full
+
+The limit, the 429, and `Retry-After` were already proven (D10, Pest in CI, V3 shows `x-ratelimit-limit: 120` on Render). A1 adds the last two parts: on Render the bucket is keyed per real client IP, and it lives in the `database` store (Q3). No production load test was run (W3).
+
+## Final verdict · Feature 6 (spec 0005) · 2026-11-12
+
+**PASS** ✅. Every acceptance criterion has cited evidence. Some evidence was reported by you from dashboards or your own browser (R2 to R6, PV5, A1) and is marked that way where it is recorded.
+
+| AC | Status | Evidence |
+|---|---|---|
+| AC-1 | ✅ met | V4, V5, D6, D7; Pest |
+| AC-2 | ✅ met | V3, D6; Pest |
+| AC-3 | ✅ met | D8 (API), U1 (UI); Pest |
+| AC-4 | ✅ met | V3, D9; Pest `DiscountTest` |
+| AC-5 | ✅ met | D10, V3, A1, W3; Pest `CatalogRateLimitTest` |
+| AC-6 | ✅ met | V6, V7, C1 to C4, PV3, PV5; Pest `CorsTest` |
+| AC-7 | ✅ met | V11 to V15, K1 |
+| AC-8 | ✅ met | V13, V14, K1 (real cold start); Vitest in CI |
+| AC-9 | ✅ met | V11, W1; Vitest in CI |
+| AC-10 | ✅ met | D1 to D4, D11, R2 to R6 |
+| AC-11 | ✅ met | V1, V11, W2; both `.env.example` files list the keys this feature reads (server: `FRONTEND_URL`, `CORS_PREVIEW_ORIGIN_PATTERN`, `CACHE_STORE`, `DB_URL`, `APP_KEY` and the rest; client: `VITE_API_URL`) |
+| AC-12 | ✅ met | A0, A1 |
+| AC-13 | ✅ met | CI runs 43173320123 and 43200375403 green on `main` (V8) |
+
+Every step in this file is ticked.
+
+Housekeeping, not part of any criterion (your call):
+- The spec 0001 and spec 0005 edits and this file are not committed yet. Local `main` is ahead of `origin/main` (`99123a1`) by docs only commits; CI on `main` runs once you push.
+- The temporary branch `verify/preview-cors` and its Preview deployment still exist (`git push origin --delete verify/preview-cors`, `git branch -D verify/preview-cors`).
+- The Vercel CLI is still logged in on this machine (`vercel logout` if you do not want that).
+- `server/AGENTS.md` still says there is no `routes/api.php` and no `config/cors.php`; both exist now. `/sync` can fix that and update the scope.

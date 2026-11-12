@@ -13,6 +13,9 @@ The Vite + React + TypeScript single page app, deployed as static files to Verce
 | `src/index.css` | Tailwind v4 `@theme` tokens (default palette cleared), base focus ring, reduced motion rule |
 | `src/lib/money.ts` | `formatPrice`, the only place cents are divided by 100 |
 | `src/components/` | `layout/` (shell, header, footer), `ui/` (base components, toasts), `product/` (price, card, grid) |
+| `src/api/` | `client.ts` (`apiFetch`, `ApiError`, 90 s timeout) and one typed file per resource (`products.ts`) |
+| `src/lib/queryClient.ts` | TanStack Query client: retry once after 3 s on network errors and 5xx, never mutations |
+| `src/lib/useSlowPending.ts` | True after 3 s of pending; drives the "waking up the server" notice |
 | `src/lib/env.ts` | The only reader of `VITE_API_URL`; strips trailing slashes, throws if unset |
 | `src/env.d.ts` | Types for `import.meta.env` |
 | `vercel.json` | Rewrites every path to `/index.html` (SPA routing) |
@@ -35,7 +38,7 @@ npm test           # vitest run
 ## Conventions
 
 - Read config through `src/lib/env.ts`, never `import.meta.env` directly, and never hardcode a host.
-- Every API call goes to `${env.apiUrl}/api/v1/...` through one typed `apiFetch` wrapper (planned), which sends `Accept: application/json` and throws `ApiError { status, message, errors? }`.
+- Every API call goes to `${env.apiUrl}/api/v1/...` through one typed `apiFetch` wrapper (`src/api/client.ts`), which sends `Accept: application/json` and throws `ApiError { status, message, errors? }`.
 - API types are hand written, one file per resource, mirroring the Laravel API Resource (`{ data }` wrapper; paginated lists use `{ data, links, meta }`).
 - Money arrives as `{ amount, currency }` in integer cents; format with `Intl.NumberFormat`, never float math.
 - Tests sit beside the source as `*.test.ts` (Vitest).

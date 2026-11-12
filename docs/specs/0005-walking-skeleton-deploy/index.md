@@ -1,7 +1,7 @@
 # 0005. Walking skeleton: the product list endpoint, a home page grid, and the first public deploy
 
 **Date**: 2026-11-11
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
@@ -26,7 +26,9 @@ You build the first real path through the whole stack: Postgres rows, a Laravel 
 - **AC-9**: The client reads the API origin only through `env.apiUrl` (`src/lib/env.ts`). `apiFetch` always sends `Accept: application/json` (plus `Content-Type: application/json` when it sends a body), calls `${env.apiUrl}/api/v1/...`, and on a non 2xx response throws `ApiError { status, message, errors? }` parsed from Laravel's JSON error body (falling back to a generic message when the body is not JSON).
 - **AC-10**: `server/Dockerfile` builds on `serversideup/php:8.4-fpm-nginx`, runs `composer install --no-dev --optimize-autoloader`, and serves the app on port 8080. With the container env vars from spec 0001, migrations run on start (`AUTORUN_ENABLED=true`, default mode, no seed) and `GET /up` returns 200 through Render's health check.
 - **AC-11**: The public Vercel production URL shows seeded products fetched from the public Render API backed by Neon. No host, connection string, or key is committed: every value comes from env vars listed in spec 0001 *Configuration required*, and both `.env.example` files list every key this feature reads.
-- **AC-12**: `bootstrap/app.php` trusts proxies as spec 0001 states. On Render, `$request->ip()` returns your real public IP (checked once with a temporary log line, then the line is removed).
+- **AC-12**: Proxy trust matches spec 0001: NGINX resolves the client IP from `CF-Connecting-IP` (`TRUSTED_PROXY=cloudflare` pinned in the Dockerfile), and `bootstrap/app.php` trusts only `X-Forwarded-Proto`, never `X-Forwarded-For`. On Render, `$request->ip()` (the value the `catalog` limiter keys on) equals your real public IP, and a forged `X-Forwarded-For` does not change it. You observe this once in production, using either method below, and leave no diagnostic code deployed:
+  - **Cache lookup (preferred, no code change):** send one request over IPv4 with a forged `X-Forwarded-For`, then run a read only query on the Neon `cache` table. A row whose key contains `md5('catalog' || '<your public IPv4>')` must exist with an expiration within about a minute of the request, and no row may contain `md5('catalog' || '<forged IP>')`.
+  - **Log line (fallback):** add a temporary `Log::info($request->ip())`, deploy, compare the logged value with your public IP, then remove the line and redeploy.
 - **AC-13**: All existing checks still pass (`npm run format:check && npm run lint && npm run typecheck && npm test && npm run build`; `composer format:check && composer analyse && php artisan test`), now including this feature's tests, and CI is green on `main`.
 
 ## Decision
@@ -148,7 +150,7 @@ The query retry predicate retries at most once, and only for `kind === "network"
 | `apiFetch` | base URL | `env.apiUrl` from `VITE_API_URL` (spec 0001) |
 | `apiFetch` | timeout 90 s, retry once, no mutation retry | spec 0001 *Cold starts* |
 | CORS | allowed origins | `FRONTEND_URL`, `CORS_PREVIEW_ORIGIN_PATTERN` env vars (spec 0001) |
-| Rate limit | 120 per minute, keyed by IP | decided here; IP is `$request->ip()` after proxy trust (spec 0001) |
+| Rate limit | 120 per minute, keyed by IP | decided here; IP is `$request->ip()`, which is `REMOTE_ADDR` as NGINX set it from `CF-Connecting-IP` (spec 0001) |
 
 **Key invariants**:
 - The price on a card is always something a buyer can actually purchase right now (active offer with stock). It is computed at read time, never stored (spec 0002).
@@ -156,7 +158,7 @@ The query retry predicate retries at most once, and only for `kind === "network"
 - No host or secret appears in git. The client knows only `VITE_API_URL`.
 - Production migrations never drop data: autorun mode stays `default`, seeding stays off on start, and the destructive command guard from spec 0001 stays on.
 
-**Security model**: the catalog is public and read only, so no auth. The `catalog` limiter caps scraping at 120 per minute per IP. A spoofed `X-Forwarded-For` can only buy more reads, which is harmless here. Feature 7 keys the sensitive limits by email or user, as spec 0001 says. CORS allows only the exact production origin and this project's preview pattern, never a wildcard. No write endpoints exist yet, so the `BlockPreviewWrites` middleware lands with feature 7, the first write. No PII is involved.
+**Security model**: the catalog is public and read only, so no auth. The `catalog` limiter caps scraping at 120 per minute per IP. Laravel ignores `X-Forwarded-For`, so a spoofed value cannot open a fresh bucket (fix `99123a1`, covered by a Pest regression test and AC-12). Feature 7 keys the sensitive limits by email or user, as spec 0001 says. CORS allows only the exact production origin and this project's preview pattern, never a wildcard. No write endpoints exist yet, so the `BlockPreviewWrites` middleware lands with feature 7, the first write. No PII is involved.
 
 **Configuration required** (all already named in spec 0001; nothing new):
 - Render (app): `APP_KEY`, `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, `DB_CONNECTION=pgsql`, `DB_URL` (Neon direct, `sslmode=require`), `FRONTEND_URL`, `CORS_PREVIEW_ORIGIN_PATTERN`, `CACHE_STORE=database`, `SESSION_DRIVER=array`, `QUEUE_CONNECTION=sync`, `MAIL_MAILER=log`, `LOG_CHANNEL=stderr`
@@ -171,6 +173,7 @@ The query retry predicate retries at most once, and only for `kind === "network"
 - Inactive product (Pest): `is_active = false` never appears, verifies **AC-1**
 - Discount (Pest unit): `(3999, 1299) → 67`, `(1000, 999) → null` (rounds to 0), `(1000, 1000) → null`, `(null, 500) → null`, `(1000, null) → null`, verifies **AC-4**
 - Rate limit (Pest): 120 requests pass, the 121st returns 429 with `Retry-After`, verifies **AC-5**
+- Proxy trust (Pest): requests from one `REMOTE_ADDR` with different forged `X-Forwarded-For` values share one bucket (`X-RateLimit-Remaining` 119, then 118); `X-Forwarded-Proto: https` still yields `https` pagination links, verifies the code half of **AC-12**
 - CORS (Pest): `Origin: FRONTEND_URL` gets the allow header; a preview origin matching the pattern gets it; `https://evil-eneba.vercel.app` gets none; with the pattern blank, a preview origin and an arbitrary origin both get none, verifies **AC-6**
 - Invalid page (Pest): `?page=abc` and `?page=0` return page 1; `?page=999` returns empty `data` with correct `meta`, verifies **AC-1**
 - `apiFetch` (Vitest, stubbed `fetch`): sends `Accept: application/json` to `${apiUrl}/api/v1/products`; a 422 body becomes `ApiError` with `errors`; a non JSON 502 becomes `ApiError` with the generic message, verifies **AC-9**
@@ -185,7 +188,7 @@ Journey approach: the skeleton is one path (database → API → page → public
 
 1. Add `Product::withCheapestPrice()` and `App\Support\Discount::percent()`, with Pest tests for the price rule and discount cases, satisfies **AC-3**, **AC-4**
 2. Register `routes/api.php` with `apiPrefix: 'api/v1'`; add the `catalog` limiter in `AppServiceProvider`; add `ListProducts`, `ProductController@index`, `ProductResource`; Pest feature tests for shape, order, active filter, pagination, and 429, satisfies **AC-1**, **AC-2**, **AC-5**
-3. Publish `config/cors.php` (`php artisan config:publish cors`) and wire `FRONTEND_URL` and the wrapped preview pattern; add `trustProxies` to `bootstrap/app.php`; Pest CORS tests, satisfies **AC-6**, **AC-12**
+3. Publish `config/cors.php` (`php artisan config:publish cors`) and wire `FRONTEND_URL` and the wrapped preview pattern; add `trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_PROTO)` to `bootstrap/app.php`; Pest CORS and proxy trust tests, satisfies **AC-6**, **AC-12**
 4. Install `@tanstack/react-query` (current stable v5 at build time; check its docs for the installed version). Add `src/api/client.ts`, `src/api/products.ts`, `src/lib/queryClient.ts`, `src/lib/useSlowPending.ts`, and the provider in `main.tsx`; Vitest tests for `apiFetch` and the retry rule, satisfies **AC-8**, **AC-9**
 5. Add `toProductCardProps` and `ProductListSection` with loading, slow, error, empty, and success states; render it on `HomePage` under the `<h1>`; check it locally against `php artisan serve` and the seeded DB, then check the error state with the API stopped and the slow notice with DevTools throttling; Vitest test for the mapping, satisfies **AC-7**, **AC-8**
 6. Add `server/Dockerfile` (copy `composer.json` and `composer.lock` first, then `composer install --no-dev --optimize-autoloader --no-scripts`, then `COPY --chown=www-data:www-data` the source, then `composer dump-autoload --optimize` so `package:discover` runs without dev providers; the image runs as `www-data`) and `server/.dockerignore` (exclude `vendor`, `.env`, `node_modules`, `storage/logs/*`). Confirm the `serversideup/php:8.4-fpm-nginx` tag and its web root (`/var/www/html/public`) in the image docs. Build and run the image locally against the compose Postgres, and confirm `/up` and `/api/v1/products` answer on `:8080`, satisfies **AC-10**
@@ -193,7 +196,7 @@ Journey approach: the skeleton is one path (database → API → page → public
 8. You (dashboards): create the Neon project and copy the direct connection string; create the Render service with every env var above (`APP_KEY` from `php artisan key:generate --show`); watch the first deploy log for the migrations and the `/up` health check, satisfies **AC-10**
 9. You (your machine): seed production with ` APP_ENV=production DB_URL=<neon direct url> php artisan db:seed --force` (leading space keeps it out of shell history, spec 0004), then run spec 0004's cover URL check once against production, satisfies **AC-11**
 10. Create the Vercel project (root `client/`) and set `VITE_API_URL` to the Render origin for both Production and Preview **before the first build**, because `env.ts` throws at import when it is missing and Vite bakes it in at build time (changing it later needs a redeploy); set `FRONTEND_URL` on Render to the Vercel production origin; once the project name and scope slug are known, set `CORS_PREVIEW_ORIGIN_PATTERN`; redeploy both, satisfies **AC-6**, **AC-11**
-11. Production checks: the public URL shows the grid; a preview URL loads the grid too; add a temporary `Log::info($request->ip())`, compare it with your real IP, then remove it and redeploy (if it shows a Render internal address, set `TRUSTED_PROXY` per spec 0001), satisfies **AC-11**, **AC-12**
+11. Production checks: the public URL shows the grid; a preview URL loads the grid too; confirm the real client IP with one of the two AC-12 methods (if it shows a Render internal or Cloudflare address, fix the NGINX real IP setup per spec 0001, never by trusting `X-Forwarded-For` in Laravel), satisfies **AC-11**, **AC-12**
 
 ## Consequences
 
@@ -214,7 +217,7 @@ Journey approach: the skeleton is one path (database → API → page → public
 **Neutral**:
 - Adds one client dependency (`@tanstack/react-query`), already approved in spec 0001.
 - Three dashboards to configure by hand, once.
-- The proxy spoofing 429 check from spec 0001 needs a login endpoint, so it moves to feature 7. This feature does only the `$request->ip()` half.
+- The proxy spoofing 429 check from spec 0001 needs a login endpoint, so it moves to feature 7. This feature covers the `$request->ip()` half and the forged `X-Forwarded-For` check on the `catalog` limiter (AC-12).
 
 ## Follow-up
 
