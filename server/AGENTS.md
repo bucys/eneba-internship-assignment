@@ -18,13 +18,14 @@ php artisan test        # Pest, needs docker compose up -d
 | File | Owns |
 |---|---|
 | `bootstrap/app.php` | Routing (`routes/api.php` under `apiPrefix: 'api/v1'`, `/up` health), proxy trust (only `X-Forwarded-Proto`), JSON errors for `api/*` or `Accept: application/json`, `BlockPreviewWrites` prepended to the `api` group, `redirectGuestsTo(null)` so guests get 401 JSON |
-| `routes/api.php` | `/api/v1` routes; `GET /products` and `GET /products/{slug}` (slug `[a-z0-9-]+`, [spec 0007](../docs/specs/0007-product-page-seller-offers/index.md)) use the `catalog` throttle; `auth/register` (`register`), `auth/login` (`login`), `auth/me` and `auth/logout` (`auth:sanctum` + `account`) |
+| `routes/api.php` | `/api/v1` routes; `GET /products` and `GET /products/{slug}` (slug `[a-z0-9-]+`, [spec 0007](../docs/specs/0007-product-page-seller-offers/index.md)) use the `catalog` throttle; `auth/register` (`register`), `auth/login` (`login`), `auth/me` and `auth/logout` (`auth:sanctum` + `account`); `cart/preview` is public (`catalog`), every other `cart` route is `auth:sanctum` + `cart`, with `{offerId}` `[0-9]{1,18}` ([spec 0008](../docs/specs/0008-cart/index.md)) |
 | `app/Actions/`, `app/Http/Controllers/`, `app/Http/Resources/` | Thin controller → action → API Resource (for example `ListProducts`, `ProductController`, `ProductResource`) |
 | `app/Support/Money.php`, `app/Support/Discount.php` | Money as `{ amount, currency }` in EUR cents; integer discount percent |
+| `app/Actions/Cart/`, `app/Support/Cart*.php` | Cart: `BuildCart` is the one place line rules run (availability, `min(stock, 10)` cap, totals) for every endpoint that returns a `Cart`; reads never write; `UpsertCartLine` caps with `LEAST` inside the upsert; `CartLimits` holds the caps (mirrored in `client/src/lib/cartLimits.ts`) |
 | `config/cors.php` | Allows `FRONTEND_URL` exactly plus `CORS_PREVIEW_ORIGIN_PATTERN` (blank means no previews); no credentials; exposes `Retry-After`; its `frontend_url` and `preview_origin_pattern` keys are read by `BlockPreviewWrites`, not the CORS package |
 | `Dockerfile` | `serversideup/php:8.4-fpm-nginx` on port 8080, `TRUSTED_PROXY=cloudflare`; migrations run on start, no seed (spec 0001 env vars) |
-| `app/Providers/AppServiceProvider.php` | Blocks `db:wipe` / `migrate:fresh|refresh|reset` in production; rate limiters `catalog` (120/min per IP), `login` (5/min per email + IP, 20/min per IP), `register` (10/hour per IP), `account` (60/min per user) |
-| `app/Actions/Auth/`, `app/Http/Middleware/BlockPreviewWrites.php` | Auth flow ([spec 0006](../docs/specs/0006-authentication/index.md)): every token comes from `IssueAuthToken` (Sanctum token named `spa`, expires after `config('sanctum.expiration')`, 7 days); preview origin writes get 403 |
+| `app/Providers/AppServiceProvider.php` | Blocks `db:wipe` / `migrate:fresh|refresh|reset` in production; rate limiters `catalog` (120/min per IP), `login` (5/min per email + IP, 20/min per IP), `register` (10/hour per IP), `account` (60/min per user), `cart` (120/min per user) |
+| `app/Actions/Auth/`, `app/Http/Middleware/BlockPreviewWrites.php` | Auth flow ([spec 0006](../docs/specs/0006-authentication/index.md)): every token comes from `IssueAuthToken` (Sanctum token named `spa`, expires after `config('sanctum.expiration')`, 7 days); preview origin writes get 403, except route names in `READ_ONLY_ROUTES` (`cart.preview`) |
 | `phpunit.xml` | Pins tests to the `eneba_test` Postgres DB |
 
 ## Gotchas

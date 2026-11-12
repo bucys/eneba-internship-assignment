@@ -62,3 +62,7 @@ Calls made in the spec (pick, why, runner up):
 - **The preview route is exempt from `BlockPreviewWrites`.** It is a POST only because a list of lines does not fit a query string well; it writes nothing, so blocking it would break guest carts on Vercel previews for no safety gain.
 - **Limits in `CartLimits` plus a mirrored client constant.** The guest add needs the caps before any request. Runner up: send the limits in an API response, which adds a request or a field for two numbers.
 - **The toast gains an optional link action** to honor "View cart" in the toast. Runner up: no link (badge only), which loses the shortcut the engineer picked.
+
+## Accepted behavior after verification
+
+- **The guest "quantity lowered" notice can disappear.** When a guest's stored quantity is above stock, the first preview returns `quantity_reduced: true` and the line shows "Only N available, so we lowered the quantity." The client then writes the lowered quantity back to `localStorage` (AC-8). The next preview sends the corrected quantity, so it returns `quantity_reduced: false` and the notice goes away. This is accepted: the stored cart now matches what the buyer can actually buy, and the line still shows the lowered quantity and total. A signed in cart keeps the notice, because reads never write (AC-2). No UI change. Found in `/check verify cart` on 2026-11-13.

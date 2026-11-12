@@ -102,7 +102,7 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 
 | Component | Props | Notes |
 |---|---|---|
-| `AppLayout` | none | Router layout route: skip link, `Header`, `<main id="main" tabIndex={-1}>` with `<Outlet/>`, `Footer`, `ToastProvider` |
+| `AppLayout` | none | Router layout route: skip link, `Header` (gets `useCartCount()`), `<main id="main" tabIndex={-1}>` with `<Outlet/>`, `Footer`, `ToastProvider` |
 | `Header` | `cartCount?: number` (default 0) | Sticky. One row from `md`. Below `md`, row one is wordmark, Store, cart, Sign in icon, and row two is the full width search (same `SearchForm`, moved with `order-last w-full`). Cart name "Cart, N items", badge hidden at 0, "99+" above 99 |
 | `SearchForm` | `className?` | `role="search"`, trims the term, navigates to `/store?q=...`, ignores an empty term |
 | `Wordmark` | none | Text "eneba" linking home, named "Eneba marketplace home". No Eneba logo file |
@@ -123,7 +123,7 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | `EmptyState` | `title`, `message`, `action?: ReactNode` | `<h2>` title |
 | `ErrorState` | `message?`, `onRetry` | `<h2>` "Something went wrong", secondary "Try again" |
 | `Alert` | `variant?` (`info`, `success`, `error`), `role?`, `children` | `surface` box with a variant border and icon. Role defaults to `alert` for errors, `status` otherwise |
-| `ToastProvider` / `useToast` | `useToast().show({ message, variant })` returns an id. `dismiss(id)` | One `aria-live="polite"` region, bottom center on mobile, bottom right from `md`. Info and success close after 4s (paused on hover or focus), errors stay. Max 3, oldest drops. `useToast` lives in `toastContext.ts` |
+| `ToastProvider` / `useToast` | `useToast().show({ message, variant, action? })` returns an id. `action: { label, to }`. `dismiss(id)` | One `aria-live="polite"` region, bottom center on mobile, bottom right from `md`. Info and success close after 4s (paused on hover or focus), errors stay. Max 3, oldest drops. `action` renders a normal focusable router link after the message (44px tall, underlined, `cta` on hover) that closes the toast when clicked, for example "View cart". `useToast` lives in `toastContext.ts` |
 
 ### Product (`src/components/product/`)
 
@@ -133,6 +133,18 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | `ProductCard` | `slug`, `name`, `coverImageUrl`, `platformName`, `regionName`, `price`, `listPrice`, `discountPercent` | One link to `/products/<slug>`. 2:3 cover (`COVER_ASPECT_CLASS`, matches Steam portrait art), lazy image, `Gamepad2` placeholder when missing or broken. Name clamped to 2 lines. Sits on `surface`, hover `surface-deep` |
 | `ProductCardSkeleton` | none | Loading stand in with the same shape |
 | `ProductGrid` | `children` (cards) | `<ul>` grid: 2, 3 (`md`), 4 (`lg`), 5 (`xl`) columns, `gap-4` |
+
+### Cart (`src/components/cart/`)
+
+| Component | Props | Notes |
+|---|---|---|
+| `AddToCartButton` | `offerId`, `stock`, `context?`, `size?` (`md`, `lg`), `className?` | Primary `Button`. `context` is screen reader only text ("from Loot Lane") so each offer's button has its own name. Signed in, only the clicked button shows `loading`. Success toast "Added to cart." with a "View cart" action; a 422 shows the server message as an error toast, anything else "Could not add to cart. Please try again." Never rendered for an out of stock offer |
+| `QuantityStepper` | `value`, `max`, `itemName`, `disabled?`, `onChange` | Bordered group named "Quantity for {item}". Minus and plus are 44px, named "Decrease/Increase quantity of {item}", and use `aria-disabled` (not `disabled`) at 1 and at `max` so focus stays put. The value is an `aria-live="polite"` span |
+| `CartLineRow` | `line`, `onRemoveStart`, `onRemoveFail` | `<li>` on `surface`: cover, name link, platform and region, "Sold by {seller}", stepper, line total in `price` plus unit price, Remove icon button ("Remove {name}", toast "Removed from cart."). Reduced line: `fg-soft` note "Only N available, so we lowered the quantity." Unavailable line: name in `fg-muted`, "No longer available", Remove only, no line total. Controls are locked while that line's request runs |
+| `CartSummary` | `cart` | `<section>` on `surface`, sticky from `md`: item count, Total, `lg` Checkout link. When `can_checkout` is false, a disabled Checkout `Button` described by the note "Remove unavailable items to continue." |
+| `CartPageSkeleton` | none | Loading stand in for the lines and the summary |
+
+The cart page is one column below `md`, lines and summary side by side from `md`. After a Remove, focus moves to the next row's Remove button, or to the `<h1>` once the cart is empty (`src/lib/cartFocus.ts`).
 
 Money is always integer cents (`Money` in `src/lib/money.ts`) and is only ever shown through `formatPrice`.
 

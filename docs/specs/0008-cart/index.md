@@ -1,7 +1,7 @@
 # 0008. Cart: localStorage guest cart, server cart for signed in buyers, one shared cart shape
 
 **Date**: 2026-11-12
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
