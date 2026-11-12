@@ -2,6 +2,9 @@
 # Container settings (AUTORUN_*, HEALTHCHECK_PATH) and app secrets come from Render env vars, never from here.
 FROM serversideup/php:8.4-fpm-nginx
 
+# nginx sets REMOTE_ADDR from Cloudflare's CF-Connecting-IP; bootstrap/app.php relies on this for rate limiting.
+ENV TRUSTED_PROXY=cloudflare
+
 WORKDIR /var/www/html
 
 # Dependencies first, so this layer stays cached until composer.lock changes.

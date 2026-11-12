@@ -14,13 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Render publishes no fixed proxy IPs, so only the direct peer can be trusted (spec 0001).
+        // nginx (TRUSTED_PROXY=cloudflare in the Dockerfile) already sets REMOTE_ADDR from CF-Connecting-IP.
+        // Trusting X-Forwarded-For here would trust the client itself, so only the scheme is taken from the proxy.
         $middleware->trustProxies(
             at: '*',
-            headers: Request::HEADER_X_FORWARDED_FOR
-                | Request::HEADER_X_FORWARDED_HOST
-                | Request::HEADER_X_FORWARDED_PORT
-                | Request::HEADER_X_FORWARDED_PROTO,
+            headers: Request::HEADER_X_FORWARDED_PROTO,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
