@@ -8,14 +8,28 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router/dom";
 import { setUnauthorizedHandler } from "./api/client";
-import { createTokenSyncHandler, createUnauthorizedHandler } from "./lib/auth";
-import { startTokenStorageSync } from "./lib/authToken";
+import {
+  createTokenSyncHandler,
+  createUnauthorizedHandler,
+  onAfterSignIn,
+} from "./lib/auth";
+import { authToken, startTokenStorageSync } from "./lib/authToken";
+import { mergeGuestCart } from "./lib/cart";
+import { guestCart, startGuestCartStorageSync } from "./lib/guestCart";
 import { queryClient } from "./lib/queryClient";
 import { router } from "./router";
 
 // Registered here, not in client.ts, so the API client never imports the router.
 setUnauthorizedHandler(createUnauthorizedHandler(router));
 startTokenStorageSync(createTokenSyncHandler(router));
+startGuestCartStorageSync();
+
+// The guest cart merges into the account on sign in, or on start if a token and guest lines
+// both exist (an earlier merge failed). A failed merge keeps the lines for next time.
+onAfterSignIn(mergeGuestCart);
+if (authToken.get() !== null && guestCart.get().length > 0) {
+  mergeGuestCart().catch(() => {});
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

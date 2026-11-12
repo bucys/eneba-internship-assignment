@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Offer;
+use App\Models\ProductKey;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -50,4 +52,20 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * An offer with the given number of unsold keys (stock), for the cart tests.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function cartOffer(int $stock = 5, array $attributes = []): Offer
+{
+    $offer = Offer::factory()->create($attributes);
+
+    if ($stock > 0) {
+        ProductKey::factory()->count($stock)->create(['offer_id' => $offer->id]);
+    }
+
+    return $offer;
 }

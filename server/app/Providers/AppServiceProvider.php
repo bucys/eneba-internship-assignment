@@ -43,5 +43,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', fn (Request $request) => Limit::perHour(10)->by((string) $request->ip()));
 
         RateLimiter::for('account', fn (Request $request) => Limit::perMinute(60)->by((string) $request->user()?->getAuthIdentifier()));
+
+        // Separate from account, so cart stepper clicks never use up the /auth/me budget.
+        RateLimiter::for('cart', fn (Request $request) => Limit::perMinute(120)->by((string) $request->user()?->getAuthIdentifier()));
     }
 }

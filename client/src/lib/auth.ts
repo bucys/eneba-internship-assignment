@@ -28,8 +28,14 @@ export function useMe() {
   return useQuery({ ...meQueryOptions, enabled: token !== null });
 }
 
-export function clearAuth() {
+// Cancel first, so a request still running for the old user can't fill the cache after removal.
+function removeUserQueries() {
+  void queryClient.cancelQueries({ queryKey: ME_KEY });
   queryClient.removeQueries({ queryKey: ME_KEY });
+}
+
+export function clearAuth() {
+  removeUserQueries();
   authToken.clear();
 }
 
@@ -115,7 +121,7 @@ function sendToSignInIfProtected(router: AuthRouter) {
 /** Adopts a sign in or sign out from another tab. Never runs the after sign in hooks. */
 export function createTokenSyncHandler(router: AuthRouter) {
   return (token: string | null) => {
-    queryClient.removeQueries({ queryKey: ME_KEY });
+    removeUserQueries();
     if (token !== null) {
       void queryClient.prefetchQuery(meQueryOptions);
       return;

@@ -14,6 +14,9 @@ class BlockPreviewWrites
 {
     private const READ_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
+    /** POST routes that never write (spec 0008 AC-5). */
+    private const READ_ONLY_ROUTES = ['cart.preview'];
+
     public function handle(Request $request, Closure $next): Response
     {
         if ($this->isPreviewWrite($request)) {
@@ -29,6 +32,10 @@ class BlockPreviewWrites
         $origin = $request->headers->get('Origin');
 
         if ($pattern === '' || $origin === null || in_array($request->method(), self::READ_METHODS, true)) {
+            return false;
+        }
+
+        if (in_array($request->route()?->getName(), self::READ_ONLY_ROUTES, true)) {
             return false;
         }
 

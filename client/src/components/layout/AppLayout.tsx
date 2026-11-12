@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import { Outlet } from "react-router";
+import { useCartCount } from "../../lib/cart";
 import { ToastProvider } from "../ui/Toast";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
@@ -12,6 +13,8 @@ function focusMain(event: MouseEvent<HTMLAnchorElement>) {
 }
 
 export function AppLayout() {
+  const cartCount = useCartCount();
+
   return (
     <ToastProvider>
       <div className="flex min-h-svh flex-col">
@@ -22,7 +25,7 @@ export function AppLayout() {
         >
           Skip to content
         </a>
-        <Header />
+        <Header cartCount={cartCount} />
         <main id={MAIN_ID} tabIndex={-1} className="flex-1 outline-none">
           <Outlet />
         </main>

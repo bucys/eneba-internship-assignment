@@ -1,5 +1,6 @@
 import type { Offer } from "../../api/products";
 import { cx } from "../../lib/cx";
+import { AddToCartButton } from "../cart/AddToCartButton";
 import { formatCount, formatRating } from "../../lib/format";
 import { BestPriceBadge } from "./BestPriceBadge";
 import { Price } from "./Price";
@@ -48,6 +49,17 @@ export function OfferRow({ offer, isBest }: OfferRowProps) {
         <div className="md:w-32 md:text-right">
           <Price price={inStock ? offer.price : null} />
         </div>
+      </div>
+      {/* Out of stock rows keep the column on md so prices stay aligned. */}
+      <div className={cx("md:w-40 md:shrink-0", !inStock && "hidden md:block")}>
+        {inStock && (
+          <AddToCartButton
+            offerId={offer.id}
+            stock={offer.stock}
+            context={`from ${offer.seller.name}`}
+            className="w-full"
+          />
+        )}
       </div>
     </li>
   );

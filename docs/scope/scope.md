@@ -21,7 +21,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 6 | Walking skeleton + public deploy | Skeleton | done |
 | 7 | Authentication | Journey 1: Purchase | done |
 | 8 | Product page with seller offers | Journey 1: Purchase | done |
-| 9 | Cart | Journey 1: Purchase | planned |
+| 9 | Cart | Journey 1: Purchase | in-progress |
 | 10 | Checkout & simulated payment | Journey 1: Purchase | planned |
 | 11 | Key delivery & order confirmation | Journey 1: Purchase | planned |
 | 12 | Order history | Journey 1: Purchase | planned |
@@ -133,10 +133,18 @@ spec [0007](../specs/0007-product-page-seller-offers/index.md) · code in `serve
   - [x] Page states: skeleton and slow notice, not found, error retry, tab title; checks green, CI and deploy (AC-8 to AC-10)
 - [x] Verify it: `/check verify product page with seller offers`
 
-### 9. Cart · needs a decision
+### 9. Cart · in-progress
 Add a chosen offer to the cart, change quantity, remove items. Works as a guest and carries over after sign in.
 **Done when:** a guest cart persists across reloads, merges into the account on sign in, totals update live, quantity is capped by available stock, and the empty cart state renders.
-- [ ] Design it (spec): `/architect cart`
+spec [0008](../specs/0008-cart/index.md) · code in `server/app/Actions/Cart/`, `client/src/lib/cart.ts`, `client/src/components/cart/`
+- [x] Design it (spec): `/architect cart`
+- [ ] Build it: `/develop cart`
+  - [x] Server cart API: shared `Cart` resource, read, add, set, remove, `cart` limiter (AC-1 to AC-4, AC-7)
+  - [x] Preview and merge endpoints with the preview guard exemption, plus Pest tests (AC-5 to AC-7)
+  - [x] Client data layer: guest cart store, cart queries and actions, single flight merge, sign out guard, Vitest (AC-8, AC-10, AC-11)
+  - [x] Product page Add to cart, toast link, header badge, `/cart` page with all states, `/checkout` placeholder (AC-9, AC-12 to AC-14)
+  - [ ] Checks green, CI, deploy, 360px and keyboard (AC-15)
+- [ ] Verify it: `/check verify cart`
 
 ### 10. Checkout & simulated payment · needs a decision · Beta
 Signed in checkout with a simulated card form that can succeed or decline, creating an order exactly once.

@@ -1,4 +1,5 @@
 import type { Offer, ProductDetail } from "../../api/products";
+import { AddToCartButton } from "../cart/AddToCartButton";
 import { BestPriceBadge } from "./BestPriceBadge";
 import { Price } from "./Price";
 
@@ -30,6 +31,13 @@ export function BuyBox({ product, bestOffer }: BuyBoxProps) {
         Sold by{" "}
         <span className="font-semibold text-fg">{bestOffer.seller.name}</span>
       </p>
+      <AddToCartButton
+        offerId={bestOffer.id}
+        stock={bestOffer.stock}
+        context={`from ${bestOffer.seller.name}, best price`}
+        size="lg"
+        className="w-full sm:w-auto"
+      />
     </div>
   );
 }

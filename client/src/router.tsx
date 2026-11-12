@@ -3,6 +3,11 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { redirectIfSignedIn, requireAuth } from "./lib/auth";
 import { AuthPage } from "./pages/AuthPage";
 import { loginAction, registerAction } from "./pages/authActions";
+import { CartPage } from "./pages/CartPage";
+import {
+  CheckoutErrorBoundary,
+  CheckoutPlaceholderPage,
+} from "./pages/CheckoutPlaceholderPage";
 import { HomePage } from "./pages/HomePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import {
@@ -32,6 +37,14 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: HomePage },
       { path: "products/:slug", Component: ProductPage },
+      { path: "cart", Component: CartPage },
+      {
+        path: "checkout",
+        Component: CheckoutPlaceholderPage,
+        ErrorBoundary: CheckoutErrorBoundary,
+        loader: ({ request }) => requireAuth(request),
+        handle: { requiresAuth: true },
+      },
       {
         path: "login",
         Component: AuthPage,

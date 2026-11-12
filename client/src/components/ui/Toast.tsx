@@ -8,9 +8,15 @@ import {
   type FocusEvent,
   type ReactNode,
 } from "react";
+import { Link } from "react-router";
 import { cx } from "../../lib/cx";
 import { feedbackVariants, type FeedbackVariant } from "./feedbackVariants";
-import { ToastContext, type ToastApi, type ToastOptions } from "./toastContext";
+import {
+  ToastContext,
+  type ToastAction,
+  type ToastApi,
+  type ToastOptions,
+} from "./toastContext";
 
 const TOAST_DURATION_MS = 4000;
 const MAX_TOASTS = 3;
@@ -19,6 +25,7 @@ type ToastEntry = {
   id: number;
   message: string;
   variant: FeedbackVariant;
+  action?: ToastAction;
 };
 
 type ToastItemProps = {
@@ -59,6 +66,15 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     >
       <Icon aria-hidden="true" className={cx("size-5 shrink-0", accent)} />
       <p className="flex-1">{toast.message}</p>
+      {toast.action && (
+        <Link
+          to={toast.action.to}
+          onClick={() => onDismiss(toast.id)}
+          className="inline-flex min-h-11 shrink-0 items-center rounded-sm px-1 font-extrabold text-fg underline underline-offset-2 transition-colors hover:text-cta"
+        >
+          {toast.action.label}
+        </Link>
+      )}
       <button
         type="button"
         aria-label="Dismiss"
@@ -83,13 +99,16 @@ export function ToastProvider({ children }: ToastProviderProps) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
-  const show = useCallback(({ message, variant = "info" }: ToastOptions) => {
-    const id = nextId.current++;
-    setToasts((current) =>
-      [...current, { id, message, variant }].slice(-MAX_TOASTS),
-    );
-    return id;
-  }, []);
+  const show = useCallback(
+    ({ message, variant = "info", action }: ToastOptions) => {
+      const id = nextId.current++;
+      setToasts((current) =>
+        [...current, { id, message, variant, action }].slice(-MAX_TOASTS),
+      );
+      return id;
+    },
+    [],
+  );
 
   const api = useMemo<ToastApi>(() => ({ show, dismiss }), [show, dismiss]);
 

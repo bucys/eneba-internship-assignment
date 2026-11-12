@@ -1,9 +1,16 @@
 import { createContext, useContext } from "react";
 import type { FeedbackVariant } from "./feedbackVariants";
 
+export type ToastAction = {
+  label: string;
+  to: string;
+};
+
 export type ToastOptions = {
   message: string;
   variant?: FeedbackVariant;
+  /** An optional link shown after the message, for example "View cart". */
+  action?: ToastAction;
 };
 
 export type ToastApi = {
