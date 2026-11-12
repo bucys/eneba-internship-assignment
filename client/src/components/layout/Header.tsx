@@ -59,7 +59,7 @@ export function Header({ cartCount = 0 }: HeaderProps) {
       <Container className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
         <Wordmark />
 
-        <SearchForm className="order-last w-full md:order-none md:w-auto md:flex-1" />
+        <SearchForm className="order-last w-full md:order-0 md:w-auto md:flex-1" />
 
         <nav aria-label="Primary" className="ml-auto md:ml-0">
           <Link to="/store" className={navLinkClasses}>
