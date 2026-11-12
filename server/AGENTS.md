@@ -18,7 +18,7 @@ php artisan test        # Pest, needs docker compose up -d
 | File | Owns |
 |---|---|
 | `bootstrap/app.php` | Routing (`routes/api.php` under `apiPrefix: 'api/v1'`, `/up` health), proxy trust (only `X-Forwarded-Proto`), JSON errors for `api/*` or `Accept: application/json`, `BlockPreviewWrites` prepended to the `api` group, `redirectGuestsTo(null)` so guests get 401 JSON |
-| `routes/api.php` | `/api/v1` routes; `GET /products` uses the `catalog` throttle; `auth/register` (`register`), `auth/login` (`login`), `auth/me` and `auth/logout` (`auth:sanctum` + `account`) |
+| `routes/api.php` | `/api/v1` routes; `GET /products` and `GET /products/{slug}` (slug `[a-z0-9-]+`, [spec 0007](../docs/specs/0007-product-page-seller-offers/index.md)) use the `catalog` throttle; `auth/register` (`register`), `auth/login` (`login`), `auth/me` and `auth/logout` (`auth:sanctum` + `account`) |
 | `app/Actions/`, `app/Http/Controllers/`, `app/Http/Resources/` | Thin controller → action → API Resource (for example `ListProducts`, `ProductController`, `ProductResource`) |
 | `app/Support/Money.php`, `app/Support/Discount.php` | Money as `{ amount, currency }` in EUR cents; integer discount percent |
 | `config/cors.php` | Allows `FRONTEND_URL` exactly plus `CORS_PREVIEW_ORIGIN_PATTERN` (blank means no previews); no credentials; exposes `Retry-After`; its `frontend_url` and `preview_origin_pattern` keys are read by `BlockPreviewWrites`, not the CORS package |
