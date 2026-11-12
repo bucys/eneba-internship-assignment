@@ -1,4 +1,4 @@
-# Verify: Walking skeleton + public deploy · spec 0005 · updated 2026-11-11
+# Verify: Walking skeleton + public deploy · spec 0005 · updated 2026-11-12
 _Steps derived from spec 0005 acceptance criteria. `/check verify` runs these; `/test` locks the durable ones._
 
 ## UI / manual (local: `php artisan serve` + `npm run dev`, seeded dev DB)
@@ -21,14 +21,14 @@ _Steps derived from spec 0005 acceptance criteria. `/check verify` runs these; `
 - [ ] Waking notice: shows only while fetching with no data, after 3 s → AC-8
 - [ ] Loading count 12 and empty copy match the spec → AC-7
 - [ ] `apiFetch` base URL comes only from `VITE_API_URL` (`grep -rn "import.meta.env" client/src` only hits `src/lib/env.ts`) → AC-9
-- [ ] Timeout 90 s, retry once, no mutation retry: covered by `src/api/client.test.ts` and `src/lib/queryClient.test.ts` → AC-8
+- [x] Timeout 90 s, retry once, no mutation retry: covered by `src/api/client.test.ts` and `src/lib/queryClient.test.ts` → AC-8 · passed, evidence: GitHub CI run 43173320123 on `a12f635`, 2026-11-12 (not run locally for this record), `client` job Vitest step
 - [ ] CORS origins come from `FRONTEND_URL` and `CORS_PREVIEW_ORIGIN_PATTERN` (see production steps) → AC-6
 - [ ] Rate limit keyed by IP after proxy trust (see production steps) → AC-5, AC-12
 
 ## Commands
-- [ ] `cd server && composer format:check && composer analyse && php artisan test` → all pass → AC-1 to AC-6, AC-13
-- [ ] `cd client && npm run format:check && npm run lint && npm run typecheck && npm test && npm run build` → all pass → AC-8, AC-9, AC-13
-- [ ] CI run for the push to `main` is green (`gh run list --branch main --limit 1`) → AC-13
+- [x] `cd server && composer format:check && composer analyse && php artisan test` → all pass → AC-1 to AC-6, AC-13 · passed, evidence: GitHub CI run 43173320123 on `a12f635`, 2026-11-12 (not run locally for this record), `server` job (Pint, PHPStan, Pest on Postgres 17)
+- [x] `cd client && npm run format:check && npm run lint && npm run typecheck && npm test && npm run build` → all pass → AC-8, AC-9, AC-13 · passed, evidence: GitHub CI run 43173320123 on `a12f635`, 2026-11-12 (not run locally for this record), `client` job (Prettier, oxlint, TypeScript, Vitest, build)
+- [x] CI run for the push to `main` is green (`gh run list --branch main --limit 1`) → AC-13 · passed 2026-11-12: run 43173320123 on `a12f635` (includes `349b0d7` and `362eb44`), `server` job (Pint, PHPStan, Pest) and `client` job (Prettier, oxlint, TypeScript, Vitest, build) both green. Earlier runs 43096577646 and 43098464245 stayed stuck in GitHub's queue and were not retried.
 - [ ] `cd server && docker build -t eneba-server:local .` then run it with the spec 0001 env vars against an empty DB → logs show migrations, no seed; `curl localhost:8080/up` → 200; container health `healthy` → AC-10
 - [ ] `for i in $(seq 121); do curl -s -o /dev/null -w "%{http_code}\n" <api>/api/v1/products; done | tail -1` → 429, and the response has `Retry-After` → AC-5
 

@@ -101,7 +101,7 @@ spec [0005](../specs/0005-walking-skeleton-deploy/index.md) · code in `server/`
   - [x] Products list API: cheapest price, discount, resource, rate limit (AC-1 to AC-5)
   - [x] CORS and proxy trust (AC-6, AC-12)
   - [x] Client data layer and home page grid with all states (AC-7 to AC-9)
-  - [ ] Dockerfile, checks green, CI on `main` (AC-10, AC-13)
+  - [x] Dockerfile, checks green, CI on `main` (AC-10, AC-13)
   - [ ] Deploy to Neon, Render, Vercel; seed and production checks (AC-11, AC-12)
 - [ ] Verify it: `/check verify walking skeleton + public deploy`
 
