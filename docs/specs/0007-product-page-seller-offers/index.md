@@ -1,7 +1,7 @@
 # 0007. Product page: one detail endpoint with sorted seller offers, rendered with useQuery
 
 **Date**: 2026-11-12
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

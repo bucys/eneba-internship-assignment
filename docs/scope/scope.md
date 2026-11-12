@@ -20,7 +20,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 5 | Seed catalog data | Foundation | done |
 | 6 | Walking skeleton + public deploy | Skeleton | done |
 | 7 | Authentication | Journey 1: Purchase | done |
-| 8 | Product page with seller offers | Journey 1: Purchase | in-progress |
+| 8 | Product page with seller offers | Journey 1: Purchase | done |
 | 9 | Cart | Journey 1: Purchase | planned |
 | 10 | Checkout & simulated payment | Journey 1: Purchase | planned |
 | 11 | Key delivery & order confirmation | Journey 1: Purchase | planned |
@@ -121,7 +121,7 @@ spec [0006](../specs/0006-authentication/index.md) · code in `server/app/Action
   - [x] Auth page with tabs, header account menu, sign out, `/orders` guard, checks green and deployed (AC-7 to AC-15)
 - [x] Verify it: `/check verify authentication`
 
-### 8. Product page with seller offers · in-progress
+### 8. Product page with seller offers · done
 One game's details plus the offers from several sellers, so a buyer can compare price and seller and pick one.
 **Done when:** the page shows details, platform, region, and an offer list sorted by price, the cheapest offer is highlighted, out of stock offers can't be bought, and an unknown product shows a not found state.
 spec [0007](../specs/0007-product-page-seller-offers/index.md) · code in `server/app/Actions/Catalog/ShowProduct.php`, `client/src/pages/ProductPage.tsx`, `client/src/components/product/`
@@ -131,7 +131,7 @@ spec [0007](../specs/0007-product-page-seller-offers/index.md) · code in `serve
   - [x] Client data layer: types, `productQuery`, `formatRating`, `formatReleaseDate`, type labels, Vitest; extract `CoverImage` (AC-5 to AC-7, AC-10)
   - [x] Product page: hero with buy box, offer list, About, route `/products/:slug` (AC-5 to AC-7, AC-9)
   - [x] Page states: skeleton and slow notice, not found, error retry, tab title; checks green, CI and deploy (AC-8 to AC-10)
-- [ ] Verify it: `/check verify product page with seller offers`
+- [x] Verify it: `/check verify product page with seller offers`
 
 ### 9. Cart · needs a decision
 Add a chosen offer to the cart, change quantity, remove items. Works as a guest and carries over after sign in.
@@ -142,6 +142,7 @@ Add a chosen offer to the cart, change quantity, remove items. Works as a guest 
 Signed in checkout with a simulated card form that can succeed or decline, creating an order exactly once.
 **Done when:** a successful payment creates one paid order, a decline shows an error and leaves the cart intact, double submits don't create duplicate orders, and prices are recalculated on the server.
 - [ ] Design it (spec): `/architect checkout & simulated payment`
+- [ ] Carried from feature 8: after a real purchase, the product page offer `stock` drops by one, and at 0 the row moves below every in stock row (spec 0007 verify.md, Value sourcing: stock)
 
 ### 11. Key delivery & order confirmation · needs a decision · Beta
 Allocate a unique key per purchased unit from the offer's stock and show it on the confirmation page.

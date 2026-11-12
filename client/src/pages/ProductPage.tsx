@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router";
-import { ApiError } from "../api/client";
 import { productQuery } from "../api/products";
 import { Container } from "../components/layout/Container";
 import { OfferList } from "../components/product/OfferList";
@@ -11,19 +10,12 @@ import { Alert } from "../components/ui/Alert";
 import { LinkButton } from "../components/ui/Button";
 import { ErrorState } from "../components/ui/ErrorState";
 import { useSlowPending } from "../lib/useSlowPending";
-
-const SITE_TITLE = "Eneba Marketplace (demo)";
-
-function isNotFound(error: unknown) {
-  return (
-    error instanceof ApiError && error.kind === "http" && error.status === 404
-  );
-}
+import { getProductPageView, productPageTitle } from "./productPageView";
 
 function ProductNotFound() {
   return (
     <div className="flex flex-col items-start gap-4 py-6">
-      <title>{`Game not found | ${SITE_TITLE}`}</title>
+      <title>{productPageTitle("not-found")}</title>
       <h1 className="text-2xl font-extrabold md:text-3xl">Game not found</h1>
       <p className="text-fg-soft">
         This game does not exist or is no longer sold.
@@ -40,12 +32,21 @@ function ProductPageBody({ slug }: { slug: string }) {
   // isFetching (not isPending) so the notice also shows while "Try again" refetches after an error.
   const isSlow = useSlowPending(query.isFetching && !query.data);
 
-  if (query.isError && !query.isFetching) {
-    if (isNotFound(query.error)) {
-      return <ProductNotFound />;
-    }
+  const view = getProductPageView({
+    hasData: query.data !== undefined,
+    isError: query.isError,
+    isFetching: query.isFetching,
+    error: query.error,
+  });
+
+  if (view === "not-found") {
+    return <ProductNotFound />;
+  }
+
+  if (view === "error") {
     return (
       <>
+        <title>{productPageTitle("error")}</title>
         <h1 className="sr-only">Game details</h1>
         <ErrorState onRetry={() => void query.refetch()} />
       </>
@@ -55,6 +56,7 @@ function ProductPageBody({ slug }: { slug: string }) {
   if (!query.data) {
     return (
       <div className="flex flex-col gap-4">
+        <title>{productPageTitle("loading")}</title>
         <h1 className="sr-only">Loading game details</h1>
         {isSlow && (
           <Alert role="status">
@@ -71,7 +73,7 @@ function ProductPageBody({ slug }: { slug: string }) {
 
   return (
     <>
-      <title>{`${product.name} | ${SITE_TITLE}`}</title>
+      <title>{productPageTitle("ready", product.name)}</title>
       <ProductHero
         product={product}
         heading={
