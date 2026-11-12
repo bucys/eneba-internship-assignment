@@ -124,13 +124,13 @@ spec [0006](../specs/0006-authentication/index.md) · code in `server/app/Action
 ### 8. Product page with seller offers · in-progress
 One game's details plus the offers from several sellers, so a buyer can compare price and seller and pick one.
 **Done when:** the page shows details, platform, region, and an offer list sorted by price, the cheapest offer is highlighted, out of stock offers can't be bought, and an unknown product shows a not found state.
-spec [0007](../specs/0007-product-page-seller-offers/index.md)
+spec [0007](../specs/0007-product-page-seller-offers/index.md) · code in `server/app/Actions/Catalog/ShowProduct.php`, `client/src/pages/ProductPage.tsx`, `client/src/components/product/`
 - [x] Design it (spec): `/architect product page with seller offers`
-- [ ] Build it: `/develop product page with seller offers`
+- [x] Build it: `/develop product page with seller offers`
   - [x] Server product detail API: route, `ShowProduct` sort and best offer, resources, Pest tests (AC-1 to AC-4)
   - [x] Client data layer: types, `productQuery`, `formatRating`, `formatReleaseDate`, type labels, Vitest; extract `CoverImage` (AC-5 to AC-7, AC-10)
   - [x] Product page: hero with buy box, offer list, About, route `/products/:slug` (AC-5 to AC-7, AC-9)
-  - [ ] Page states: skeleton and slow notice, not found, error retry, tab title; checks green, CI and deploy (AC-8 to AC-10)
+  - [x] Page states: skeleton and slow notice, not found, error retry, tab title; checks green, CI and deploy (AC-8 to AC-10)
 - [ ] Verify it: `/check verify product page with seller offers`
 
 ### 9. Cart · needs a decision
