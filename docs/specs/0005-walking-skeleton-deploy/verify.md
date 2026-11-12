@@ -2,12 +2,12 @@
 _Steps derived from spec 0005 acceptance criteria. `/check verify` runs these; `/test` locks the durable ones._
 
 ## UI / manual (local: `php artisan serve` + `npm run dev`, seeded dev DB)
-- [ ] Open `/` → one `<h1>`, then an `<h2>` "Browse games" with 24 product cards (cover, name, platform · region, price, strikethrough list price, discount badge) → AC-7
-- [ ] Click a card → goes to `/products/<slug>` (shows the 404 page until feature 8) → AC-7
-- [ ] Hard reload with DevTools throttling ("Slow 3G") → 12 skeleton cards; after about 3 s the info notice "Waking up the server. The first visit after a quiet spell can take up to a minute." appears; it disappears once the grid loads → AC-7, AC-8
-- [ ] Stop `php artisan serve`, reload → skeletons, one retry about 3 s later (Network tab shows 2 requests), then `ErrorState`; start the server, click "Try again" → skeletons (and the notice if still pending after 3 s), then the grid → AC-7, AC-8
-- [ ] With no active products (for example `UPDATE products SET is_active = false` on a scratch DB) → `EmptyState` "No games yet" / "Check back soon." → AC-7
-- [ ] Network tab: the request goes to `${VITE_API_URL}/api/v1/products?page=1` with `Accept: application/json` → AC-9
+- [x] Open `/` → one `<h1>`, then an `<h2>` "Browse games" with 24 product cards (cover, name, platform · region, price, strikethrough list price, discount badge) → AC-7 · passed on production 2026-11-12, see V11
+- [x] Click a card → goes to `/products/<slug>` (shows the 404 page until feature 8) → AC-7 · passed on production 2026-11-12, see V12
+- [x] Hard reload with DevTools throttling ("Slow 3G") → 12 skeleton cards; after about 3 s the info notice "Waking up the server. The first visit after a quiet spell can take up to a minute." appears; it disappears once the grid loads → AC-7, AC-8 · passed on production 2026-11-12 with a 6 s browser side delay instead of Slow 3G, see V13
+- [x] Stop `php artisan serve`, reload → skeletons, one retry about 3 s later (Network tab shows 2 requests), then `ErrorState`; start the server, click "Try again" → skeletons (and the notice if still pending after 3 s), then the grid → AC-7, AC-8 · passed on production 2026-11-12 with the API blocked in the browser instead of a stopped server, see V14
+- [x] With no active products (for example `UPDATE products SET is_active = false` on a scratch DB) → `EmptyState` "No games yet" / "Check back soon." → AC-7 · UI side passed on production 2026-11-12 with a mocked empty response (no DB write), see V15; the server side empty list is Pest only
+- [x] Network tab: the request goes to `${VITE_API_URL}/api/v1/products?page=1` with `Accept: application/json` → AC-9 · passed on production 2026-11-12, see V11
 
 ## Value sourcing (one step per row)
 - [ ] Which products: set one product `is_active = false` → it disappears from the list → AC-1
@@ -18,8 +18,8 @@ _Steps derived from spec 0005 acceptance criteria. `/check verify` runs these; `
 - [x] `currency` is `"EUR"` on every `price` and `list_price` → AC-2 · passed, evidence: production run 2026-11-12, see Verification log V3
 - [ ] `list_price.amount` equals `products.list_price_cents`; null column → no strikethrough → AC-4
 - [ ] `discount_percent`: list 3999, price 1299 → 67; list 1000, price 999 → no badge (rounds to 0) → AC-4
-- [ ] Waking notice: shows only while fetching with no data, after 3 s → AC-8
-- [ ] Loading count 12 and empty copy match the spec → AC-7
+- [x] Waking notice: shows only while fetching with no data, after 3 s → AC-8 · passed 2026-11-12, see V13, V14
+- [x] Loading count 12 and empty copy match the spec → AC-7 · passed 2026-11-12, see V13, V15
 - [ ] `apiFetch` base URL comes only from `VITE_API_URL` (`grep -rn "import.meta.env" client/src` only hits `src/lib/env.ts`) → AC-9
 - [x] Timeout 90 s, retry once, no mutation retry: covered by `src/api/client.test.ts` and `src/lib/queryClient.test.ts` → AC-8 · passed, evidence: GitHub CI run 43173320123 on `a12f635`, 2026-11-12 (not run locally for this record), `client` job Vitest step
 - [ ] CORS origins come from `FRONTEND_URL` and `CORS_PREVIEW_ORIGIN_PATTERN` (see production steps) → AC-6
@@ -34,7 +34,7 @@ _Steps derived from spec 0005 acceptance criteria. `/check verify` runs these; `
 
 ## Production (after Neon, Render, Vercel setup)
 - [ ] Render first deploy log shows the migrations and a passing `/up` health check → AC-10
-- [ ] Vercel production URL shows seeded games; DevTools shows the request to the Render origin → AC-11
+- [x] Vercel production URL shows seeded games; DevTools shows the request to the Render origin → AC-11 · passed 2026-11-12, see V11
 - [ ] First visit after 15+ min idle shows the waking notice, then the grid → AC-8
 - [x] `curl -sI -H "Origin: <vercel prod origin>" <render>/api/v1/products` → `Access-Control-Allow-Origin: <vercel prod origin>` → AC-6 · passed, evidence: production run 2026-11-12, see Verification log V6
 - [ ] A Vercel preview URL loads the grid (its origin matches `CORS_PREVIEW_ORIGIN_PATTERN`) → AC-6
@@ -80,3 +80,25 @@ Targets: frontend `https://eneba-internship-assignment.vercel.app` (from the Git
 
 ### Failures
 - None in runtime behavior. Two steps fail only on their literal wording (V9, V10); the criteria they check are met in intent.
+
+## Verification log · `/check verify` (browser run) · 2026-11-12
+
+Overall: **BLOCKED**, not PASS. Every browser check that could run against production passed. The open items below need dashboards, a code change on Render, a cold service, or a Docker run, which this run was told not to do.
+
+How it ran: Playwright MCP (Chromium) against `https://eneba-internship-assignment.vercel.app`. Slow, failing, and empty API answers were made **inside the browser** with `page.route` (a delay, a refused connection, a mocked empty JSON body). No app code, production data, or infrastructure was changed, and nothing was deployed. Real requests to Render in this run: about 7, one at a time. Earlier evidence (V1 to V10) is reused, not repeated. Screenshots and the console log were saved outside the repo, in the session scratch folder (`evidence/v11-grid.png`, `v13-skeletons.png`, `v14-error.png`, `v15-empty.png`).
+
+### Observed in this run
+- V11 · Load `/` → one `<h1>` "Buy game keys at the best prices", one `<h2>` "Browse games", 24 cards linking to `/products/<slug>`, all 24 with an `img[alt]`, 17 strikethrough list prices. First card: "Assassin's Creed Mirage · Steam · Global · From €18.99 · was €49.99 · -62%". Network: `GET https://eneba-api.onrender.com/api/v1/products?page=1` → 200, request header `accept: application/json`. No waking notice on a warm API. (AC-7, AC-9, AC-11)
+- V12 · Click the first card → URL `/products/assassins-creed-mirage-steam-global`, page shows the 404 "Page not found" with "Go to homepage". (AC-7)
+- V13 · API delayed 6 s → at 1.7 s: skeletons, no cards, no notice; at 4.2 s: `role="status"` reads "Waking up the server. The first visit after a quiet spell can take up to a minute."; at 8.2 s: 24 cards, notice gone. A separate 2.5 s delay run counted exactly 12 `ProductCardSkeleton`s. (AC-7, AC-8)
+- V14 · API refused in the browser → 2 attempts, at 0.24 s and 3.25 s (one retry about 3 s later); at 2 s the skeletons still show; at 3.6 s `ErrorState` "Something went wrong · Please try again in a moment · Try again". API restored with a 5 s delay, click "Try again" → skeletons, no notice at 0.5 s, notice at 3.7 s, then 24 cards and the notice gone. Console: only the 2 `ERR_CONNECTION_REFUSED` lines caused by the block. (AC-7, AC-8)
+- V15 · Mocked `{ data: [] }` response → the section shows "No games yet · Check back soon." (AC-7, UI side only)
+
+### Still pending (not exercised, not passed)
+- AC-8 real cold start: first visit after 15+ min of Render idle. The API was warm in this run; V13 proves the notice logic with a simulated delay only.
+- AC-6 preview URL loading the grid: no preview URL known; the Vercel connector needs reauthorization.
+- AC-12 real client IP: temporary `Log::info($request->ip())` on Render, then remove and redeploy. Needs a code change and a deploy, out of bounds for this run.
+- AC-10: Render first deploy log (dashboard) and the local `docker build` plus run against an empty DB.
+- AC-5 in production: 121 request curl, not run (avoid load on Render Free). Pest `CatalogRateLimitTest` in CI only.
+- AC-1 inactive product hiding, AC-2 item values against DB rows, AC-3 price fallback, AC-4 the two named discount cases: need DB writes on a scratch DB. Pest in CI only.
+- V9 and V10 wording fixes still owed (the steps fail on literal wording only).
