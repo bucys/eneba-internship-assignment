@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read int|null $available_keys_count Only present on queries using withCount('availableKeys').
+ */
 #[Fillable(['product_id', 'seller_id', 'price_cents', 'currency', 'is_active'])]
 class Offer extends Model
 {

@@ -1,12 +1,8 @@
-import { Gamepad2 } from "lucide-react";
-import { useState } from "react";
 import { Link } from "react-router";
 import type { Money } from "../../lib/money";
 import { Skeleton } from "../ui/Skeleton";
+import { COVER_ASPECT_CLASS, CoverImage } from "./CoverImage";
 import { Price } from "./Price";
-
-// One place to change the cover ratio once feature 5 picks the seed images.
-const COVER_ASPECT_CLASS = "aspect-[2/3]";
 
 type ProductCardProps = {
   slug: string;
@@ -18,35 +14,6 @@ type ProductCardProps = {
   listPrice: Money | null;
   discountPercent: number | null;
 };
-
-type CoverImageProps = {
-  url: string | null;
-  alt: string;
-};
-
-function CoverImage({ url, alt }: CoverImageProps) {
-  const [broken, setBroken] = useState(false);
-
-  return (
-    <div
-      className={`${COVER_ASPECT_CLASS} w-full overflow-hidden rounded-sm bg-surface-deep`}
-    >
-      {url && !broken ? (
-        <img
-          src={url}
-          alt={alt}
-          loading="lazy"
-          onError={() => setBroken(true)}
-          className="size-full object-cover"
-        />
-      ) : (
-        <div className="flex size-full items-center justify-center">
-          <Gamepad2 aria-hidden="true" className="size-10 text-fg-muted" />
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function ProductCard({
   slug,

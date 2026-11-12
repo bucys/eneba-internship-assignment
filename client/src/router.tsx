@@ -9,6 +9,7 @@ import {
   OrdersErrorBoundary,
   OrdersPlaceholderPage,
 } from "./pages/OrdersPlaceholderPage";
+import { ProductPage } from "./pages/ProductPage";
 import { RouteHydrateFallback } from "./pages/RouteHydrateFallback";
 
 // `import.meta.env.DEV` is checked directly (not through lib/env.ts) so Vite
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
     HydrateFallback: RouteHydrateFallback,
     children: [
       { index: true, Component: HomePage },
+      { path: "products/:slug", Component: ProductPage },
       {
         path: "login",
         Component: AuthPage,

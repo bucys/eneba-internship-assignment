@@ -50,6 +50,7 @@ Computed with the WCAG relative luminance formula. These are the only pairs the 
 | `fg` on `surface-deep` | text | 17.4:1 | 4.5:1 |
 | `fg-soft` on `bg` | text | 7.6:1 | 4.5:1 |
 | `fg-soft` on `surface` | icon (toast close) | 9.6:1 | 3:1 |
+| `fg-soft` on `surface` | text (buy box "Sold by", offer "Only N left") | 9.6:1 | 4.5:1 |
 | `fg-muted` on `bg` | text (hints), input border | 4.8:1 | 4.5:1 |
 | `fg-muted` on `surface` | text (placeholder, card meta), icon | 6.1:1 | 4.5:1 |
 | `fg-muted` on `surface-deep` | text (footer, hovered card) | 7.9:1 | 4.5:1 |

@@ -8,6 +8,11 @@ Route::get('/products', [ProductController::class, 'index'])
     ->middleware('throttle:catalog')
     ->name('products.index');
 
+Route::get('/products/{slug}', [ProductController::class, 'show'])
+    ->where('slug', '[a-z0-9-]+')
+    ->middleware('throttle:catalog')
+    ->name('products.show');
+
 Route::prefix('auth')->name('auth.')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])
         ->middleware('throttle:register')
