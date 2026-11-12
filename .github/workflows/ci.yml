@@ -64,3 +64,5 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+        env:
+          VITE_API_URL: https://eneba-api.onrender.com
