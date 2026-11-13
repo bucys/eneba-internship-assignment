@@ -227,6 +227,7 @@ Out of scope for this build pass, kept so the plan stays honest and the README c
 - **Password reset & email verification**: needs a real mail provider (from spec 0006)
 - **Wishlist**: save products for later
 - **Store facet counts**: per option counts next to each store filter, e.g. Steam (33) (from spec 0012)
+- **Header search stale state**: `SearchForm` compares against the rendered location, so two submits in one frame could push the same URL twice (from spec 0012, AC-5 debug)
 - **Currency / region switch**: header selector for display currency and region · needs a decision
 - **Admin / seller panel**: manage products, offers, and key stock in the browser · needs a decision
 - **Payment provider test mode**: swap the simulated payment for a real sandbox · needs a decision · Beta
