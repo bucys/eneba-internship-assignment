@@ -365,7 +365,7 @@ describe("StorePage results", () => {
     expect(document.title).toBe(
       'Results for "witcher" | Eneba Marketplace (demo)',
     );
-    expect(screen.getByRole("searchbox", { name: "Search" })).toHaveValue(
+    expect(screen.getByRole("combobox", { name: "Search" })).toHaveValue(
       "witcher",
     );
   });
@@ -574,13 +574,54 @@ describe("StorePage filters", () => {
       "/store?platform=steam&sort=price_asc",
     );
 
-    const search = await screen.findByRole("searchbox", { name: "Search" });
+    const search = await screen.findByRole("combobox", { name: "Search" });
     await user.type(search, "  doom  {Enter}");
     expect(router.state.location.search).toBe("?q=doom");
 
     await user.keyboard("{Enter}");
     expect(pushes).toEqual(["?q=doom"]);
     expect(search).toHaveAttribute("maxLength", "100");
+  });
+});
+
+// covers: spec 0013 AC-11
+describe("StorePage relevance sort", () => {
+  it("offers Relevance only with a search, and choosing it writes no sort", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    const { router } = renderStore("/store?q=witcher&sort=name");
+
+    const select = await screen.findByRole("combobox", { name: "Sort by" });
+    expect(select).toHaveValue("name");
+    await user.selectOptions(select, "relevance");
+    expect(router.state.location.search).toBe("?q=witcher");
+
+    await user.selectOptions(select, "name");
+    expect(router.state.location.search).toBe("?q=witcher&sort=name");
+  });
+
+  it("lands on a canonical /store when the search chip is removed", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    const { router } = renderStore("/store?q=witcher");
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Remove filter: Search: witcher",
+      }),
+    );
+    expect(router.state.location.search).toBe("");
+    expect(
+      screen.queryByRole("option", { name: "Relevance" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("redirects sort=relevance without a search to /store", async () => {
+    stubApi();
+    const { router } = renderStore("/store?sort=relevance");
+
+    await screen.findByRole("combobox", { name: "Sort by" });
+    expect(router.state.location.search).toBe("");
   });
 });
 

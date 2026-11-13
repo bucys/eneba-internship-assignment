@@ -3,6 +3,7 @@ import type { StoreParamsUpdate } from "../../lib/useStoreParams";
 import type { CatalogFilters, FilterOption } from "../../api/catalog";
 import {
   DEFAULT_STORE_PARAMS,
+  defaultSort,
   hasClearableFilters,
   priceChipLabel,
   type StoreParams,
@@ -98,7 +99,11 @@ export function ActiveFilterChips({
         <Button
           variant="ghost"
           onClick={() =>
-            onChange((current) => ({ ...DEFAULT_STORE_PARAMS, q: current.q }))
+            onChange((current) => ({
+              ...DEFAULT_STORE_PARAMS,
+              q: current.q,
+              sort: defaultSort(current.q),
+            }))
           }
         >
           Clear all

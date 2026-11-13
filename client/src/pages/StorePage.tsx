@@ -28,7 +28,7 @@ import {
   activeFilterCount,
   DEFAULT_STORE_PARAMS,
   resultCountLabel,
-  STORE_SORTS,
+  sortOptions,
   storeErrorMessage,
   storeHref,
   type StoreSort,
@@ -205,7 +205,7 @@ export function StorePage() {
                   }))
                 }
               >
-                {STORE_SORTS.map((sort) => (
+                {sortOptions(params.q).map((sort) => (
                   <option key={sort.value} value={sort.value}>
                     {sort.label}
                   </option>

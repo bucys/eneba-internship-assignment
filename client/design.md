@@ -85,6 +85,8 @@ Computed with the WCAG relative luminance formula. These are the only pairs the 
 | `fg-muted` on `bg` | chip border | 4.8:1 | 3:1 |
 | `cta-fg` on `cta` | text (Filters count badge) | 14.4:1 | 4.5:1 |
 | `link` on `bg` | text ("See all" link, Filters button) | 5.5:1 | 4.5:1 |
+| `cta` on `surface-deep` | active search suggestion bar (non text) | 11.9:1 | 3:1 |
+| `fg-muted` on `surface` | text (suggestion platform, "Searching…", "No games match") | 6.1:1 | 4.5:1 |
 
 Disabled controls (50% opacity) are exempt from contrast under WCAG.
 
@@ -118,7 +120,8 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 |---|---|---|
 | `AppLayout` | none | Router layout route: skip link, `Header` (gets `useCartCount()`), `<main id="main" tabIndex={-1}>` with `<Outlet/>`, `Footer`, `ToastProvider` |
 | `Header` | `cartCount?: number` (default 0) | "Store" is a `NavLink`: `aria-current="page"` and `cta` text on `/store`. Sticky. One row from `md`. Below `md`, row one is wordmark, Store, cart, Sign in icon, and row two is the full width search (same `SearchForm`, moved with `order-last w-full`). Cart name "Cart, N items", badge hidden at 0, "99+" above 99 |
-| `SearchForm` | `className?` | `role="search"`, `maxLength` 100, trims the term and starts a fresh search at `/store?q=...` (other store params dropped; an empty term goes to `/store`; the URL already shown adds no history entry). On `/store` the field follows the URL's `q` |
+| `SearchForm` | `className?` | `role="search"`, `maxLength` 100, trims the term and starts a fresh search at `/store?q=...` (other store params dropped; an empty term goes to `/store`; the URL already shown adds no history entry). On `/store` the field follows the URL's `q`. Combobox with a listbox popup ([spec 0013](../docs/specs/0013-search-typo-tolerance/index.md)): opens only on the visitor's typing, focus, or ArrowDown with 2+ characters, never from the URL sync; 250 ms debounce; arrows wrap, Enter picks the active option or submits, Escape closes then clears, Tab, outside blur, submit, selection, and route change close it; a hidden polite live region announces the count |
+| `SearchSuggestions` | `listboxId`, `optionId(index)`, `view` (`searching`, `unavailable`, or `results` with `isStale`), `term`, `activeIndex`, `onSelect(index)` | Absolute under the search form on `surface`, `max-h-[min(24rem,60dvh)]`, scrolls inside. Rows: 40px cover (`alt=""`), name clamped to 2 lines with typed words in bold `<mark>`, `fg-muted` platform, `Price`. Last option "See all results for \"term\"" only when there are suggestions. Active row: `surface-deep` plus a 4px `cta` left bar. Stale results at 60% opacity with `aria-busy`. Status rows "Searching…", "No games match \"term\"", "Suggestions are unavailable right now." are not options. `mousedown` is prevented so focus stays in the input |
 | `Wordmark` | none | Text "eneba" linking home, named "Eneba marketplace home". No Eneba logo file |
 | `Footer` | none | `surface-deep`, footer nav, the "not affiliated" note |
 | `Container` | `children`, `className?` | Page width wrapper |

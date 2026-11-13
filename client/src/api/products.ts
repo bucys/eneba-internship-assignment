@@ -9,7 +9,7 @@ import { apiFetch, type Paginated } from "./client";
 
 export type ProductType = "game" | "dlc" | "gift_card" | "subscription";
 
-type NamedRef = { slug: string; name: string };
+export type NamedRef = { slug: string; name: string };
 
 // Mirrors server/app/Http/Resources/ProductResource.php.
 export type Product = {

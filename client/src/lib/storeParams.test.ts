@@ -4,12 +4,14 @@ import {
   activeFilterCount,
   canonicalStoreSearch,
   DEFAULT_STORE_PARAMS,
+  defaultSort,
   hasClearableFilters,
   isSameSearch,
   parsePrice,
   parseStoreParams,
   priceChipLabel,
   resultCountLabel,
+  sortOptions,
   storeErrorMessage,
   toStoreSearch,
 } from "./storeParams";
@@ -116,6 +118,57 @@ describe("canonicalStoreSearch and isSameSearch", () => {
   it("compares decoded values, not raw strings", () => {
     expect(isCanonical("platform=steam%2Cxbox")).toBe(true);
     expect(isCanonical("q=half+life")).toBe(true);
+  });
+});
+
+// covers: spec 0013 AC-11
+describe("relevance sort", () => {
+  it("defaults to relevance with a search and name without one", () => {
+    expect(defaultSort("witcher")).toBe("relevance");
+    expect(defaultSort("")).toBe("name");
+    expect(params("q=witcher").sort).toBe("relevance");
+    expect(params("").sort).toBe("name");
+  });
+
+  it("drops relevance when there is no search", () => {
+    expect(params("sort=relevance").sort).toBe("name");
+    expect(params("q=%20&sort=relevance").sort).toBe("name");
+    expect(canonicalStoreSearch(new URLSearchParams("sort=relevance"))).toBe(
+      "",
+    );
+  });
+
+  it("writes sort only when it differs from the default for q", () => {
+    expect(
+      toStoreSearch({ ...DEFAULT_STORE_PARAMS, q: "x", sort: "relevance" }),
+    ).toBe("?q=x");
+    expect(
+      toStoreSearch({ ...DEFAULT_STORE_PARAMS, q: "x", sort: "name" }),
+    ).toBe("?q=x&sort=name");
+    expect(
+      toStoreSearch({ ...DEFAULT_STORE_PARAMS, q: "", sort: "relevance" }),
+    ).toBe("");
+    expect(
+      canonicalStoreSearch(new URLSearchParams("q=x&sort=relevance")),
+    ).toBe("?q=x");
+  });
+
+  it("offers Relevance first only with a search", () => {
+    expect(sortOptions("x").map((sort) => sort.value)).toEqual([
+      "relevance",
+      "name",
+      "price_asc",
+      "price_desc",
+    ]);
+    expect(sortOptions("").map((sort) => sort.value)).not.toContain(
+      "relevance",
+    );
+  });
+
+  it("compares the sort with the default for q when deciding Clear all", () => {
+    expect(hasClearableFilters(params("q=x"))).toBe(false);
+    expect(hasClearableFilters(params("q=x&sort=name"))).toBe(true);
+    expect(hasClearableFilters(params("sort=name"))).toBe(false);
   });
 });
 

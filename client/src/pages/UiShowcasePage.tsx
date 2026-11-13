@@ -31,6 +31,8 @@ import { ActiveFilterChips } from "../components/store/ActiveFilterChips";
 import { FiltersButton } from "../components/store/FiltersDialog";
 import { StoreFilterPanel } from "../components/store/StoreFilterPanel";
 import { DEFAULT_STORE_PARAMS, type StoreParams } from "../lib/storeParams";
+import { SearchSuggestions } from "../components/layout/SearchSuggestions";
+import type { SuggestionsView } from "../lib/suggestionsView";
 
 // Dev only page: router.tsx registers it behind import.meta.env.DEV.
 
@@ -180,6 +182,76 @@ const sampleCheckoutCart: Cart = {
   total: eur(7993),
   can_checkout: true,
 };
+
+const sampleSuggestionsView: SuggestionsView = {
+  status: "results",
+  isStale: false,
+  suggestions: [
+    {
+      slug: "witcher-3",
+      name: "The Witcher 3: Wild Hunt",
+      cover_image_url: "",
+      platform: { slug: "steam", name: "Steam" },
+      price: eur(1299),
+    },
+    {
+      slug: "witcher-3-blood-and-wine",
+      name: "The Witcher 3: Wild Hunt Blood and Wine, a very long expansion name that wraps",
+      cover_image_url: "",
+      platform: { slug: "gog", name: "GOG" },
+      price: null,
+    },
+  ],
+};
+
+const suggestionStates: {
+  label: string;
+  term: string;
+  view: SuggestionsView;
+  active?: number;
+}[] = [
+  {
+    label: "Results, first row active",
+    term: "witch hunt",
+    view: sampleSuggestionsView,
+    active: 0,
+  },
+  {
+    label: "Next term loading (dimmed)",
+    term: "witch hunt",
+    view: { ...sampleSuggestionsView, isStale: true },
+  },
+  { label: "Searching", term: "witc", view: { status: "searching" } },
+  {
+    label: "No matches",
+    term: "zzzz",
+    view: { status: "results", suggestions: [], isStale: false },
+  },
+  { label: "Unavailable", term: "witcher", view: { status: "unavailable" } },
+];
+
+function SearchSuggestionsDemo() {
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      {suggestionStates.map((state, index) => (
+        <div key={state.label} className="flex flex-col gap-2">
+          <p className="text-sm text-fg-soft">{state.label}</p>
+          {/* Holds the absolute dropdown, like the header search form. */}
+          <div className="relative h-72">
+            <SearchSuggestions
+              listboxId={`ui-suggestions-${index}`}
+              optionId={(option) => `ui-suggestions-${index}-${option}`}
+              view={state.view}
+              term={state.term}
+              activeIndex={state.active ?? -1}
+              onSelect={() => {}}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 type SectionProps = {
   title: string;
@@ -485,6 +557,10 @@ export function UiShowcasePage() {
 
       <Section title="Store filters">
         <StoreFiltersDemo />
+      </Section>
+
+      <Section title="Search suggestions">
+        <SearchSuggestionsDemo />
       </Section>
 
       <Section title="Toasts">

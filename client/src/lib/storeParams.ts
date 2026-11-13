@@ -2,9 +2,10 @@ import { ApiError } from "../api/client";
 import { secondsText } from "./format";
 import { parsePageParam } from "./orderHistory";
 
-export type StoreSort = "name" | "price_asc" | "price_desc";
+export type StoreSort = "relevance" | "name" | "price_asc" | "price_desc";
 
 export const STORE_SORTS: { value: StoreSort; label: string }[] = [
+  { value: "relevance", label: "Relevance" },
   { value: "name", label: "Name: A to Z" },
   { value: "price_asc", label: "Price: low to high" },
   { value: "price_desc", label: "Price: high to low" },
@@ -58,16 +59,36 @@ function isStoreSort(value: string | null): value is StoreSort {
   return STORE_SORTS.some((sort) => sort.value === value);
 }
 
+/** Best match first with a search, A to Z without one (spec 0013 AC-11). */
+export function defaultSort(q: string): StoreSort {
+  return q === "" ? "name" : "relevance";
+}
+
+/** The sort select's options: Relevance only means something with a search. */
+export function sortOptions(q: string): typeof STORE_SORTS {
+  return q === ""
+    ? STORE_SORTS.filter((sort) => sort.value !== "relevance")
+    : STORE_SORTS;
+}
+
+/** Relevance without a search reads as the default, so it never reaches a URL. */
+function effectiveSort(q: string, sort: StoreSort | null): StoreSort {
+  if (sort === null || (sort === "relevance" && q === ""))
+    return defaultSort(q);
+  return sort;
+}
+
 export function parseStoreParams(search: URLSearchParams): StoreParams {
+  const q = (search.get("q") ?? "").trim();
   const sort = search.get("sort");
 
   return {
-    q: (search.get("q") ?? "").trim(),
+    q,
     platform: parseList(search.get("platform")),
     region: parseList(search.get("region")),
     priceMin: parsePrice(search.get("price_min")),
     priceMax: parsePrice(search.get("price_max")),
-    sort: isStoreSort(sort) ? sort : "name",
+    sort: effectiveSort(q, isStoreSort(sort) ? sort : null),
     page: parsePageParam(search.get("page")) ?? 1,
   };
 }
@@ -87,7 +108,8 @@ export function toStoreSearch(params: StoreParams): string {
   if (params.region.length > 0) add("region", list(params.region));
   if (params.priceMin !== null) add("price_min", String(params.priceMin));
   if (params.priceMax !== null) add("price_max", String(params.priceMax));
-  if (params.sort !== "name") add("sort", params.sort);
+  const sort = effectiveSort(params.q, params.sort);
+  if (sort !== defaultSort(params.q)) add("sort", sort);
   if (params.page > 1) add("page", String(params.page));
 
   return parts.length > 0 ? `?${parts.join("&")}` : "";
@@ -122,7 +144,10 @@ export function activeFilterCount(params: StoreParams): number {
 
 /** True when "Clear all" has something to clear (q is kept, so it does not count). */
 export function hasClearableFilters(params: StoreParams): boolean {
-  return activeFilterCount(params) > 0 || params.sort !== "name";
+  return (
+    activeFilterCount(params) > 0 ||
+    effectiveSort(params.q, params.sort) !== defaultSort(params.q)
+  );
 }
 
 /** "€10 to €30", "From €10", "Up to €30", "€10", or null with no bound (AC-7). */
