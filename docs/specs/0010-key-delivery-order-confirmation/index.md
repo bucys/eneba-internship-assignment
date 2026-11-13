@@ -164,4 +164,4 @@ Approach: Journey. This finishes the purchase journey's confirmation step end to
 
 - [ ] `/develop`: confirm in the installed Laravel 13 and Symfony source whether `Cache-Control: no-store` is sent as set or with `private` appended, and keep the test assertion as "contains `no-store`" either way.
 - [ ] Feature 12 (order history): reuse `GET /orders/{ulid}/keys`, `useOrderKeys`, and `OrderKeys` on the order detail; the list view should not fetch keys.
-- [ ] Submission README (feature 16): state that reveals are not tracked and codes are plain text at rest, and what a real store would do (`revealed_at` to block refunds after reveal, encryption at rest).
+- [ ] Submission README (feature 18): state that reveals are not tracked and codes are plain text at rest, and what a real store would do (`revealed_at` to block refunds after reveal, encryption at rest).

@@ -208,4 +208,4 @@ Approach: Journey. This page is the second step of the purchase path (home → p
 - [ ] Checkout (feature 10): after a paid order, invalidate `["products"]` queries so stock and best price refresh.
 - [ ] Store catalog (feature 13): reuse this sort rule if the store ever sorts offers, or move it to a shared helper.
 - [ ] `/sync`: add `CoverImage` and the product page pieces to `client/design.md`, and `GET /products/{slug}` plus `ShowProduct` to `server/AGENTS.md` key files.
-- [ ] Submission README (feature 16): mention public stock counts and server owned sorting as conscious choices.
+- [ ] Submission README (feature 18): mention public stock counts and server owned sorting as conscious choices.

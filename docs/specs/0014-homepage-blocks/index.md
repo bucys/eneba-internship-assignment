@@ -177,5 +177,5 @@ Ordered as one journey (landing → product page), each block finished with all 
 ## Follow-up
 
 - [ ] Site wide visual polish (separate, before submission): the Eneba card restyle (deep card, mint border, coloured region, Add to cart, View offers), category nav, and icon row, if time allows.
-- [ ] README (feature 16): explain the layout endpoint, the per block endpoints, the demo order seed and why it exists, and the deal and ranking rules.
+- [ ] README (feature 18): explain the layout endpoint, the per block endpoints, the demo order seed and why it exists, and the deal and ranking rules.
 - [ ] After building, `/sync` adds `HomeController`, `app/Actions/Home/`, the seed data files, and the `["home", ...]` query keys to the `server/` and `client/` `AGENTS.md` key file tables.

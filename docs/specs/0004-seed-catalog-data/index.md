@@ -261,5 +261,5 @@ Journey approach: this is a foundation feature with no user path of its own, so 
 
 - [ ] Spec 0001, *Prod data seeding*: its wording "add keys only to offers that have none" is now superseded by this spec's top up rule. Add a pointer there to 0004 (or let `/sync` flag it).
 - [ ] Feature 15 (homepage blocks): decide whether to seed demo orders for best sellers. Reuse the checkout and key allocation code from features 10 and 11, not a copy in the seeder.
-- [ ] Feature 16 (submission package): the README credits the cover art source and notes it is hotlinked for a non commercial demo, and that key codes are fake and stored in plain text.
+- [ ] Feature 18 (submission readiness): the README credits the cover art source and notes it is hotlinked for a non commercial demo, and that key codes are fake and stored in plain text.
 - [ ] Feature 6 (walking skeleton): run `php artisan db:seed --force` against Neon after the first deploy, then run the cover URL check once against production data.

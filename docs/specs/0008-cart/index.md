@@ -238,4 +238,4 @@ Approach: Journey. The cart is the third step of the purchase path (product page
 
 - [ ] Checkout (feature 10): price and stock the order with the AC-2 rule (effective quantity, available lines only, `can_checkout`), replace `CheckoutPlaceholderPage`, delete the cart lines inside the order transaction, and invalidate `["me", "cart"]` and `["products"]` after payment.
 - [ ] `/sync`: add `CartLimits`, `BuildCart`, the cart routes, and the `eneba.guestCart` key to `server/AGENTS.md` and `client/AGENTS.md`; add the toast action, `QuantityStepper`, and cart components to `client/design.md`.
-- [ ] Submission README (feature 16): explain the guest cart in `localStorage`, live prices, no stock reservation, and the accepted merge retry tradeoff.
+- [ ] Submission README (feature 18): explain the guest cart in `localStorage`, live prices, no stock reservation, and the accepted merge retry tradeoff.

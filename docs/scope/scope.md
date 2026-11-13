@@ -28,7 +28,9 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | done |
 | 14 | Search with typo tolerance | Journey 2: Discovery | done |
 | 15 | Homepage blocks | Journey 3: Landing | done |
-| 16 | Submission package | Wrap up | planned |
+| 16 | Visual fidelity & polish | Polish | planned |
+| 17 | Performance & reliability | Polish | planned |
+| 18 | Submission readiness | Wrap up | planned |
 
 ## Foundations
 
@@ -232,17 +234,30 @@ spec [0014](../specs/0014-homepage-blocks/index.md) · code in `server/app/Actio
   - [x] Best sellers and Deals: both endpoints, `DemoOrdersSeeder` through `PlaceOrder`, `ProductRailBlock` (desktop rail, mobile list with Show all), `ProductCard` layout prop and ring hover (AC-3, AC-4, AC-7, AC-11, AC-12)
   - [x] Tests, `design.md` and contrast rows, `/ui`, 360px and keyboard check, CI, deploy, production seed (AC-13)
 - [x] Verify it: `/check verify homepage blocks`
-- [ ] Deferred from `/check review` (2026-11-13, Approve with nits, findings in [docs/reviews/2026-11-13-main-homepage-blocks.md](../reviews/2026-11-13-main-homepage-blocks.md)), non blocking:
-  - [ ] Production first load is slow: 5 API calls (layout, then 4 blocks) each took 6 to 9 s on Render while one call alone takes about 0.9 s. Check Render's PHP worker count, or add a short `Cache-Control` to the home endpoints.
-  - [ ] The minor and nit findings in the review file (for example `ScrollRail` re-rendering on every scroll event, band colours flipping when a block resolves empty).
-  - [ ] Outside feature 15: a second 10 unit checkout charged for 6 units (the cart seems to cap at available keys without telling the buyer). Worth a `/debug`.
+- Follow ups from `/check review` (2026-11-13, Approve with nits) moved to feature 17: slow production first load, the minor and nit findings, and the 10 unit checkout charged for 6 units.
+
+## Polish
+
+### 16. Visual fidelity & polish · needs a decision
+Bring the existing UI close to the supplied Eneba desktop and mobile references, without changing established functionality. Close visual fidelity, not pixel perfection.
+**Done when:** a spec records the visual audit findings against `docs/reference/desktop/` and `docs/reference/mobile/`, the shared design rules, and bounded acceptance criteria; those criteria pass on desktop and at 360px; existing tests and user journeys are unchanged; contrast and keyboard checks still pass.
+- [ ] Design it (spec): `/architect visual fidelity & polish`
+
+### 17. Performance & reliability · Beta · needs a decision
+Investigate production homepage latency, fix confirmed bugs, and resolve the review findings that matter.
+**Done when:** homepage latency is measured before and after with recorded evidence; each fix is justified by that evidence, or the limit is documented as an infrastructure constraint (for example Render free tier workers); confirmed checkout bugs are fixed with a regression test each; every relevant finding in `docs/reviews/` is fixed or marked won't fix with a reason; CI is green.
+- [ ] Design it (spec): `/architect performance & reliability`
+- Carried in from feature 15 ([review](../reviews/2026-11-13-main-homepage-blocks.md)):
+  - Production first load is slow: 5 API calls (layout, then 4 blocks) each took 6 to 9 s on Render while one call alone takes about 0.9 s. Check Render's PHP worker count, or add a short `Cache-Control` to the home endpoints.
+  - The minor and nit findings in the review file (for example `ScrollRail` re-rendering on every scroll event, band colours flipping when a block resolves empty).
+  - A second 10 unit checkout charged for 6 units (the cart seems to cap at available keys without telling the buyer). Confirm with `/debug`, then cover with a regression test.
 
 ## Wrap up
 
-### 16. Submission package
-Everything the reviewers need: README with scope justification and run instructions, exported agent logs, and a final deploy check.
-**Done when:** the README explains scope, architecture, and tradeoffs, every session is exported to `docs/agent-logs/` and checked against the original transcripts with secrets redacted, and the public URL passes a full purchase run.
-- [ ] Build it: `/develop submission package`
+### 18. Submission readiness
+Final end to end audit, documentation, deployment checks, and submission preparation. Replaces the former feature 16 (Submission package).
+**Done when:** the assignment's submission requirements are reviewed and each one is met; the README explains scope, architecture, run instructions and tradeoffs, including every "Submission README (feature 16)" obligation in specs 0002, 0004, 0007, 0008, 0009, 0010 and 0014 (those now belong here); a secrets audit covers the repo, git history, and any log artifact; original Claude Code JSONL transcripts stay local and their gitignore protection stays in place, and only sanitized, reviewed exports are included where the assignment requires them; the public URL passes a full purchase run on desktop and mobile.
+- [ ] Build it: `/develop submission readiness`
 
 ## Deferred
 Out of scope for this build pass, kept so the plan stays honest and the README can justify the cuts.

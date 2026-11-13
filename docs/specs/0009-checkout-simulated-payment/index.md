@@ -288,8 +288,8 @@ Approach: Journey. This is the middle of the purchase journey, so the slice is t
 
 - [ ] Feature 11 (key delivery): its scope row still says "Allocate a unique key per purchased unit". Allocation now lives in this spec; when you run `/architect key delivery & order confirmation`, narrow it to the reveal and copy on `/orders/:ulid` and `keys` on `OrderItemResource` (owner only); the "no key sold twice under concurrent purchases" check is scenario 4 of this spec's concurrency script.
 - [ ] Feature 12 (order history): reuse `OrderResource`, `OrderItemRow`, and `GET /orders/{ulid}` for the order detail; the list adds `GET /orders` (paginated, `paid_at` desc then `id` desc per spec 0002).
-- [ ] Submission README (feature 16): list the test cards, say payment is simulated behind `PaymentGateway`, and note the charge inside the transaction as a conscious simplification.
-- [ ] Submission README (feature 16): also explain the real gateway lifecycle (Consequences) as what would change with a payment provider's test mode.
+- [ ] Submission README (feature 18): list the test cards, say payment is simulated behind `PaymentGateway`, and note the charge inside the transaction as a conscious simplification.
+- [ ] Submission README (feature 18): also explain the real gateway lifecycle (Consequences) as what would change with a payment provider's test mode.
 - [ ] Consider running the concurrency script in CI later (a background `php artisan serve` with workers in the server job); local only for now.
 - [x] Confirmed against the installed Laravel 13.42 source: `HasUlids` lowercases ULIDs, `Exceptions::dontFlash` exists, `lock()` takes a raw string (used for `for no key update` and `for update skip locked`; there is no `skipLocked()`), resolving a Form Request validates it, `timestamp` columns are precision 0, and the `Illuminate\Contracts\Debug\ShouldntReport` interface exists.
 - [ ] Add `scripts/checkout-concurrency.sh` to root `AGENTS.md` Commands via `/sync`.

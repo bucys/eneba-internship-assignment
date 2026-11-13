@@ -187,5 +187,5 @@ Approach: Journey. This is a foundation every journey stands on, so the whole ta
 - [ ] Store catalog (feature 13): define one `Product::withCheapestPrice()` scope (lowest active, in stock offer price) used by every list endpoint, and decide how products with no sellable offer show (suggested: listed as out of stock with a null price, sorted last).
 - [ ] Search (feature 14): a migration runs `CREATE EXTENSION IF NOT EXISTS pg_trgm` and adds the trigram index on `products.name`; confirm it runs on Neon, in CI, and on `eneba_test`. This is additive.
 - [ ] Homepage blocks (feature 15): design the `banners` table, and pin the deal threshold, discount rounding, block size, and best sellers fallback when there are no orders.
-- [ ] Submission README (feature 16): mention plain text keys and listing per platform and region as conscious tradeoffs.
+- [ ] Submission README (feature 18): mention plain text keys and listing per platform and region as conscious tradeoffs.
 - [ ] Check the Laravel 13 docs for native check constraint and partial index support in Blueprint, and for `HasUlids` with `uniqueIds()` on a non primary key column, before writing the migrations.
