@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { Outlet } from "react-router";
+import { Outlet, ScrollRestoration } from "react-router";
 import { useCartCount } from "../../lib/cart";
 import { ToastProvider } from "../ui/Toast";
 import { Footer } from "./Footer";
@@ -31,6 +31,7 @@ export function AppLayout() {
         </main>
         <Footer />
       </div>
+      <ScrollRestoration />
     </ToastProvider>
   );
 }

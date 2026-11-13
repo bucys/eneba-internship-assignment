@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PRODUCT_TYPE_LABELS, productQuery } from "./products";
+import { PRODUCT_TYPE_LABELS, productQuery, productsQuery } from "./products";
 
 vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
@@ -21,5 +21,14 @@ describe("productQuery", () => {
       "detail",
       "the-witcher-3",
     ]);
+  });
+});
+
+describe("productsQuery", () => {
+  it("keys the list by the canonical search under products", () => {
+    expect(productsQuery({}).queryKey).toEqual(["products", "list", ""]);
+    expect(
+      productsQuery({ platform: ["steam"], sort: "price_asc" }).queryKey,
+    ).toEqual(["products", "list", "?platform=steam&sort=price_asc"]);
   });
 });

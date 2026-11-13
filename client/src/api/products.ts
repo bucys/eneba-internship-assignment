@@ -1,5 +1,10 @@
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import type { Money } from "../lib/money";
+import {
+  DEFAULT_STORE_PARAMS,
+  toStoreSearch,
+  type StoreParams,
+} from "../lib/storeParams";
 import { apiFetch, type Paginated } from "./client";
 
 export type ProductType = "game" | "dlc" | "gift_card" | "subscription";
@@ -49,14 +54,23 @@ export type ProductDetail = Product & {
   offers: Offer[];
 };
 
-export function listProducts(page: number, signal?: AbortSignal) {
-  return apiFetch<Paginated<Product>>(`/products?page=${page}`, { signal });
+/** The store params go to the server unchanged; it alone filters and sorts (spec 0012). */
+export function listProducts(params: StoreParams, signal?: AbortSignal) {
+  return apiFetch<Paginated<Product>>(`/products${toStoreSearch(params)}`, {
+    signal,
+  });
 }
 
-export function productsQuery(page: number) {
+/** Keyed by the canonical search, so equal params share one cache entry. */
+export function productsQuery(params: Partial<StoreParams>) {
+  const fullParams = { ...DEFAULT_STORE_PARAMS, ...params };
+
   return queryOptions({
-    queryKey: ["products", "list", { page }],
-    queryFn: ({ signal }) => listProducts(page, signal),
+    queryKey: ["products", "list", toStoreSearch(fullParams)],
+    queryFn: ({ signal }) => listProducts(fullParams, signal),
+    placeholderData: keepPreviousData,
+    // Refocusing the window inside this window does not spend the catalog rate limit.
+    staleTime: 30_000,
   });
 }
 

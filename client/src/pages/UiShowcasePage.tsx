@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Cart, CartLine } from "../api/cart";
 import { CardPaymentForm } from "../components/checkout/CardPaymentForm";
 import { CheckoutPageSkeleton } from "../components/checkout/CheckoutPageSkeleton";
@@ -27,8 +27,78 @@ import { TextField } from "../components/ui/TextField";
 import { useToast } from "../components/ui/toastContext";
 import type { Money } from "../lib/money";
 import { ordersPageHref } from "../lib/orderHistory";
+import { ActiveFilterChips } from "../components/store/ActiveFilterChips";
+import { FiltersButton } from "../components/store/FiltersDialog";
+import { StoreFilterPanel } from "../components/store/StoreFilterPanel";
+import { DEFAULT_STORE_PARAMS, type StoreParams } from "../lib/storeParams";
 
 // Dev only page: router.tsx registers it behind import.meta.env.DEV.
+
+const sampleFilterOptions = {
+  platforms: [
+    { slug: "steam", name: "Steam" },
+    { slug: "xbox", name: "Xbox Live" },
+    { slug: "psn", name: "PlayStation Network" },
+  ],
+  regions: [
+    { slug: "europe", name: "Europe" },
+    { slug: "global", name: "Global" },
+  ],
+};
+
+/** The panel and chips wired to local state, so every control can be tried here. */
+function StoreFiltersDemo() {
+  const [params, setParams] = useState<StoreParams>({
+    ...DEFAULT_STORE_PARAMS,
+    q: "a very long search term that has to truncate inside its chip",
+    platform: ["steam", "unknown-slug"],
+    priceMin: 10,
+    priceMax: 30,
+    sort: "price_asc",
+  });
+  const options = { status: "ready" as const, options: sampleFilterOptions };
+
+  return (
+    <div className="grid gap-6 md:grid-cols-3">
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-fg-soft">Loaded</p>
+        <StoreFilterPanel
+          params={params}
+          options={options}
+          onChange={setParams}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-fg-soft">Loading</p>
+        <StoreFilterPanel
+          params={params}
+          options={{ status: "loading" }}
+          onChange={setParams}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-fg-soft">Error</p>
+        <StoreFilterPanel
+          params={params}
+          options={{ status: "error", onRetry: () => {} }}
+          onChange={setParams}
+        />
+      </div>
+      <div className="flex flex-col gap-3 md:col-span-3">
+        <p className="text-sm text-fg-soft">Chips (unknown slug shows as is)</p>
+        <ActiveFilterChips
+          params={params}
+          options={sampleFilterOptions}
+          onChange={setParams}
+        />
+        <div className="flex flex-wrap gap-3">
+          <FiltersButton count={0} />
+          <FiltersButton count={3} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const eur = (amount: number): Money => ({ amount, currency: "EUR" });
 
@@ -411,6 +481,10 @@ export function UiShowcasePage() {
           />
         ))}
         <OrderListSkeleton />
+      </Section>
+
+      <Section title="Store filters">
+        <StoreFiltersDemo />
       </Section>
 
       <Section title="Toasts">

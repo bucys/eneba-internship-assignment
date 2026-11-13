@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router";
 import { productsQuery } from "../../api/products";
 import { useSlowPending } from "../../lib/useSlowPending";
 import { Alert } from "../ui/Alert";
@@ -11,7 +12,7 @@ import { toProductCardProps } from "./toProductCardProps";
 const SKELETON_COUNT = 12;
 
 function ProductListBody() {
-  const query = useQuery(productsQuery(1));
+  const query = useQuery(productsQuery({}));
   // isFetching (not isPending) so the notice also shows while "Try again" refetches after an error.
   const isSlow = useSlowPending(query.isFetching && !query.data);
 
@@ -55,9 +56,17 @@ function ProductListBody() {
 export function ProductListSection() {
   return (
     <section aria-labelledby="browse-games-heading" className="mt-8">
-      <h2 id="browse-games-heading" className="mb-4 text-xl font-extrabold">
-        Browse games
-      </h2>
+      <div className="mb-2 flex items-center justify-between gap-4">
+        <h2 id="browse-games-heading" className="text-xl font-extrabold">
+          Browse games
+        </h2>
+        <Link
+          to="/store"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-link hover:underline"
+        >
+          See all
+        </Link>
+      </div>
       <ProductListBody />
     </section>
   );

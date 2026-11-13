@@ -9,13 +9,17 @@ type PaginationProps = {
   hrefFor: (page: number) => string;
   /** The nav's accessible name, for example "Order pages". */
   label: string;
+  /** Runs when a page link is clicked, for example to scroll to the top. */
+  onNavigate?: () => void;
 };
 
 function PageLink({
   to,
+  onNavigate,
   children,
 }: {
   to: string | null;
+  onNavigate?: () => void;
   children: ReactNode;
 }) {
   if (to === null) {
@@ -33,7 +37,12 @@ function PageLink({
     );
   }
   return (
-    <LinkButton to={to} variant="secondary" className="gap-1">
+    <LinkButton
+      to={to}
+      variant="secondary"
+      className="gap-1"
+      onClick={onNavigate}
+    >
       {children}
     </LinkButton>
   );
@@ -45,19 +54,26 @@ export function Pagination({
   lastPage,
   hrefFor,
   label,
+  onNavigate,
 }: PaginationProps) {
   if (lastPage <= 1) return null;
 
   return (
     <nav aria-label={label} className="flex items-center justify-between gap-3">
-      <PageLink to={page > 1 ? hrefFor(page - 1) : null}>
+      <PageLink
+        to={page > 1 ? hrefFor(page - 1) : null}
+        onNavigate={onNavigate}
+      >
         <ChevronLeft aria-hidden="true" className="size-4" />
         Previous
       </PageLink>
       <span className="text-sm text-fg-soft">
         Page {page} of {lastPage}
       </span>
-      <PageLink to={page < lastPage ? hrefFor(page + 1) : null}>
+      <PageLink
+        to={page < lastPage ? hrefFor(page + 1) : null}
+        onNavigate={onNavigate}
+      >
         Next
         <ChevronRight aria-hidden="true" className="size-4" />
       </PageLink>

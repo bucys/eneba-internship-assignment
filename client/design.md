@@ -78,6 +78,13 @@ Computed with the WCAG relative luminance formula. These are the only pairs the 
 | `success` on `surface` | text and border (order "Paid" badge) | 5.9:1 | 4.5:1 |
 | `success` on `surface-deep` | text and border ("Paid" badge on a hovered order row) | 7.7:1 | 4.5:1 |
 | `link` on `bg` | text ("Back to my orders" link) | 5.5:1 | 4.5:1 |
+| `cta` on `bg` | text (header nav link hover, active "Store" link) | 7.2:1 | 4.5:1 |
+| `fg` on `surface` | text (store filter chip) | 13.5:1 | 4.5:1 |
+| `fg` on `surface-deep` | text (hovered store filter chip) | 17.4:1 | 4.5:1 |
+| `fg-soft` on `surface` | icon (chip remove "x") | 9.6:1 | 3:1 |
+| `fg-muted` on `bg` | chip border | 4.8:1 | 3:1 |
+| `cta-fg` on `cta` | text (Filters count badge) | 14.4:1 | 4.5:1 |
+| `link` on `bg` | text ("See all" link, Filters button) | 5.5:1 | 4.5:1 |
 
 Disabled controls (50% opacity) are exempt from contrast under WCAG.
 
@@ -110,8 +117,8 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | Component | Props | Notes |
 |---|---|---|
 | `AppLayout` | none | Router layout route: skip link, `Header` (gets `useCartCount()`), `<main id="main" tabIndex={-1}>` with `<Outlet/>`, `Footer`, `ToastProvider` |
-| `Header` | `cartCount?: number` (default 0) | Sticky. One row from `md`. Below `md`, row one is wordmark, Store, cart, Sign in icon, and row two is the full width search (same `SearchForm`, moved with `order-last w-full`). Cart name "Cart, N items", badge hidden at 0, "99+" above 99 |
-| `SearchForm` | `className?` | `role="search"`, trims the term, navigates to `/store?q=...`, ignores an empty term |
+| `Header` | `cartCount?: number` (default 0) | "Store" is a `NavLink`: `aria-current="page"` and `cta` text on `/store`. Sticky. One row from `md`. Below `md`, row one is wordmark, Store, cart, Sign in icon, and row two is the full width search (same `SearchForm`, moved with `order-last w-full`). Cart name "Cart, N items", badge hidden at 0, "99+" above 99 |
+| `SearchForm` | `className?` | `role="search"`, `maxLength` 100, trims the term and starts a fresh search at `/store?q=...` (other store params dropped; an empty term goes to `/store`; the URL already shown adds no history entry). On `/store` the field follows the URL's `q` |
 | `Wordmark` | none | Text "eneba" linking home, named "Eneba marketplace home". No Eneba logo file |
 | `Footer` | none | `surface-deep`, footer nav, the "not affiliated" note |
 | `Container` | `children`, `className?` | Page width wrapper |
@@ -129,7 +136,7 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | `Skeleton` | `className?` | Pulsing `surface-deep` block, `aria-hidden` |
 | `EmptyState` | `title`, `message`, `action?: ReactNode` | `<h2>` title |
 | `ErrorState` | `message?`, `onRetry` | `<h2>` "Something went wrong", secondary "Try again" |
-| `Pagination` | `page`, `lastPage`, `hrefFor(page)`, `label` | `<nav>` named by `label`: secondary Previous and Next links around a `fg-soft` "Page X of Y". At the first or last page the end is an `aria-disabled` span at 50% opacity, not a link. Renders nothing when `lastPage` is 1 |
+| `Pagination` | `page`, `lastPage`, `hrefFor(page)`, `label`, `onNavigate?` (runs on a page link click, for example to scroll to the top) | `<nav>` named by `label`: secondary Previous and Next links around a `fg-soft` "Page X of Y". At the first or last page the end is an `aria-disabled` span at 50% opacity, not a link. Renders nothing when `lastPage` is 1 |
 | `Alert` | `variant?` (`info`, `success`, `error`), `role?`, `children` | `surface` box with a variant border and icon. Role defaults to `alert` for errors, `status` otherwise |
 | `ToastProvider` / `useToast` | `useToast().show({ message, variant, action? })` returns an id. `action: { label, to }`. `dismiss(id)` | One `aria-live="polite"` region, bottom center on mobile, bottom right from `md`. Info and success close after 4s (paused on hover or focus), errors stay. Max 3, oldest drops. `action` renders a normal focusable router link after the message (44px tall, underlined, `cta` on hover) that closes the toast when clicked, for example "View cart". `useToast` lives in `toastContext.ts` |
 
@@ -141,6 +148,18 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | `ProductCard` | `slug`, `name`, `coverImageUrl`, `platformName`, `regionName`, `price`, `listPrice`, `discountPercent` | One link to `/products/<slug>`. 2:3 cover (`COVER_ASPECT_CLASS`, matches Steam portrait art), lazy image, `Gamepad2` placeholder when missing or broken. Name clamped to 2 lines. Sits on `surface`, hover `surface-deep` |
 | `ProductCardSkeleton` | none | Loading stand in with the same shape |
 | `ProductGrid` | `children` (cards) | `<ul>` grid: 2, 3 (`md`), 4 (`lg`), 5 (`xl`) columns, `gap-4` |
+
+### Store (`src/components/store/`)
+
+| Component | Props | Notes |
+|---|---|---|
+| `StoreFilterPanel` | `params`, `options` (`loading`, `error` with `onRetry`, `ready` with the catalog filters), `onChange(next)` | Three `<fieldset>`s with a `font-extrabold` `<legend>`: Platform and Region (one `Checkbox` per option; ticking appends to the list), Price (EUR). Loading shows skeleton rows; error replaces only Platform and Region with "Filters could not load." and a secondary Try again |
+| `PriceRangeFields` | `min`, `max` (whole euros or null), `onApply(min, max)` | Two `TextField`s, "Min" and "Max", `inputMode="numeric"`. Apply on blur or Enter; empty removes the bound. Inline errors "Enter a whole number from 0 to 10000" and "Min must not exceed max" (on Min) apply nothing. Drafts reset whenever the URL bounds change |
+| `ActiveFilterChips` | `params`, `options?`, `onChange(next)` | One chip button per platform, region, price range, and search, named "Remove filter: <label>": `surface` with an `fg-muted` border, hover `surface-deep`, label truncated by CSS. Ghost "Clear all" when platform, region, price, or a non default sort is set (keeps `q`). Renders nothing with nothing to show |
+| `FiltersButton` | `count`, `onClick?`, `ref?`, `expanded?` | Secondary button "Filters" with a `cta` count badge above 0, named "Filters, N active" |
+| `FiltersDialog` | `activeCount`, `total`, `children` (the panel) | Below `lg` only. Native `<dialog>` with `showModal()`, full height on `bg`, `black/60` backdrop (right sheet from `sm`), header "Filters" with an icon close button, footer primary "Show N results". Every close goes through the native `close` event, which returns focus to the Filters button. Page scroll is locked while open |
+
+The store page shows the panel in a left sidebar from `lg` and in the dialog below it, picked by `matchMedia("(min-width: 1024px)")`, so the fields exist only once.
 
 ### Cart (`src/components/cart/`)
 

@@ -14,6 +14,8 @@ import {
 import { OrdersErrorBoundary, OrdersPage } from "./pages/OrdersPage";
 import { ProductPage } from "./pages/ProductPage";
 import { RouteHydrateFallback } from "./pages/RouteHydrateFallback";
+import { StorePage } from "./pages/StorePage";
+import { storeLoader } from "./pages/storeLoader";
 
 // `import.meta.env.DEV` is checked directly (not through lib/env.ts) so Vite
 // replaces it with `false` in production and drops the showcase chunk entirely.
@@ -34,6 +36,7 @@ export const router = createBrowserRouter([
     HydrateFallback: RouteHydrateFallback,
     children: [
       { index: true, Component: HomePage },
+      { path: "store", Component: StorePage, loader: storeLoader },
       { path: "products/:slug", Component: ProductPage },
       { path: "cart", Component: CartPage },
       {

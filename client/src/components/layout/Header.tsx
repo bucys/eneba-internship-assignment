@@ -1,5 +1,6 @@
 import { ShoppingCart, User } from "lucide-react";
-import { Link } from "react-router";
+import { Link, NavLink } from "react-router";
+import { cx } from "../../lib/cx";
 import { useAuthToken, useMe } from "../../lib/auth";
 import { AccountMenu, AccountPlaceholder, AccountRetry } from "./AccountMenu";
 import { Container } from "./Container";
@@ -20,8 +21,12 @@ function badgeText(count: number) {
   return count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : String(count);
 }
 
-const navLinkClasses =
-  "inline-flex min-h-11 items-center rounded-sm px-2 text-sm font-semibold text-fg transition-colors hover:text-cta";
+function navLinkClasses({ isActive }: { isActive: boolean }) {
+  return cx(
+    "inline-flex min-h-11 items-center rounded-sm px-2 text-sm font-semibold transition-colors hover:text-cta",
+    isActive ? "text-cta" : "text-fg",
+  );
+}
 
 function SignInLink() {
   return (
@@ -62,9 +67,9 @@ export function Header({ cartCount = 0 }: HeaderProps) {
         <SearchForm className="order-last w-full md:order-0 md:w-auto md:flex-1" />
 
         <nav aria-label="Primary" className="ml-auto md:ml-0">
-          <Link to="/store" className={navLinkClasses}>
+          <NavLink to="/store" className={navLinkClasses}>
             Store
-          </Link>
+          </NavLink>
         </nav>
 
         <Link
