@@ -16,9 +16,10 @@ ROUNDS="${ROUNDS:-20}"
 WORK="$(mktemp -d)"
 
 # The test DB, an in memory cache per request (so limiters never trip across 100s of requests),
-# and no log file noise. Process env wins over server/.env, which points at the dev DB.
+# and logs to stderr, which lands in $WORK/server.log, never server/storage/logs. LOG_CHANNEL=null does
+# not work: env() turns the string "null" into PHP null, so no channel resolves. Process env wins over server/.env, which points at the dev DB.
 export APP_ENV=local DB_URL= DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 \
-  DB_DATABASE=eneba_test DB_USERNAME=eneba DB_PASSWORD=eneba CACHE_STORE=array LOG_CHANNEL=null
+  DB_DATABASE=eneba_test DB_USERNAME=eneba DB_PASSWORD=eneba CACHE_STORE=array LOG_CHANNEL=stderr
 
 GOOD_EXPIRY="12/$(($(date -u +%y) + 2))"
 EXPIRED="01/20"

@@ -12,8 +12,11 @@ import { LinkButton } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { useSlowPending } from "../lib/useSlowPending";
-
-const TITLE = "Order confirmed | Eneba Marketplace (demo)";
+import {
+  isOrderNotFound,
+  ORDER_CONFIRMED_TITLE,
+  ORDER_NOT_FOUND_TITLE,
+} from "./orderPageView";
 
 const paidAtFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -22,14 +25,16 @@ const paidAtFormat = new Intl.DateTimeFormat(undefined, {
 
 function PageShell({
   heading,
+  title = ORDER_CONFIRMED_TITLE,
   children,
 }: {
   heading: string;
+  title?: string;
   children: ReactNode;
 }) {
   return (
     <Container className="flex flex-col gap-6 py-10">
-      <title>{TITLE}</title>
+      <title>{title}</title>
       <h1 className="text-2xl font-extrabold md:text-3xl">{heading}</h1>
       {children}
     </Container>
@@ -78,9 +83,9 @@ export function OrderConfirmationPage() {
     );
   }
 
-  if (query.error instanceof ApiError && query.error.status === 404) {
+  if (isOrderNotFound(query.error)) {
     return (
-      <PageShell heading="Order not found">
+      <PageShell heading="Order not found" title={ORDER_NOT_FOUND_TITLE}>
         <EmptyState
           title="We could not find this order"
           message="Check the link, or find your games in the store."
