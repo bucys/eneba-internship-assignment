@@ -5,6 +5,7 @@
 # Needs: docker compose up -d, PHP, curl, jq, uuidgen. Runs against eneba_test only; dev data is never touched.
 # Usage: scripts/checkout-concurrency.sh            (20 rounds)
 #        ROUNDS=3 scripts/checkout-concurrency.sh
+#        PSQL_VIA=host scripts/checkout-concurrency.sh   (psql on this machine, no Docker; used by CI)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -38,9 +39,17 @@ wait_jobs() {
   JOBS=()
 }
 
+# psql against eneba_test, inside the compose container (default) or from this machine.
+psql_test() {
+  if [[ "${PSQL_VIA:-docker}" == host ]]; then
+    PGPASSWORD=eneba psql -h 127.0.0.1 -p 5432 -U eneba -d eneba_test "$@"
+  else
+    docker compose -f "$ROOT/docker-compose.yml" exec -T postgres psql -U eneba -d eneba_test "$@"
+  fi
+}
+
 sql() {
-  docker compose -f "$ROOT/docker-compose.yml" exec -T postgres \
-    psql -U eneba -d eneba_test -v ON_ERROR_STOP=1 -qtA -c "$1"
+  psql_test -v ON_ERROR_STOP=1 -qtA -c "$1"
 }
 
 cleanup() {
@@ -77,18 +86,50 @@ checkout() { # token key expected_total expiry out_file
 }
 
 # An offer that can be bought, with at least $1 unsold keys and in no other buyer's cart this round.
+# Lowest id first, so every run over the same seeded catalog picks the same offers.
 pick_offer() {
   sql "SELECT o.id FROM offers o JOIN products p ON p.id = o.product_id
        WHERE o.is_active AND p.is_active
          AND (SELECT count(*) FROM product_keys k WHERE k.offer_id = o.id AND k.order_item_id IS NULL) >= $1
          AND NOT EXISTS (SELECT 1 FROM cart_items c WHERE c.offer_id = o.id)
-       ORDER BY random() LIMIT 1"
+       ORDER BY o.id LIMIT 1"
 }
 
-# Holds the user's cart lock from psql for $2 seconds, like a slow checkout would.
-hold_user_lock() { # user_id seconds
-  { echo "BEGIN; SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE;"; sleep "$2"; echo "COMMIT;"; } |
-    docker compose -f "$ROOT/docker-compose.yml" exec -T postgres psql -U eneba -d eneba_test -qtA >/dev/null
+# Polls until the query prints the expected value, for at most 15 seconds.
+wait_for() { # sql expected description
+  local deadline=$((SECONDS + 15))
+  until [[ "$(sql "$1")" == "$2" ]]; do
+    ((SECONDS < deadline)) || fail "timed out waiting for $3"
+    sleep 0.05
+  done
+}
+
+# Holds the user's cart lock from psql, like a slow checkout would, until release_lock.
+# The 30 second cap only stops a broken run from hanging.
+hold_user_lock() { # user_id
+  rm -f "$WORK/release"
+  {
+    echo "SET application_name = 'hold_user_lock'; BEGIN; SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE;"
+    local deadline=$((SECONDS + 30))
+    until [[ -f "$WORK/release" ]] || ((SECONDS >= deadline)); do sleep 0.05; done
+    echo "COMMIT;"
+  } | psql_test -qtA >/dev/null
+}
+
+# Row locking gives the holder a transaction id, so this is true only once the row is locked.
+wait_for_lock_held() {
+  wait_for "SELECT count(*) FROM pg_stat_activity
+            WHERE application_name = 'hold_user_lock' AND backend_xid IS NOT NULL" 1 "the lock holder"
+}
+
+# Scenarios run one at a time, so every lock waiter in eneba_test is a request from this scenario.
+wait_for_waiters() { # count
+  wait_for "SELECT count(*) FROM pg_stat_activity
+            WHERE datname = current_database() AND wait_event_type = 'Lock'" "$1" "$1 request(s) to wait on the lock"
+}
+
+release_lock() {
+  touch "$WORK/release"
 }
 
 scenario_same_key() {
@@ -118,11 +159,13 @@ scenario_replay_while_running() {
   total="$(cart_total "$token")"
   key="$(uuidgen)"
 
-  spawn hold_user_lock "$uid" 2
-  sleep 0.4
+  spawn hold_user_lock "$uid"
+  wait_for_lock_held
   spawn checkout "$token" "$key" "$total" "$GOOD_EXPIRY" "$WORK/s2.a"
-  sleep 0.5
+  wait_for_waiters 1
   spawn checkout "$token" "$key" "$total" "$EXPIRED" "$WORK/s2.b"
+  wait_for_waiters 2
+  release_lock
   wait_jobs
 
   [[ "$(cut -d' ' -f1 "$WORK/s2.a")" == 201 ]] || fail "A expected 201, got $(cat "$WORK/s2.a")"
@@ -207,13 +250,16 @@ scenario_cart_edit_during_checkout() {
   add_to_cart "$token" "$offer" 1
   total="$(cart_total "$token")"
 
-  spawn hold_user_lock "$uid" 1.5
-  sleep 0.4
+  spawn hold_user_lock "$uid"
+  wait_for_lock_held
   spawn checkout "$token" "$(uuidgen)" "$total" "$GOOD_EXPIRY" "$WORK/s5.a"
-  sleep 0.4
-  status="$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API/cart/items/$offer" -H 'Accept: application/json' \
-    -H 'Content-Type: application/json' -H "Authorization: Bearer $token" -d '{"quantity":2}')"
+  wait_for_waiters 1
+  spawn sh -c "curl -s -o /dev/null -w '%{http_code}' -X PATCH '$API/cart/items/$offer' -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' -H 'Authorization: Bearer $token' -d '{\"quantity\":2}' >'$WORK/s5.patch'"
+  wait_for_waiters 2
+  release_lock
   wait_jobs
+  status="$(cat "$WORK/s5.patch")"
   [[ "$(cut -d' ' -f1 "$WORK/s5.a")" == 201 ]] || fail "checkout expected 201, got $(cat "$WORK/s5.a")"
   [[ "$status" == 404 ]] || fail "PATCH expected 404, got $status"
 
@@ -223,11 +269,13 @@ scenario_cart_edit_during_checkout() {
   total="$(cart_total "$token")"
   other="$(pick_offer 1)"
 
-  spawn hold_user_lock "$uid" 1.5
-  sleep 0.4
+  spawn hold_user_lock "$uid"
+  wait_for_lock_held
   spawn checkout "$token" "$(uuidgen)" "$total" "$GOOD_EXPIRY" "$WORK/s5.b"
-  sleep 0.4
+  wait_for_waiters 1
   spawn add_to_cart "$token" "$other" 1
+  wait_for_waiters 2
+  release_lock
   wait_jobs
   [[ "$(cut -d' ' -f1 "$WORK/s5.b")" == 201 ]] || fail "second checkout expected 201, got $(cat "$WORK/s5.b")"
   [[ "$(sql "SELECT offer_id FROM cart_items WHERE user_id = $uid")" == "$other" ]] || fail "the new line did not survive"

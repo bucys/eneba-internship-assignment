@@ -1,12 +1,26 @@
-import { describe, expect, it, vi } from "vitest";
+import { MutationObserver } from "@tanstack/react-query";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { CheckoutInput, Order } from "../api/orders";
 
 vi.mock("./env", () => ({ env: { apiUrl: "https://api.example.test" } }));
+vi.mock("../api/orders", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../api/orders")>()),
+  placeOrder: vi.fn(),
+}));
 
 const { ApiError } = await import("../api/client");
+const { placeOrder } = await import("../api/orders");
+const { authToken } = await import("./authToken");
+const { CART_KEY } = await import("./cart");
+const { queryClient } = await import("./queryClient");
 const {
+  ACCOUNT_CHANGED_NOTICE,
   PAYMENT_FAILED,
   PAYMENT_UNREACHABLE,
+  accountChangedNotice,
   checkoutErrorMessage,
+  isOpeningOrder,
+  placeOrderOptions,
   shouldRefetchCart,
 } = await import("./checkout");
 
@@ -128,5 +142,96 @@ describe("shouldRefetchCart", () => {
     expect(shouldRefetchCart(http(422, { cart: ["x"] }))).toBe(true);
     expect(shouldRefetchCart(http(422, { payment: ["x"] }))).toBe(false);
     expect(shouldRefetchCart(http(500))).toBe(false);
+  });
+});
+
+describe("placeOrderOptions", () => {
+  const order = { ulid: "01jorder" } as Order;
+  const input = { expected_total: 1999 } as CheckoutInput;
+
+  afterEach(() => {
+    vi.mocked(placeOrder).mockReset();
+    queryClient.clear();
+    authToken.clear();
+  });
+
+  function setup() {
+    const navigate = vi.fn();
+    const observer = new MutationObserver(
+      queryClient,
+      placeOrderOptions("key-1", navigate),
+    );
+    return { navigate, observer };
+  }
+
+  it("opens the order when the same token is still signed in", async () => {
+    authToken.set("token-a");
+    vi.mocked(placeOrder).mockResolvedValue(order);
+    const { navigate, observer } = setup();
+
+    await observer.mutate(input);
+
+    expect(navigate).toHaveBeenCalledWith("/orders/01jorder", {
+      replace: true,
+    });
+    expect(isOpeningOrder(observer.getCurrentResult(), "token-a")).toBe(true);
+    expect(
+      accountChangedNotice(observer.getCurrentResult(), "token-a"),
+    ).toBeUndefined();
+  });
+
+  // Regression: the form stayed on "Processing payment" forever (review 2026-11-13).
+  it("unlocks the form and writes no caches when the token changed mid request", async () => {
+    authToken.set("token-a");
+    vi.mocked(placeOrder).mockImplementation(async () => {
+      authToken.set("token-b");
+      return order;
+    });
+    const { navigate, observer } = setup();
+
+    await observer.mutate(input);
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(CART_KEY)).toBeUndefined();
+    expect(isOpeningOrder(observer.getCurrentResult(), "token-b")).toBe(false);
+    expect(accountChangedNotice(observer.getCurrentResult(), "token-b")).toBe(
+      ACCOUNT_CHANGED_NOTICE,
+    );
+  });
+
+  it("sends the same idempotency key on a retry after unlocking", async () => {
+    authToken.set("token-a");
+    vi.mocked(placeOrder).mockImplementationOnce(async () => {
+      authToken.set("token-b");
+      return order;
+    });
+    vi.mocked(placeOrder).mockResolvedValueOnce(order);
+    const { navigate, observer } = setup();
+
+    await observer.mutate(input);
+    await observer.mutate(input);
+
+    expect(vi.mocked(placeOrder).mock.calls.map((call) => call[1])).toEqual([
+      "key-1",
+      "key-1",
+    ]);
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(
+      accountChangedNotice(observer.getCurrentResult(), "token-b"),
+    ).toBeUndefined();
+  });
+
+  it("shows no notice while a payment is pending or after it failed", async () => {
+    authToken.set("token-a");
+    vi.mocked(placeOrder).mockRejectedValue(new Error("boom"));
+    const { observer } = setup();
+
+    expect(
+      accountChangedNotice(observer.getCurrentResult(), "token-b"),
+    ).toBeUndefined();
+    await observer.mutate(input).catch(() => undefined);
+    expect(
+      accountChangedNotice(observer.getCurrentResult(), "token-b"),
+    ).toBeUndefined();
   });
 });

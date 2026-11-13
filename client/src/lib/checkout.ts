@@ -1,8 +1,14 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, type NavigateFunction } from "react-router";
 import { ApiError } from "../api/client";
-import { orderQueryKey, placeOrder, type CheckoutInput } from "../api/orders";
+import {
+  orderQueryKey,
+  placeOrder,
+  type CheckoutInput,
+  type Order,
+} from "../api/orders";
+import { useAuthToken } from "./auth";
 import { authToken } from "./authToken";
 import { CART_KEY, EMPTY_CART } from "./cart";
 import { CARD_FIELDS, type CardFieldErrors } from "./cardInput";
@@ -11,6 +17,8 @@ import { queryClient } from "./queryClient";
 export const PAYMENT_FAILED = "Payment failed. Please try again.";
 export const PAYMENT_UNREACHABLE =
   "We could not reach the payment service. Please try again.";
+export const ACCOUNT_CHANGED_NOTICE =
+  "Your account changed while the payment was processing. It may have completed under the previous account, so check that account's orders before you pay again.";
 
 export type CheckoutErrorView = {
   formError?: string;
@@ -71,16 +79,40 @@ export function shouldRefetchCart(error: unknown): boolean {
   );
 }
 
-/**
- * One idempotency key per page mount, sent on every attempt from that visit (AC-13).
- * Caches are written only while the token the request started with is still signed in.
- */
-export function usePlaceOrder() {
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
-  const navigate = useNavigate();
+export type PlacedOrder = { order: Order; token: string | null };
 
-  return useMutation({
-    mutationFn: async (input: CheckoutInput) => {
+/**
+ * True while a paid order is about to open its confirmation page, so the form stays locked.
+ * False when the token changed mid request: onSuccess skipped the navigation, and the form
+ * must unlock instead of showing "Processing payment" forever.
+ */
+export function isOpeningOrder(
+  result: { isSuccess: boolean; data?: PlacedOrder },
+  currentToken: string | null,
+): boolean {
+  return result.isSuccess && result.data?.token === currentToken;
+}
+
+/** Shown when a payment succeeded but the token changed mid request (the form unlocks instead). */
+export function accountChangedNotice(
+  result: { isSuccess: boolean; data?: PlacedOrder },
+  currentToken: string | null,
+): string | undefined {
+  return result.isSuccess && !isOpeningOrder(result, currentToken)
+    ? ACCOUNT_CHANGED_NOTICE
+    : undefined;
+}
+
+/**
+ * Caches are written only while the token the request started with is still signed in.
+ * Kept apart from the hook so tests can run it without rendering React.
+ */
+export function placeOrderOptions(
+  idempotencyKey: string,
+  navigate: NavigateFunction,
+): UseMutationOptions<PlacedOrder, unknown, CheckoutInput> {
+  return {
+    mutationFn: async (input) => {
       const token = authToken.get();
       const order = await placeOrder(input, idempotencyKey);
       return { order, token };
@@ -97,5 +129,19 @@ export function usePlaceOrder() {
         void queryClient.invalidateQueries({ queryKey: CART_KEY });
       }
     },
-  });
+  };
+}
+
+/** One idempotency key per page mount, sent on every attempt from that visit (AC-13). */
+export function usePlaceOrder() {
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const navigate = useNavigate();
+  const token = useAuthToken();
+  const mutation = useMutation(placeOrderOptions(idempotencyKey, navigate));
+
+  return {
+    mutation,
+    isOpeningOrder: isOpeningOrder(mutation, token),
+    accountChangedNotice: accountChangedNotice(mutation, token),
+  };
 }

@@ -20,7 +20,11 @@ import { useSlowPending } from "../lib/useSlowPending";
 function CheckoutBody() {
   // Always refetch on mount, so a total cached from /cart is never what the buyer pays against (AC-10).
   const cartQuery = useQuery({ ...cartQueryOptions, refetchOnMount: "always" });
-  const placeOrder = usePlaceOrder();
+  const {
+    mutation: placeOrder,
+    isOpeningOrder,
+    accountChangedNotice,
+  } = usePlaceOrder();
   const isSlow = useSlowPending(cartQuery.isPending);
   // The cart that was paid for. After success the cache holds the empty cart, so this
   // keeps the summary on screen until the confirmation page replaces it.
@@ -31,7 +35,7 @@ function CheckoutBody() {
     [placeOrder.isError, placeOrder.error],
   );
 
-  const cart = placeOrder.isSuccess && paidCart ? paidCart : cartQuery.data;
+  const cart = isOpeningOrder && paidCart ? paidCart : cartQuery.data;
 
   if (!cart) {
     if (cartQuery.isError) {
@@ -74,7 +78,7 @@ function CheckoutBody() {
   }
 
   function handleSubmit(values: CardFormValues) {
-    if (!cart || placeOrder.isPending) return;
+    if (!cart || placeOrder.isPending || isOpeningOrder) return;
     setPaidCart(cart);
     placeOrder.mutate({ ...values, expected_total: cart.total.amount });
   }
@@ -82,10 +86,13 @@ function CheckoutBody() {
   return (
     <div className="flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,1fr)_22rem] md:items-start md:gap-8">
       <CheckoutSummary cart={cart} className="md:col-start-2 md:row-start-1" />
-      <div className="md:col-start-1 md:row-start-1">
+      <div className="flex flex-col gap-4 md:col-start-1 md:row-start-1">
+        {accountChangedNotice && (
+          <Alert role="status">{accountChangedNotice}</Alert>
+        )}
         <CardPaymentForm
           onSubmit={handleSubmit}
-          pending={placeOrder.isPending || placeOrder.isSuccess}
+          pending={placeOrder.isPending || isOpeningOrder}
           disabled={cartQuery.isFetching}
           fieldErrors={fieldErrors}
           formError={formError}

@@ -41,6 +41,46 @@ jobs:
       - name: Pest (tests)
         run: php artisan test
 
+  # Real parallel HTTP requests against a fresh, seeded DB (spec 0009 AC-6, AC-18). Pest can't do this.
+  checkout-concurrency:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: eneba
+          POSTGRES_PASSWORD: eneba
+          POSTGRES_DB: eneba_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eneba -d eneba_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_pgsql
+          coverage: none
+      - name: Script tools (psql, jq, uuidgen)
+        run: |
+          for tool in psql jq uuidgen; do
+            command -v "$tool" >/dev/null || { sudo apt-get update && sudo apt-get install -y postgresql-client jq uuid-runtime; break; }
+          done
+      - run: composer install --no-interaction --no-progress --prefer-dist
+        working-directory: server
+      - run: cp .env.example .env && php artisan key:generate
+        working-directory: server
+      - name: Checkout concurrency (5 rounds)
+        run: scripts/checkout-concurrency.sh
+        env:
+          ROUNDS: "5"
+          PSQL_VIA: host
+
   client:
     runs-on: ubuntu-24.04
     defaults:
