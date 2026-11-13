@@ -4,14 +4,14 @@
   "additionalTools": [],
   "e2eTool": "none",
   "testDir": "beside the source",
-  "filePattern": "*.test.ts",
+  "filePattern": "*.test.{ts,tsx}",
   "packageManager": "npm",
   "packages": {
     "client": {
       "tool": "vitest",
       "additionalTools": [],
       "testDir": "beside the source",
-      "filePattern": "*.test.ts",
+      "filePattern": "*.test.{ts,tsx}",
       "packageManager": "npm",
       "runCommand": "npm test"
     },
