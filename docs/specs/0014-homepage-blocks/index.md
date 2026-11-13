@@ -1,7 +1,7 @@
 # 0014. Homepage blocks: a server layout endpoint, one endpoint per block, and Eneba style bands with a hero tile strip
 
 **Date**: 2026-11-13
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
