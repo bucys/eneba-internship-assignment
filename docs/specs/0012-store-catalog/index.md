@@ -1,7 +1,7 @@
 # 0012. Store catalog: server side filters, sort, and name match on GET /products, and a URL driven /store page
 
 **Date**: 2026-11-13
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
