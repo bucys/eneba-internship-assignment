@@ -1,7 +1,7 @@
 # 0013. Search with typo tolerance: a pg_trgm name matcher with relevance ranking behind `q`, and live header suggestions
 
 **Date**: 2026-11-13
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
@@ -116,7 +116,7 @@ Client pieces:
 **Configuration required**: none. No new env vars or credentials. Neon must allow `CREATE EXTENSION pg_trgm` for the app's database role (a trusted extension, checked in Build plan step 1).
 
 **Critical test scenarios**:
-- Happy path: `witchr` returns The Witcher 3: Wild Hunt first from both endpoints; typing "witchr" in the header shows it as the first suggestion with "witch" marked, and Enter on it opens its product page, verifies **AC-1**, **AC-2**, **AC-6**, **AC-8**, **AC-9**
+- Happy path: `witchr` returns The Witcher 3: Wild Hunt first from both endpoints; typing "witchr" in the header shows it as the first suggestion with no part of its name marked (the typed word "witchr" does not occur in the name, and AC-8 marks only words that do), and Enter on it opens its product page, verifies **AC-1**, **AC-2**, **AC-6**, **AC-8**, **AC-9**
 - Every word: `witcher blood` returns only Blood and Wine; `wild hunt` returns the Witcher titles and no other product, verifies **AC-1**, **AC-6**
 - Short words: `gta` does not match "Gate" or other names by similarity; only containment counts, verifies **AC-1**
 - Ranking: `stardew` lists Stardew Valley before Starfield; an out of stock exact match still ranks above an in stock typo match, verifies **AC-2**
@@ -171,3 +171,8 @@ The build approach is Journey: this whole search path (match, rank, suggest, lan
 - [ ] Note in the README that search is typo tolerant through `pg_trgm` (threshold 0.5, every word must match), and why relevance does not push out of stock items last.
 - [x] Switch the similarity check to the indexable `<%` operator (done after review 2026-11-13; see Consequences). If the catalog grows past a few thousand products, measure the plan with real data.
 - [ ] Popular searches on empty focus, recent searches, and "Did you mean" were declined for this feature; reconsider popular searches once feature 15's best sellers data exists.
+- [ ] Deferred from `/check verify` (2026-11-13), non blocking, outside feature 14 scope:
+  - [ ] Add a Pest test for the `catalog` limiter returning 429 with `Retry-After` on `GET /search/suggestions` (today proven only by a manual local run).
+  - [ ] Render's free tier instance returned 502 for most of 130 requests sent 16 at a time (it recovered at once); production cannot reach the 120 per minute limit from one client, so the limiter is effectively untested there. Revisit only if the plan changes.
+  - [ ] The dev only `/ui` page scrolls sideways at 360 px (503 px wide), caused by the spec 0012 Store filters section (chips and filter panels), not the search section.
+  - [ ] Document that a NUL byte at either end of `q` is trimmed before validation (`q=ab%00` returns 200), while a NUL inside the term returns 422, consistent with AC-4's "q is trimmed".
