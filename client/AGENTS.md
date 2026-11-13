@@ -9,13 +9,15 @@ The Vite + React + TypeScript single page app, deployed as static files to Verce
 | File | Owns |
 |---|---|
 | [`design.md`](design.md) | Design system: tokens, contrast table, type, layout, focus, motion, every component's props and states |
-| `src/router.tsx` | All routes under one `AppLayout`; `*` renders the 404; dev only `/ui` showcase behind `import.meta.env.DEV`; `/login` and `/register` share `AuthPage`, `/orders` is guarded; `/cart` is public, `/checkout` is guarded (placeholder until feature 10) |
+| `src/router.tsx` | All routes under one `AppLayout`; `*` renders the 404; dev only `/ui` showcase behind `import.meta.env.DEV`; `/login` and `/register` share `AuthPage`, `/orders` is guarded; `/cart` is public; `/checkout` and `/orders/:ulid` (order confirmation) are guarded |
 | `src/index.css` | Tailwind v4 `@theme` tokens (default palette cleared), base focus ring, reduced motion rule |
 | `src/lib/money.ts` | `formatPrice`, the only place cents are divided by 100 |
-| `src/components/` | `layout/` (shell, header, footer), `ui/` (base components, toasts), `product/` (price, card, grid, `CoverImage`, and the product page parts: hero, buy box, offer list, About, skeleton), `cart/` (add button, line row, stepper, summary, skeleton) |
-| `src/api/` | `client.ts` (`apiFetch`, `ApiError`, 90 s timeout, Bearer token, 401 handler hook) and one typed file per resource (`products.ts`, `auth.ts`, `cart.ts`) |
+| `src/components/` | `layout/` (shell, header, footer), `ui/` (base components, toasts), `product/` (price, card, grid, `CoverImage`, and the product page parts: hero, buy box, offer list, About, skeleton), `cart/` (add button, line row, stepper, summary, skeleton), `checkout/` (card form, line row, summary, skeleton), `orders/` (item row, skeleton) |
+| `src/api/` | `client.ts` (`apiFetch`, `ApiError`, 90 s timeout, Bearer token, 401 handler hook) and one typed file per resource (`products.ts`, `auth.ts`, `cart.ts`, `orders.ts`) |
 | `src/lib/cart.ts`, `src/lib/guestCart.ts`, `src/lib/cartLimits.ts` | Cart ([spec 0008](../docs/specs/0008-cart/index.md)): `["me", "cart"]` query, guest preview query, `useCart` / `useCartCount` / `useCartActions`, `mergeGuestCart`; the guest store (`eneba.guestCart` in `localStorage`, synced across tabs); caps mirrored from the server's `CartLimits` (10 per line, 50 lines) |
 | `src/lib/auth.ts`, `src/lib/authToken.ts`, `src/lib/safeRedirect.ts` | Auth ([spec 0006](../docs/specs/0006-authentication/index.md)): `['me']` query, `signOut`, `requireAuth` / `redirectIfSignedIn` loaders, 401 and other tab handlers; the token store (`eneba.auth_token` in `localStorage`); the only place a `redirectTo` is checked or built |
+| `src/lib/checkout.ts`, `src/lib/cardInput.ts` | Checkout ([spec 0009](../docs/specs/0009-checkout-simulated-payment/index.md)): `usePlaceOrder` (one idempotency key per page mount), error to field or alert mapping, cache writes only while the same token is signed in; card formatting and format only validation (Luhn, expiry and declines are the server's) |
+| `src/test/dom.ts`, `src/test/fixtures.ts` | Test helpers: Testing Library cleanup plus jest-dom matchers for jsdom tests; sample `Cart`, `Order` and `jsonResponse` builders |
 | `src/lib/queryClient.ts` | TanStack Query client: retry once after 3 s on network errors and 5xx, never mutations |
 | `src/lib/useSlowPending.ts` | True after 3 s of pending; drives the "waking up the server" notice |
 | `src/lib/env.ts` | The only reader of `VITE_API_URL`; strips trailing slashes, throws if unset |
@@ -44,7 +46,7 @@ npm test           # vitest run
 - Every API call goes to `${env.apiUrl}/api/v1/...` through one typed `apiFetch` wrapper (`src/api/client.ts`), which sends `Accept: application/json` and throws `ApiError { status, message, errors? }`.
 - API types are hand written, one file per resource, mirroring the Laravel API Resource (`{ data }` wrapper; paginated lists use `{ data, links, meta }`).
 - Money arrives as `{ amount, currency }` in integer cents; format with `Intl.NumberFormat`, never float math.
-- Tests sit beside the source as `*.test.ts` (Vitest).
+- Tests sit beside the source as `*.test.ts` (Vitest). Component and page tests are `*.test.tsx`: start them with `// @vitest-environment jsdom` and `import "../test/dom"` (path relative to the file); the default environment stays node and there is no vitest config. Stub `fetch` at the boundary, and render pages with `createMemoryRouter` plus the shared `queryClient` (see `src/pages/CheckoutPage.test.tsx`).
 - Style only with token utilities from `src/index.css` (`bg-surface`, `text-fg-muted`); no hex or arbitrary `[#...]` colors. A new color needs a token plus a contrast row in `design.md`.
 - Each page renders exactly one `<h1>`; components never render one. Routes not built yet fall through to the 404 page.
 - Check new or changed components on `/ui` in `npm run dev` (it does not exist in production builds).

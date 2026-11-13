@@ -79,7 +79,7 @@ A single repository containing separate frontend and backend applications, confi
 - `docs/` — specs, scope, reference, agent logs
 - `scripts/` — repo tooling (agent log export)
 - `docker/` — local Postgres init script
-- `.github/workflows/ci.yml` — CI on every push and PR: server job (Pint, PHPStan, Pest on Postgres 17) and client job (Prettier, oxlint, typecheck, Vitest, build)
+- `.github/workflows/ci.yml` — CI on every push and PR: server job (Pint, PHPStan, Pest on Postgres 17), checkout-concurrency job (`scripts/checkout-concurrency.sh`, 5 rounds against a served API on Postgres 17), and client job (Prettier, oxlint, typecheck, Vitest, build)
 - `docker-compose.yml` — local Postgres only
 
 `docs/agent-logs/` is gitignored until the exported transcripts are reviewed and redacted. Remove that ignore line before submission.
@@ -88,7 +88,7 @@ A single repository containing separate frontend and backend applications, confi
 
 Decided in [spec 0001](docs/specs/0001-stack-architecture/index.md). Installed versions:
 
-- **Client** (`client/`): React 19.3, Vite 8, TypeScript 7, Node 24, npm, oxlint, Prettier (defaults), Vitest 5, React Router 8 (data mode), Tailwind CSS 4, lucide-react, Fontsource Metropolis, TanStack Query. Planned, not installed yet: React Testing Library.
+- **Client** (`client/`): React 19.3, Vite 8, TypeScript 7, Node 24, npm, oxlint, Prettier (defaults), Vitest 5, React Router 8 (data mode), Tailwind CSS 4, lucide-react, Fontsource Metropolis, TanStack Query. Tests: React Testing Library (+ user-event, jest-dom) on jsdom, opted into per file.
 - **Server** (`server/`): Laravel 13, PHP 8.4, Composer, Pest 4, Pint (`laravel` preset), PHPStan with Larastan (level 6, no baseline). Sanctum 4 (Bearer tokens, [spec 0006](docs/specs/0006-authentication/index.md)). Deferred (not installed): Laravel Boost.
 - **Database**: PostgreSQL 17 (Docker Compose locally, Neon in production).
 - **Hosting**: Vercel (client), Render with Docker (server). Both deploy production from `main`.
@@ -133,7 +133,7 @@ Stored in `docs/specs/NNNN-title/` (`index.md`, `rationale.md`, `verify.md`). Sc
 - [deploy-to-vercel](.claude/skills/deploy-to-vercel/): `vercel-labs/agent-skills`, client deploys only
 - [react-router-data-mode](.claude/skills/react-router-data-mode/): `remix-run/agent-skills`, client routing (`createBrowserRouter`, loaders, actions)
 
-Declined: Pest skill, GitHub Actions skill, neon-serverless, render-mcp · MCP servers declined: Neon, Render
+Declined: Pest skill, GitHub Actions skill, neon-serverless, render-mcp, Testing Library skill · MCP servers declined: Neon, Render
 
 ## Context files
 

@@ -1,7 +1,7 @@
 # 0009. Checkout: one locked transaction buys the server cart, allocates keys, and charges a simulated gateway
 
 **Date**: 2026-11-13
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
