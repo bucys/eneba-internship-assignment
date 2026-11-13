@@ -24,7 +24,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 9 | Cart | Journey 1: Purchase | done |
 | 10 | Checkout & simulated payment | Journey 1: Purchase | done |
 | 11 | Key delivery & order confirmation | Journey 1: Purchase | done |
-| 12 | Order history | Journey 1: Purchase | in-progress |
+| 12 | Order history | Journey 1: Purchase | done |
 | 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | planned |
 | 14 | Search with typo tolerance | Journey 2: Discovery | planned |
 | 15 | Homepage blocks | Journey 3: Landing | planned |
@@ -175,17 +175,17 @@ spec [0010](../specs/0010-key-delivery-order-confirmation/index.md) · code in `
 - [x] Verify it: `/check verify key delivery & order confirmation`
 - [x] Test it: `/test key delivery & order confirmation`
 
-### 12. Order history · in-progress
+### 12. Order history · done
 Signed in users see past orders and can reveal their keys again.
 **Done when:** orders list newest first with status and totals, an order's detail shows its keys, users can never see another user's orders, and the empty state renders.
 spec [0011](../specs/0011-order-history/index.md) · code in `server/app/Actions/Orders/ListOrders.php`, `server/app/Http/Resources/OrderSummaryResource.php`, `client/src/pages/OrdersPage.tsx`, `client/src/lib/orderHistory.ts`, `client/src/components/orders/`, `client/src/components/ui/Pagination.tsx`
 - [x] Design it (spec): `/architect order history`
-- [ ] Build it: `/develop order history`
+- [x] Build it: `/develop order history`
   - [x] Server list API: `Order::firstItem`, `ListOrders`, `OrderSummaryResource`, `orders.index` route, Pest (AC-1, AC-2)
   - [x] Client data layer: `getOrders`, `orderListQuery`, `orderHistory` helpers, checkout invalidation and `justPaid` state, Vitest (AC-4, AC-6, AC-7)
   - [x] `/orders` page with `Pagination`, summary rows, and all states, plus the order page "Order details" arrival and back link, Vitest (AC-3 to AC-5, AC-7)
-  - [ ] `/ui` states, 360px, keyboard, contrast, checks green, CI, deploy, public purchase found in history (AC-8)
-- [ ] Verify it: `/check verify order history`
+  - [x] `/ui` states, 360px, keyboard, contrast, checks green, CI, deploy, public purchase found in history (AC-8)
+- [x] Verify it: `/check verify order history`
 
 ## Journey 2: Discovery
 
@@ -193,6 +193,7 @@ spec [0011](../specs/0011-order-history/index.md) · code in `server/app/Actions
 Browse every product, narrow by platform, region, and price, change the sort order, and page through results.
 **Done when:** filters and sort combine correctly on the server, state lives in the URL (shareable, back button works), result counts and the no results state render, and the layout works on mobile.
 - [ ] Design it (spec): `/architect store catalog`
+- [ ] Follow up from the order history review: check `ProductController::index` for the page offset overflow fixed in `ListOrders` (a page near `PHP_INT_MAX` silently returned page 1's rows; capped by `ListOrders::MAX_PAGE`)
 
 ### 14. Search with typo tolerance · needs a decision
 A search box in the global header with live suggestions and a results page that copes with typos and partial names.

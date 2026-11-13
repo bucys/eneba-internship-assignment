@@ -1,7 +1,7 @@
 # 0011. Order history: a paginated summary list endpoint, a /orders page, and an order page that knows how you arrived
 
 **Date**: 2026-11-13
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
