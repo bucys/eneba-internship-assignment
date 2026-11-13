@@ -42,6 +42,7 @@ describe("OrderConfirmationPage", () => {
       items: [
         orderItem(),
         orderItem({
+          id: 2,
           product: { slug: "hades", cover_image_url: "" },
           product_name: "Hades",
           quantity: 1,
@@ -64,9 +65,10 @@ describe("OrderConfirmationPage", () => {
     expect(screen.getByText(paid.ulid.toUpperCase())).toBeInTheDocument();
     expect(document.title).toBe("Order confirmed | Eneba Marketplace (demo)");
 
-    const rows = within(
-      screen.getByRole("list", { name: "Order items" }),
-    ).getAllByRole("listitem");
+    // Direct rows only; each row also holds a nested list of key slots.
+    const rows = Array.from(
+      screen.getByRole("list", { name: "Order items" }).children,
+    ) as HTMLElement[];
     expect(rows).toHaveLength(2);
     expect(
       within(rows[1]).getByRole("link", { name: "Hades" }),

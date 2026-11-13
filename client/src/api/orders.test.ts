@@ -3,8 +3,15 @@ import { jsonResponse, order } from "../test/fixtures";
 
 vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
-const { getOrder, orderQuery, orderQueryKey, placeOrder } =
-  await import("./orders");
+const {
+  getOrder,
+  getOrderKeys,
+  orderKeysQuery,
+  orderKeysQueryKey,
+  orderQuery,
+  orderQueryKey,
+  placeOrder,
+} = await import("./orders");
 
 const input = {
   card_number: "4242 4242 4242 4242",
@@ -117,5 +124,28 @@ describe("orderQuery", () => {
   it("keys the order under me, so sign out clears it", () => {
     expect(orderQueryKey("01jabc")).toEqual(["me", "orders", "01jabc"]);
     expect(orderQuery("01jabc").queryKey).toEqual(["me", "orders", "01jabc"]);
+  });
+});
+
+describe("getOrderKeys", () => {
+  it("gets the keys by the order ULID, encoded, and unwraps data", async () => {
+    const keys = [{ order_item_id: 7, codes: ["AAAAA-BBBBB-CCCCC"] }];
+    const fetchMock = stubFetch(jsonResponse(200, { data: keys }));
+
+    await expect(getOrderKeys("../cart")).resolves.toEqual(keys);
+    expect(lastRequest(fetchMock).url).toBe(
+      "https://api.example.test/api/v1/orders/..%2Fcart/keys",
+    );
+  });
+});
+
+describe("orderKeysQuery", () => {
+  // covers: spec 0010 AC-10
+  it("keys the codes under me as a sibling of the order and drops them on unmount", () => {
+    expect(orderKeysQueryKey("01jabc")).toEqual(["me", "order-keys", "01jabc"]);
+    const options = orderKeysQuery("01jabc");
+    expect(options.queryKey).toEqual(["me", "order-keys", "01jabc"]);
+    expect(options.gcTime).toBe(0);
+    expect(options.staleTime).toBe(Infinity);
   });
 });

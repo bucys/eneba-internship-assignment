@@ -133,7 +133,7 @@ it('returns only the public order fields, never the user, key, or product key co
 
     expect(array_keys($response->json('data')))->toBe(['ulid', 'status', 'total', 'paid_at', 'items'])
         ->and(array_keys($response->json('data.items.0')))->toBe([
-            'product', 'product_name', 'platform_name', 'region_name', 'seller_name', 'quantity', 'unit_price', 'line_total',
+            'id', 'product', 'product_name', 'platform_name', 'region_name', 'seller_name', 'quantity', 'unit_price', 'line_total',
         ])
         ->and($response->content())->not->toContain($key)
         ->and($response->content())->not->toContain((string) ProductKey::query()->value('code'));

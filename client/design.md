@@ -71,6 +71,10 @@ Computed with the WCAG relative luminance formula. These are the only pairs the 
 | `danger` on `bg` | error text, error border | 4.6:1 | 4.5:1 |
 | `danger` on `surface` | error icon and border | 5.8:1 | 3:1 |
 | `success` on `surface` | success icon and border | 5.9:1 | 3:1 |
+| `danger` on `surface-deep` | text (key slot error) | 7.5:1 | 4.5:1 |
+| `fg-soft` on `surface-deep` | text (key slot copy hint) | 12.4:1 | 4.5:1 |
+| `success` on `surface-deep` | icon (key slot "Copied" check) | 7.7:1 | 3:1 |
+| `link` on `surface` | text (secondary button hover inside a key slot) | 7.0:1 | 4.5:1 |
 
 Disabled controls (50% opacity) are exempt from contrast under WCAG.
 
@@ -147,6 +151,14 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 The cart page is one column below `md`, lines and summary side by side from `md`. After a Remove, focus moves to the next row's Remove button, or to the `<h1>` once the cart is empty (`src/lib/cartFocus.ts`).
 
 Money is always integer cents (`Money` in `src/lib/money.ts`) and is only ever shown through `formatPrice`.
+
+### Orders (`src/components/orders/`)
+
+| Component | Props | Notes |
+|---|---|---|
+| `OrderItemRow` | `item`, `children?` | `<li>` on `surface`: cover, name link, platform and region, seller, quantity × unit price, line total. `children` (the key slots) render under the details |
+| `OrderKeys` | `item`, `keys` (from `useOrderKeys`) | `<ul>` named "Keys for {product}" with one `KeySlot` per unit, then the `fg-soft` line "Redeem this key on {platform}." ("these keys" above 1) |
+| `KeySlot` | `label`, `code?`, `state` (`masked`, `pending`, `revealed`), `error?`, `onToggle`, `onRetry`, `onCopied` | `<li>` on `surface-deep`. Masked: fixed `•••••-•••••-•••••` in `fg-muted` mono, named "Key hidden". One secondary toggle (Reveal key, Revealing… as `loading`, Hide key) that keeps focus; accessible names like "Reveal key 2 of 3 for Hades". Revealed: the code in a mono `<code>` (wraps, selectable) and a ghost Copy button (check icon and "Copied" for 2 s). Copy failure selects the code and shows an `fg-soft` hint. Error: `danger` text with `role="alert"` and a ghost "Try again" |
 
 ## Do's and don'ts
 

@@ -5,12 +5,14 @@ import { ApiError } from "../api/client";
 import { orderQuery, type Order } from "../api/orders";
 import { Container } from "../components/layout/Container";
 import { OrderItemRow } from "../components/orders/OrderItemRow";
+import { OrderKeys } from "../components/orders/OrderKeys";
 import { OrderPageSkeleton } from "../components/orders/OrderPageSkeleton";
 import { Price } from "../components/product/Price";
 import { Alert } from "../components/ui/Alert";
 import { LinkButton } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
+import { useOrderKeys } from "../lib/orderKeys";
 import { useSlowPending } from "../lib/useSlowPending";
 import {
   isOrderNotFound,
@@ -41,7 +43,10 @@ function PageShell({
   );
 }
 
+// Rendered with key={order.ulid}, so reveal state never carries over to another order.
 function OrderDetails({ order }: { order: Order }) {
+  const keys = useOrderKeys(order.ulid);
+
   return (
     <>
       <p className="text-fg-soft">
@@ -54,9 +59,18 @@ function OrderDetails({ order }: { order: Order }) {
           {paidAtFormat.format(new Date(order.paid_at))}
         </time>
       </p>
+      <p className="text-fg-soft">
+        Your keys are ready. Reveal a key to copy it.
+      </p>
+      <p role="status" className="sr-only">
+        {/* A new node per announcement, so a repeated Copy is read again. */}
+        <span key={keys.statusKey}>{keys.statusText}</span>
+      </p>
       <ul aria-label="Order items" className="flex flex-col gap-2">
-        {order.items.map((item, index) => (
-          <OrderItemRow key={index} item={item} />
+        {order.items.map((item) => (
+          <OrderItemRow key={item.id} item={item}>
+            <OrderKeys item={item} keys={keys} />
+          </OrderItemRow>
         ))}
       </ul>
       <div className="flex items-baseline justify-between gap-4 rounded-sm bg-surface p-5">
@@ -78,7 +92,7 @@ export function OrderConfirmationPage() {
   if (query.data) {
     return (
       <PageShell heading="Payment successful">
-        <OrderDetails order={query.data} />
+        <OrderDetails key={query.data.ulid} order={query.data} />
       </PageShell>
     );
   }

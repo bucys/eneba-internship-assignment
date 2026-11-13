@@ -4,6 +4,8 @@ import { apiFetch } from "./client";
 
 // Mirrors server/app/Http/Resources/OrderItemResource.php. Names and prices are order time snapshots.
 export type OrderItem = {
+  /** The order_items.id, matched by `OrderItemKeys.order_item_id`. */
+  id: number;
   product: { slug: string; cover_image_url: string };
   product_name: string;
   platform_name: string;
@@ -61,5 +63,36 @@ export function orderQuery(ulid: string) {
   return queryOptions({
     queryKey: orderQueryKey(ulid),
     queryFn: ({ signal }) => getOrder(ulid, signal),
+  });
+}
+
+// Mirrors server/app/Http/Resources/OrderItemKeysResource.php (spec 0010 AC-1).
+export type OrderItemKeys = {
+  order_item_id: number;
+  codes: string[];
+};
+
+type OrderKeysBody = { data: OrderItemKeys[] };
+
+export async function getOrderKeys(ulid: string, signal?: AbortSignal) {
+  const body = await apiFetch<OrderKeysBody>(
+    `/orders/${encodeURIComponent(ulid)}/keys`,
+    { signal },
+  );
+  return body.data;
+}
+
+// A sibling of orderQueryKey, never a child, so invalidating an order never refetches codes.
+export function orderKeysQueryKey(ulid: string) {
+  return ["me", "order-keys", ulid] as const;
+}
+
+// gcTime 0: codes leave memory as soon as the order page unmounts (spec 0010 AC-10).
+export function orderKeysQuery(ulid: string) {
+  return queryOptions({
+    queryKey: orderKeysQueryKey(ulid),
+    queryFn: ({ signal }) => getOrderKeys(ulid, signal),
+    staleTime: Infinity,
+    gcTime: 0,
   });
 }

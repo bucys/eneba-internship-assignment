@@ -5,6 +5,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Middleware\NoStore;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/products', [ProductController::class, 'index'])
@@ -61,3 +62,9 @@ Route::get('/orders/{ulid}', [OrderController::class, 'show'])
     ->where('ulid', '[0-9a-z]{26}')
     ->middleware(['auth:sanctum', 'throttle:account'])
     ->name('orders.show');
+
+// NoStore is listed first so the 401, 404, and 429 answers carry it too (spec 0010 AC-3).
+Route::get('/orders/{ulid}/keys', [OrderController::class, 'keys'])
+    ->where('ulid', '[0-9a-z]{26}')
+    ->middleware([NoStore::class, 'auth:sanctum', 'throttle:account'])
+    ->name('orders.keys');

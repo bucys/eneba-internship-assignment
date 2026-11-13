@@ -3,6 +3,7 @@ import type { Cart, CartLine } from "../api/cart";
 import { CardPaymentForm } from "../components/checkout/CardPaymentForm";
 import { CheckoutPageSkeleton } from "../components/checkout/CheckoutPageSkeleton";
 import { CheckoutSummary } from "../components/checkout/CheckoutSummary";
+import { KeySlot } from "../components/orders/KeySlot";
 import { OrderItemRow } from "../components/orders/OrderItemRow";
 import { OrderPageSkeleton } from "../components/orders/OrderPageSkeleton";
 import { Container } from "../components/layout/Container";
@@ -315,6 +316,7 @@ export function UiShowcasePage() {
         <ul className="flex flex-col gap-2">
           <OrderItemRow
             item={{
+              id: 1,
               product: {
                 slug: "sample-discounted",
                 cover_image_url: "/sample-cover.svg",
@@ -328,6 +330,34 @@ export function UiShowcasePage() {
               line_total: eur(2994),
             }}
           />
+        </ul>
+        <ul aria-label="Key slot states" className="flex flex-col gap-2">
+          {(
+            [
+              ["masked", {}],
+              ["pending", {}],
+              ["revealed", { code: "SAMPL-EKEY1-23456" }],
+              [
+                "revealed",
+                { code: "SAMPL-EKEY1-23456", initialCopyState: "copied" },
+              ],
+              [
+                "revealed",
+                { code: "SAMPL-EKEY1-23456", initialCopyState: "fallback" },
+              ],
+              ["masked", { error: "Could not load your key." }],
+            ] as const
+          ).map(([state, extra], index) => (
+            <KeySlot
+              key={index}
+              label={`key ${index + 1} of 6 for Sample Quest`}
+              state={state}
+              onToggle={() => undefined}
+              onRetry={() => undefined}
+              onCopied={() => undefined}
+              {...extra}
+            />
+          ))}
         </ul>
         <CheckoutPageSkeleton />
         <OrderPageSkeleton />

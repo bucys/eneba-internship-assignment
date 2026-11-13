@@ -40,6 +40,7 @@ export function cart(lines: CartLine[], overrides: Partial<Cart> = {}): Cart {
 
 export function orderItem(overrides: Partial<OrderItem> = {}): OrderItem {
   return {
+    id: 1,
     product: {
       slug: "elden-ring",
       cover_image_url: "https://shared.steamstatic.com/elden.jpg",

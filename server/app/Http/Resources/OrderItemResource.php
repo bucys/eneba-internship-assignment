@@ -9,7 +9,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Names and prices are the order time snapshots; only the product link and cover are live.
- * No key code appears here until feature 11 (spec 0009 AC-2).
+ * No key code appears here; codes come only from GET /orders/{ulid}/keys (spec 0010).
+ * `id` is the order_item_id that endpoint uses.
  *
  * @property OrderItem $resource
  */
@@ -23,6 +24,7 @@ class OrderItemResource extends JsonResource
         $item = $this->resource;
 
         return [
+            'id' => $item->id,
             'product' => [
                 'slug' => $item->product->slug,
                 'cover_image_url' => $item->product->cover_image_url,

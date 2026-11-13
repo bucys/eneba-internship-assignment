@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import type { OrderItem } from "../../api/orders";
 import { formatPrice } from "../../lib/money";
@@ -5,10 +6,11 @@ import { CoverImage } from "../product/CoverImage";
 
 type OrderItemRowProps = {
   item: OrderItem;
+  /** The key slots, shown under the details. */
+  children?: ReactNode;
 };
 
-// Feature 11 adds the key list under each row.
-export function OrderItemRow({ item }: OrderItemRowProps) {
+export function OrderItemRow({ item, children }: OrderItemRowProps) {
   return (
     <li className="flex gap-4 rounded-sm bg-surface p-4">
       <div className="w-16 shrink-0 self-start md:w-20">
@@ -36,6 +38,7 @@ export function OrderItemRow({ item }: OrderItemRowProps) {
             {formatPrice(item.line_total)}
           </span>
         </div>
+        {children}
       </div>
     </li>
   );

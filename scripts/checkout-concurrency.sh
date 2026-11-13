@@ -237,10 +237,29 @@ scenario_last_key() {
     fail "key not sold exactly once"
   [[ "$(sql "SELECT count(*) FROM order_items WHERE offer_id = $offer")" == $((items_before + 1)) ]] || fail "expected one new order item"
 
-  local loser
-  grep -q '^409 ' "$WORK/s4.a" && loser="$u1" || loser="$u2"
+  local loser winner_token loser_token winner_out
+  if grep -q '^409 ' "$WORK/s4.a"; then
+    loser="$u1" loser_token="$t1" winner_token="$t2" winner_out="$WORK/s4.b"
+  else
+    loser="$u2" loser_token="$t2" winner_token="$t1" winner_out="$WORK/s4.a"
+  fi
   [[ "$(sql "SELECT count(*) || ':' || coalesce(sum(quantity), 0) FROM cart_items WHERE user_id = $loser AND offer_id = $offer")" == "1:1" ]] ||
     fail "loser's cart changed"
+
+  # The last key reaches only its buyer (spec 0010 AC-4).
+  local ulid item_id db_item_id db_code keys status
+  ulid="$(jq -r '.data.ulid' "$winner_out.body")"
+  item_id="$(jq -r '.data.items[0].id' "$winner_out.body")"
+  db_item_id="$(sql "SELECT id FROM order_items WHERE order_id = (SELECT id FROM orders WHERE ulid = '$ulid')")"
+  [[ "$item_id" == "$db_item_id" ]] || fail "checkout item id $item_id is not the DB item id $db_item_id"
+  db_code="$(sql "SELECT code FROM product_keys WHERE order_item_id = $db_item_id")"
+  keys="$(curl -sf "$API/orders/$ulid/keys" -H 'Accept: application/json' -H "Authorization: Bearer $winner_token" |
+    jq -c '.data')" || fail "winner could not read its keys"
+  [[ "$keys" == "$(jq -nc --argjson id "$db_item_id" --arg code "$db_code" '[{order_item_id:$id,codes:[$code]}]')" ]] ||
+    fail "winner keys $keys do not match the DB"
+  status="$(curl -s -o /dev/null -w '%{http_code}' "$API/orders/$ulid/keys" -H 'Accept: application/json' \
+    -H "Authorization: Bearer $loser_token")"
+  [[ "$status" == 404 ]] || fail "loser read the winner's keys with $status"
 }
 
 scenario_cart_edit_during_checkout() {

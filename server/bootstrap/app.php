@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\BlockPreviewWrites;
+use App\Http\Middleware\NoStore;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -27,6 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // This API has no login page, so a guest gets the 401 JSON even without an Accept header (spec 0006 AC-4).
         $middleware->redirectGuestsTo(null);
+
+        // Laravel sorts auth and throttle ahead of unlisted route middleware, so NoStore joins the
+        // priority list before them; otherwise their 401 and 429 would skip it (spec 0010 AC-3).
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, NoStore::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Defence in depth: card fields never reach the session flash (spec 0009 AC-7).
