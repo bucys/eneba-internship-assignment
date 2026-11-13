@@ -9,6 +9,9 @@ import {
 import { CoverImage } from "../product/CoverImage";
 import { Price } from "../product/Price";
 
+/** Checkout never makes an itemless order, but the API allows a null first item. */
+const UNKNOWN_PRODUCT = "Unknown product";
+
 const paidDateFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
 });
@@ -34,7 +37,7 @@ export function OrderSummaryRow({ order, fromPage }: OrderSummaryRowProps) {
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="font-semibold wrap-break-word text-fg">
-            {order.first_item.product_name}
+            {order.first_item.product_name ?? UNKNOWN_PRODUCT}
             {more && <span className="font-normal text-fg-soft"> {more}</span>}
           </span>
           <span className="text-sm text-fg-muted">

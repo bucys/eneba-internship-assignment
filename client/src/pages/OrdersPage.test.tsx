@@ -173,6 +173,45 @@ describe("OrdersPage", () => {
     expect(router.state.location.state).toEqual({ fromPage: 2 });
   });
 
+  // covers: spec 0011 AC-4, AC-7
+  it("keeps the label and back link on the shown rows' page while the next page loads", async () => {
+    stubOrders({
+      1: () =>
+        jsonResponse(200, paginated([single], { last_page: 2, total: 11 })),
+      2: () => new Promise<Response>(() => {}),
+    });
+
+    const router = renderOrders();
+
+    const nav = await screen.findByRole("navigation", { name: "Order pages" });
+    await userEvent.click(within(nav).getByRole("link", { name: "Next" }));
+    expect(router.state.location.search).toBe("?page=2");
+    expect(
+      screen.getByRole("navigation", { name: "Order pages" }),
+    ).toHaveTextContent("Page 1 of 2");
+
+    await userEvent.click(screen.getByRole("link", { name: /Elden Ring/ }));
+    expect(router.state.location.pathname).toBe(`/orders/${single.ulid}`);
+    expect(router.state.location.state).toEqual({ fromPage: 1 });
+  });
+
+  // covers: spec 0011 AC-3
+  it("names a row with no first item as an unknown product", async () => {
+    const itemless = orderSummary({
+      ulid: "01jhistoryorder00000noitem",
+      item_count: 0,
+      line_count: 0,
+      first_item: { product_name: null, cover_image_url: null },
+    });
+    stubOrders({ 1: () => jsonResponse(200, paginated([itemless])) });
+
+    renderOrders();
+
+    const row = await screen.findByRole("link", { name: /Unknown product/ });
+    expect(row).toHaveTextContent("0 items");
+    expect(row).not.toHaveTextContent("more product");
+  });
+
   // covers: spec 0011 AC-4
   it.each(["?page=1", "?page=abc", "?page=0"])(
     "replaces %s with /orders",

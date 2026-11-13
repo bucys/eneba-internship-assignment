@@ -70,16 +70,20 @@ export function OrdersPage() {
   const data = query.data;
   const isFresh = data !== undefined && !query.isPlaceholderData;
   const lastPage = data?.meta.last_page ?? 1;
-  const isBeyondLast = isFresh && data.meta.current_page > lastPage;
+  const isBeyondLast = data !== undefined && data.meta.current_page > lastPage;
+  const mustClamp = isFresh && isBeyondLast;
 
   useEffect(() => {
-    if (isBeyondLast)
-      void navigate(ordersPageHref(lastPage), { replace: true });
-  }, [isBeyondLast, lastPage, navigate]);
+    if (mustClamp) void navigate(ordersPageHref(lastPage), { replace: true });
+  }, [mustClamp, lastPage, navigate]);
 
   useScrollTopOnPageChange(isFresh && !isBeyondLast ? page : undefined);
 
   if (data && !isBeyondLast) {
+    // While the next page loads, the previous rows stay on screen, so the label and
+    // each row's back link follow the page those rows came from, not the URL.
+    const shownPage = data.meta.current_page;
+
     if (data.meta.total === 0) {
       return (
         <OrdersShell>
@@ -96,11 +100,15 @@ export function OrdersPage() {
       <OrdersShell>
         <ul aria-label="Orders" className="flex flex-col gap-2">
           {data.data.map((order) => (
-            <OrderSummaryRow key={order.ulid} order={order} fromPage={page} />
+            <OrderSummaryRow
+              key={order.ulid}
+              order={order}
+              fromPage={shownPage}
+            />
           ))}
         </ul>
         <Pagination
-          page={page}
+          page={shownPage}
           lastPage={lastPage}
           hrefFor={ordersPageHref}
           label="Order pages"

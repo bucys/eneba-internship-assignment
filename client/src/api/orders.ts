@@ -108,8 +108,8 @@ export type OrderSummary = {
   item_count: number;
   /** Number of order lines. */
   line_count: number;
-  /** The first item in cart order. */
-  first_item: { product_name: string; cover_image_url: string | null };
+  /** The first item in cart order; both fields are null for an order with no items. */
+  first_item: { product_name: string | null; cover_image_url: string | null };
 };
 
 export function getOrders(page: number, signal?: AbortSignal) {

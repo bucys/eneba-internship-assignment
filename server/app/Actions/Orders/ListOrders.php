@@ -5,10 +5,17 @@ namespace App\Actions\Orders;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 class ListOrders
 {
     public const PER_PAGE = 10;
+
+    /**
+     * Higher pages read as this one. A page near PHP_INT_MAX overflows the offset and
+     * silently returns page 1's rows; any page this far out is already beyond the last.
+     */
+    public const MAX_PAGE = 100_000;
 
     /**
      * The user's own orders, newest first, with the counts and first item a summary row shows.
@@ -18,6 +25,8 @@ class ListOrders
      */
     public function handle(User $user): LengthAwarePaginator
     {
+        $page = min(Paginator::resolveCurrentPage(), self::MAX_PAGE);
+
         return $user->orders()
             ->withSum('items as item_count', 'quantity')
             ->withCount('items as line_count')
@@ -27,6 +36,6 @@ class ListOrders
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->paginate(self::PER_PAGE);
+            ->paginate(self::PER_PAGE, ['*'], 'page', $page);
     }
 }

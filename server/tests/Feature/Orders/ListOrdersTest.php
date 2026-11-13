@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Orders\ListOrders;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductKey;
@@ -129,6 +130,18 @@ it('returns an empty page beyond the last with the real last page', function () 
         ->and($response->json('meta.last_page'))->toBe(2)
         ->and($response->json('meta.current_page'))->toBe(99);
 });
+
+it('answers a huge page as an empty page beyond the last', function (string $page) {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+    historyOrder($user, 1);
+
+    $response = $this->getJson(ORDERS_URL.'?page='.$page)->assertOk();
+
+    expect($response->json('data'))->toBe([])
+        ->and($response->json('meta.last_page'))->toBe(1)
+        ->and($response->json('meta.current_page'))->toBe(ListOrders::MAX_PAGE);
+})->with(['9223372036854775807', '922337203685477580']);
 
 it('returns an empty list for a buyer with no orders', function () {
     Sanctum::actingAs(User::factory()->create());
