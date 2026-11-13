@@ -6,6 +6,7 @@ use App\Http\Controllers\CatalogFilterController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SearchSuggestionController;
 use App\Http\Middleware\NoStore;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,10 @@ Route::get('/products', [ProductController::class, 'index'])
 Route::get('/catalog/filters', CatalogFilterController::class)
     ->middleware('throttle:catalog')
     ->name('catalog.filters');
+
+Route::get('/search/suggestions', SearchSuggestionController::class)
+    ->middleware('throttle:catalog')
+    ->name('search.suggestions');
 
 Route::get('/products/{slug}', [ProductController::class, 'show'])
     ->where('slug', '[a-z0-9-]+')

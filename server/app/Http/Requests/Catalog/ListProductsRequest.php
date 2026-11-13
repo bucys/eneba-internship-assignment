@@ -6,6 +6,7 @@ use App\Enums\ProductSort;
 use App\Models\Platform;
 use App\Models\Region;
 use App\Support\ProductFilters;
+use App\Support\SearchTerms;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Pagination\Paginator;
@@ -104,18 +105,34 @@ class ListProductsRequest extends FormRequest
     {
         $minEuros = $this->validated('price_min');
         $maxEuros = $this->validated('price_max');
-        $sort = $this->validated('sort');
+        $terms = SearchTerms::fromQuery($this->validated('q'));
         $slugIds = $this->slugIds ?? ['platform' => new Collection, 'region' => new Collection];
 
         return new ProductFilters(
-            q: $this->validated('q'),
+            q: $terms,
             platformIds: $slugIds['platform']->values()->all(),
             regionIds: $slugIds['region']->values()->all(),
             minCents: $minEuros === null ? null : (int) $minEuros * 100,
             maxCents: $maxEuros === null ? null : (int) $maxEuros * 100,
-            sort: $sort === null ? ProductSort::Name : ProductSort::from($sort),
+            sort: $this->resolveSort($terms),
             page: Paginator::resolveCurrentPage(),
         );
+    }
+
+    /**
+     * Relevance is the default with a search and means nothing without one (spec 0013 AC-3).
+     */
+    private function resolveSort(?SearchTerms $terms): ProductSort
+    {
+        $sort = $this->validated('sort');
+
+        if ($sort === null) {
+            return $terms === null ? ProductSort::Name : ProductSort::Relevance;
+        }
+
+        $sort = ProductSort::from($sort);
+
+        return $sort === ProductSort::Relevance && $terms === null ? ProductSort::Name : $sort;
     }
 
     /**

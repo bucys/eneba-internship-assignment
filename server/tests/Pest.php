@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Offer;
+use App\Models\Product;
 use App\Models\ProductKey;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -94,4 +95,28 @@ function checkoutBody(int $expectedTotal, array $overrides = []): array
 function checkoutHeaders(?string $key = null): array
 {
     return ['Idempotency-Key' => $key ?? (string) Str::uuid()];
+}
+
+/**
+ * An active product with one in stock offer at the given price, or no stock when null.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function storeProduct(string $name, ?int $priceCents, array $attributes = []): Product
+{
+    $product = Product::factory()->create(['name' => $name, ...$attributes]);
+    cartOffer($priceCents === null ? 0 : 1, [
+        'product_id' => $product->id,
+        'price_cents' => $priceCents ?? 999,
+    ]);
+
+    return $product;
+}
+
+/**
+ * @return list<string>
+ */
+function storeNames(string $query): array
+{
+    return test()->getJson("/api/v1/products{$query}")->assertOk()->json('data.*.name');
 }

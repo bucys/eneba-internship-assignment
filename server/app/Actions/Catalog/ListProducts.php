@@ -5,6 +5,7 @@ namespace App\Actions\Catalog;
 use App\Enums\ProductSort;
 use App\Models\Product;
 use App\Support\ProductFilters;
+use App\Support\ProductSearch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -18,6 +19,8 @@ class ListProducts
      */
     public const MAX_PAGE = 100_000;
 
+    public function __construct(private readonly ProductSearch $search) {}
+
     /**
      * @return LengthAwarePaginator<int, Product>
      */
@@ -27,37 +30,35 @@ class ListProducts
         $matching = Product::query()
             ->active()
             ->withCheapestPrice()
-            ->when($filters->q !== null, fn (Builder $query) => $query->whereLike('products.name', '%'.$this->escapeLike((string) $filters->q).'%'))
+            ->when($filters->q !== null, fn (Builder $query) => $this->search->apply($query, $filters->q))
             ->when($filters->platformIds !== [], fn (Builder $query) => $query->whereIn('products.platform_id', $filters->platformIds))
             ->when($filters->regionIds !== [], fn (Builder $query) => $query->whereIn('products.region_id', $filters->regionIds));
 
         // Postgres can't use a select alias inside WHERE or ORDER BY expressions, so the scoped
-        // query becomes a derived table where cheapest_price_cents is a real column.
+        // query becomes a derived table where cheapest_price_cents (and the search columns) are real.
         // A null price fails both bounds, so a price filter drops out of stock products.
         $query = Product::query()
             ->fromSub($matching, 'products')
             ->with(['platform:id,slug,name', 'region:id,slug,name'])
             ->when($filters->minCents !== null, fn (Builder $query) => $query->where('cheapest_price_cents', '>=', $filters->minCents))
-            ->when($filters->maxCents !== null, fn (Builder $query) => $query->where('cheapest_price_cents', '<=', $filters->maxCents))
-            ->orderByRaw('cheapest_price_cents IS NULL');
+            ->when($filters->maxCents !== null, fn (Builder $query) => $query->where('cheapest_price_cents', '<=', $filters->maxCents));
 
-        match ($filters->sort) {
-            ProductSort::Name => null,
-            ProductSort::PriceAsc => $query->orderBy('cheapest_price_cents'),
-            ProductSort::PriceDesc => $query->orderByDesc('cheapest_price_cents'),
+        // Relevance orders by the search columns, so without a search it reads as Name (spec 0013 AC-3).
+        $sort = $filters->sort === ProductSort::Relevance && $filters->q === null ? ProductSort::Name : $filters->sort;
+
+        // Relevance ignores stock on purpose: an exact match stays first even when sold out (spec 0013 AC-2).
+        match ($sort) {
+            ProductSort::Relevance => $query->orderBy('search_tier')->orderByDesc('search_score'),
+            ProductSort::Name => $query->orderByRaw('cheapest_price_cents IS NULL'),
+            ProductSort::PriceAsc => $query->orderByRaw('cheapest_price_cents IS NULL')->orderBy('cheapest_price_cents'),
+            ProductSort::PriceDesc => $query->orderByRaw('cheapest_price_cents IS NULL')->orderByDesc('cheapest_price_cents'),
         };
 
-        return $query
+        $paginate = fn () => $query
             ->orderBy('name')
             ->orderBy('id')
             ->paginate(self::PER_PAGE, ['*'], 'page', min($filters->page, self::MAX_PAGE));
-    }
 
-    /**
-     * Postgres LIKE uses a backslash escape by default, so the visitor's text matches literally.
-     */
-    private function escapeLike(string $value): string
-    {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+        return $filters->q === null ? $paginate() : $this->search->withThreshold($paginate);
     }
 }
