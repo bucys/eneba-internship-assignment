@@ -2,6 +2,7 @@ import { redirect, type ActionFunctionArgs } from "react-router";
 import { login, register } from "../api/auth";
 import { ApiError } from "../api/client";
 import { completeSignIn } from "../lib/auth";
+import { secondsText } from "../lib/format";
 
 export type AuthField = "name" | "email" | "password";
 
@@ -14,10 +15,6 @@ export type AuthActionData = AuthFormErrors & {
   /** Bumped on every failed submit, so the page can clear the password and move focus. */
   attempt: number;
 };
-
-function secondsText(seconds: number): string {
-  return seconds === 1 ? "1 second" : `${seconds} seconds`;
-}
 
 /** Splits an API error into inline field errors and one form alert. */
 export function toAuthFormErrors(

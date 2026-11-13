@@ -5,6 +5,8 @@ import { CheckoutPageSkeleton } from "../components/checkout/CheckoutPageSkeleto
 import { CheckoutSummary } from "../components/checkout/CheckoutSummary";
 import { KeySlot } from "../components/orders/KeySlot";
 import { OrderItemRow } from "../components/orders/OrderItemRow";
+import { OrderListSkeleton } from "../components/orders/OrderListSkeleton";
+import { OrderSummaryRow } from "../components/orders/OrderSummaryRow";
 import { OrderPageSkeleton } from "../components/orders/OrderPageSkeleton";
 import { Container } from "../components/layout/Container";
 import { Price } from "../components/product/Price";
@@ -18,11 +20,13 @@ import { Button, LinkButton } from "../components/ui/Button";
 import { Checkbox } from "../components/ui/Checkbox";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
+import { Pagination } from "../components/ui/Pagination";
 import { Select } from "../components/ui/Select";
 import { Skeleton } from "../components/ui/Skeleton";
 import { TextField } from "../components/ui/TextField";
 import { useToast } from "../components/ui/toastContext";
 import type { Money } from "../lib/money";
+import { ordersPageHref } from "../lib/orderHistory";
 
 // Dev only page: router.tsx registers it behind import.meta.env.DEV.
 
@@ -361,6 +365,52 @@ export function UiShowcasePage() {
         </ul>
         <CheckoutPageSkeleton />
         <OrderPageSkeleton />
+      </Section>
+
+      <Section title="Order history">
+        <ul aria-label="Sample orders" className="flex flex-col gap-2">
+          <OrderSummaryRow
+            fromPage={1}
+            order={{
+              ulid: "01jsampleorder000000one000",
+              status: "paid",
+              total: eur(1999),
+              paid_at: "2026-11-13T10:24:51Z",
+              item_count: 1,
+              line_count: 1,
+              first_item: {
+                product_name: "Sample Quest",
+                cover_image_url: null,
+              },
+            }}
+          />
+          <OrderSummaryRow
+            fromPage={1}
+            order={{
+              ulid: "01jsampleorder00000many000",
+              status: "paid",
+              total: eur(7496),
+              paid_at: "2026-10-02T18:05:00Z",
+              item_count: 4,
+              line_count: 3,
+              first_item: {
+                product_name:
+                  "A Very Long Sample Game Title That Wraps On Small Screens",
+                cover_image_url: null,
+              },
+            }}
+          />
+        </ul>
+        {[1, 2, 3].map((page) => (
+          <Pagination
+            key={page}
+            page={page}
+            lastPage={3}
+            hrefFor={ordersPageHref}
+            label={`Sample pages, page ${page}`}
+          />
+        ))}
+        <OrderListSkeleton />
       </Section>
 
       <Section title="Toasts">

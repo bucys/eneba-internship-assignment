@@ -1,6 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
-import { useParams, useRevalidator, useRouteError } from "react-router";
+import { ChevronLeft } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useRevalidator,
+  useRouteError,
+} from "react-router";
 import { ApiError } from "../api/client";
 import { orderQuery, type Order } from "../api/orders";
 import { Container } from "../components/layout/Container";
@@ -12,11 +20,13 @@ import { Alert } from "../components/ui/Alert";
 import { LinkButton } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
+import { ordersPageHref, readFromPage } from "../lib/orderHistory";
 import { useOrderKeys } from "../lib/orderKeys";
 import { useSlowPending } from "../lib/useSlowPending";
 import {
   isOrderNotFound,
   ORDER_CONFIRMED_TITLE,
+  ORDER_DETAILS_TITLE,
   ORDER_NOT_FOUND_TITLE,
 } from "./orderPageView";
 
@@ -27,16 +37,28 @@ const paidAtFormat = new Intl.DateTimeFormat(undefined, {
 
 function PageShell({
   heading,
-  title = ORDER_CONFIRMED_TITLE,
+  title,
+  backTo,
   children,
 }: {
   heading: string;
-  title?: string;
+  title: string;
+  /** Shown above the heading on every visit that is not the one right after paying. */
+  backTo?: string;
   children: ReactNode;
 }) {
   return (
     <Container className="flex flex-col gap-6 py-10">
       <title>{title}</title>
+      {backTo && (
+        <Link
+          to={backTo}
+          className="-mb-2 inline-flex min-h-11 items-center gap-1 self-start text-sm font-semibold text-link transition-colors hover:text-fg"
+        >
+          <ChevronLeft aria-hidden="true" className="size-4" />
+          Back to my orders
+        </Link>
+      )}
       <h1 className="text-2xl font-extrabold md:text-3xl">{heading}</h1>
       {children}
     </Container>
@@ -84,14 +106,49 @@ function OrderDetails({ order }: { order: Order }) {
   );
 }
 
+function isJustPaid(state: unknown): boolean {
+  return (
+    typeof state === "object" &&
+    state !== null &&
+    "justPaid" in state &&
+    state.justPaid === true
+  );
+}
+
+/**
+ * Checkout's navigate carries `justPaid`. It is read once, on mount, then cleared from this
+ * history entry, so a reload or a later visit says "Order details" (spec 0011 AC-7).
+ */
+function useArrival() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [justPaid] = useState(() => isJustPaid(location.state));
+  const hasState = location.state !== null && location.state !== undefined;
+
+  useEffect(() => {
+    if (justPaid && hasState) {
+      void navigate(".", { replace: true, state: null });
+    }
+  }, [justPaid, hasState, navigate]);
+
+  return justPaid
+    ? { heading: "Payment successful", title: ORDER_CONFIRMED_TITLE }
+    : {
+        heading: "Order details",
+        title: ORDER_DETAILS_TITLE,
+        backTo: ordersPageHref(readFromPage(location.state)),
+      };
+}
+
 export function OrderConfirmationPage() {
   const { ulid = "" } = useParams();
   const query = useQuery(orderQuery(ulid));
   const isSlow = useSlowPending(query.isPending);
+  const arrival = useArrival();
 
   if (query.data) {
     return (
-      <PageShell heading="Payment successful">
+      <PageShell {...arrival}>
         <OrderDetails key={query.data.ulid} order={query.data} />
       </PageShell>
     );
@@ -111,14 +168,14 @@ export function OrderConfirmationPage() {
 
   if (query.isError) {
     return (
-      <PageShell heading="Payment successful">
+      <PageShell {...arrival}>
         <ErrorState onRetry={() => void query.refetch()} />
       </PageShell>
     );
   }
 
   return (
-    <PageShell heading="Payment successful">
+    <PageShell {...arrival}>
       {isSlow && (
         <Alert role="status">
           Waking up the server. The first visit after a quiet spell can take up

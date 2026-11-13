@@ -9,7 +9,7 @@ vi.mock("../api/orders", async (importOriginal) => ({
 }));
 
 const { ApiError } = await import("../api/client");
-const { placeOrder } = await import("../api/orders");
+const { orderListQueryKey, placeOrder } = await import("../api/orders");
 const { authToken } = await import("./authToken");
 const { CART_KEY } = await import("./cart");
 const { queryClient } = await import("./queryClient");
@@ -167,12 +167,18 @@ describe("placeOrderOptions", () => {
   it("opens the order when the same token is still signed in", async () => {
     authToken.set("token-a");
     vi.mocked(placeOrder).mockResolvedValue(order);
+    queryClient.setQueryData(orderListQueryKey(2), { data: [] });
     const { navigate, observer } = setup();
 
     await observer.mutate(input);
 
+    // covers: spec 0011 AC-6, AC-7
+    expect(queryClient.getQueryState(orderListQueryKey(2))?.isInvalidated).toBe(
+      true,
+    );
     expect(navigate).toHaveBeenCalledWith("/orders/01jorder", {
       replace: true,
+      state: { justPaid: true },
     });
     expect(isOpeningOrder(observer.getCurrentResult(), "token-a")).toBe(true);
     expect(

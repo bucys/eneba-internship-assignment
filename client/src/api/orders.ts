@@ -1,6 +1,6 @@
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import type { Money } from "../lib/money";
-import { apiFetch } from "./client";
+import { apiFetch, type Paginated } from "./client";
 
 // Mirrors server/app/Http/Resources/OrderItemResource.php. Names and prices are order time snapshots.
 export type OrderItem = {
@@ -94,5 +94,40 @@ export function orderKeysQuery(ulid: string) {
     queryFn: ({ signal }) => getOrderKeys(ulid, signal),
     staleTime: Infinity,
     gcTime: 0,
+  });
+}
+
+// Mirrors server/app/Http/Resources/OrderSummaryResource.php (spec 0011 AC-1). No items, no codes.
+export type OrderSummary = {
+  ulid: string;
+  status: "paid";
+  total: Money;
+  /** ISO 8601 UTC. */
+  paid_at: string;
+  /** Sum of quantities: the number of keys. */
+  item_count: number;
+  /** Number of order lines. */
+  line_count: number;
+  /** The first item in cart order. */
+  first_item: { product_name: string; cover_image_url: string | null };
+};
+
+export function getOrders(page: number, signal?: AbortSignal) {
+  return apiFetch<Paginated<OrderSummary>>(`/orders?page=${page}`, { signal });
+}
+
+// A sibling of ["me", "orders", ulid], so invalidating the list never refetches an open order.
+export const ORDER_LIST_KEY = ["me", "order-list"] as const;
+
+export function orderListQueryKey(page: number) {
+  return [...ORDER_LIST_KEY, page] as const;
+}
+
+// keepPreviousData: the current rows stay on screen while the next page loads (AC-4).
+export function orderListQuery(page: number) {
+  return queryOptions({
+    queryKey: orderListQueryKey(page),
+    queryFn: ({ signal }) => getOrders(page, signal),
+    placeholderData: keepPreviousData,
   });
 }

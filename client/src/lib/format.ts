@@ -25,3 +25,8 @@ export function formatReleaseDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-").map(Number);
   return releaseDateFormat.format(Date.UTC(year, month - 1, day));
 }
+
+/** "1 second" or "N seconds", for 429 retry messages. */
+export function secondsText(seconds: number): string {
+  return seconds === 1 ? "1 second" : `${seconds} seconds`;
+}

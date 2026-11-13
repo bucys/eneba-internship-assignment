@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate, type NavigateFunction } from "react-router";
 import { ApiError } from "../api/client";
 import {
+  ORDER_LIST_KEY,
   orderQueryKey,
   placeOrder,
   type CheckoutInput,
@@ -13,6 +14,7 @@ import { authToken } from "./authToken";
 import { CART_KEY, EMPTY_CART } from "./cart";
 import { CARD_FIELDS, type CardFieldErrors } from "./cardInput";
 import { queryClient } from "./queryClient";
+import { secondsText } from "./format";
 
 export const PAYMENT_FAILED = "Payment failed. Please try again.";
 export const PAYMENT_UNREACHABLE =
@@ -27,10 +29,6 @@ export type CheckoutErrorView = {
 
 function isCardField(key: string): key is (typeof CARD_FIELDS)[number] {
   return (CARD_FIELDS as readonly string[]).includes(key);
-}
-
-function secondsText(seconds: number) {
-  return seconds === 1 ? "1 second" : `${seconds} seconds`;
 }
 
 /** Where each checkout failure shows on the page (spec 0009 AC-13). */
@@ -122,7 +120,12 @@ export function placeOrderOptions(
       queryClient.setQueryData(CART_KEY, EMPTY_CART);
       queryClient.setQueryData(orderQueryKey(order.ulid), order);
       void queryClient.invalidateQueries({ queryKey: ["products"] });
-      void navigate(`/orders/${order.ulid}`, { replace: true });
+      void queryClient.invalidateQueries({ queryKey: ORDER_LIST_KEY });
+      // justPaid tells the order page to say "Payment successful" (spec 0011 AC-7).
+      void navigate(`/orders/${order.ulid}`, {
+        replace: true,
+        state: { justPaid: true },
+      });
     },
     onError: (error) => {
       if (shouldRefetchCart(error)) {

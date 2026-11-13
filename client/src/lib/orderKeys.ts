@@ -2,16 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ApiError } from "../api/client";
 import { orderKeysQuery } from "../api/orders";
+import { secondsText } from "./format";
 
 export type KeySlotState = "masked" | "pending" | "revealed";
 
 /** One key slot on the page: the item it belongs to plus its position. */
 export function keySlotId(orderItemId: number, index: number) {
   return `${orderItemId}:${index}`;
-}
-
-function secondsText(seconds: number) {
-  return seconds === 1 ? "1 second" : `${seconds} seconds`;
 }
 
 /** The inline message under the last clicked slot when the keys request fails (spec 0010 AC-7). */

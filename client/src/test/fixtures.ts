@@ -1,5 +1,5 @@
 import type { Cart, CartLine } from "../api/cart";
-import type { Order, OrderItem } from "../api/orders";
+import type { Order, OrderItem, OrderSummary } from "../api/orders";
 
 const eur = (amount: number) => ({ amount, currency: "EUR" as const });
 
@@ -63,6 +63,24 @@ export function order(overrides: Partial<Order> = {}): Order {
     total: eur(3998),
     paid_at: "2026-11-13T10:24:51Z",
     items: [orderItem()],
+    ...overrides,
+  };
+}
+
+export function orderSummary(
+  overrides: Partial<OrderSummary> = {},
+): OrderSummary {
+  return {
+    ulid: "01jcheckoutorder0000000000",
+    status: "paid",
+    total: eur(3998),
+    paid_at: "2026-11-13T10:24:51Z",
+    item_count: 2,
+    line_count: 1,
+    first_item: {
+      product_name: "Elden Ring",
+      cover_image_url: "https://shared.steamstatic.com/elden.jpg",
+    },
     ...overrides,
   };
 }

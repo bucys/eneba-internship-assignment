@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "../test/dom";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, order, orderItem } from "../test/fixtures";
@@ -18,16 +18,17 @@ function stubFetch(response: () => Response) {
   return fetchMock;
 }
 
-function renderOrderPage(ulid: string) {
+function renderOrderPage(ulid: string, state?: unknown) {
   const router = createMemoryRouter(
     [{ path: "/orders/:ulid", Component: OrderConfirmationPage }],
-    { initialEntries: [`/orders/${ulid}`] },
+    { initialEntries: [{ pathname: `/orders/${ulid}`, state }] },
   );
   render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+  return router;
 }
 
 afterEach(() => {
@@ -54,7 +55,7 @@ describe("OrderConfirmationPage", () => {
     queryClient.setQueryData(orderQueryKey(paid.ulid), paid);
     stubFetch(() => jsonResponse(200, { data: paid }));
 
-    renderOrderPage(paid.ulid);
+    renderOrderPage(paid.ulid, { justPaid: true });
 
     expect(
       await screen.findByRole("heading", {
@@ -136,5 +137,64 @@ describe("OrderConfirmationPage", () => {
       await screen.findByRole("button", { name: "Try again" }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+});
+
+describe("OrderConfirmationPage arrival (spec 0011 AC-7)", () => {
+  it("says Payment successful once after checkout, with no back link, then clears the state", async () => {
+    const paid = order();
+    queryClient.setQueryData(orderQueryKey(paid.ulid), paid);
+    stubFetch(() => jsonResponse(200, { data: paid }));
+
+    const router = renderOrderPage(paid.ulid, { justPaid: true });
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "Payment successful",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Back to my orders" }),
+    ).not.toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.state).toBeNull());
+    expect(router.state.location.pathname).toBe(`/orders/${paid.ulid}`);
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Payment successful" }),
+    ).toBeInTheDocument();
+    expect(document.title).toBe("Order confirmed | Eneba Marketplace (demo)");
+  });
+
+  it("says Order details with a back link to the list page it came from", async () => {
+    const paid = order();
+    queryClient.setQueryData(orderQueryKey(paid.ulid), paid);
+    stubFetch(() => jsonResponse(200, { data: paid }));
+
+    renderOrderPage(paid.ulid, { fromPage: 3 });
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Order details" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Back to my orders" }),
+    ).toHaveAttribute("href", "/orders?page=3");
+    expect(document.title).toBe("Order details | Eneba Marketplace (demo)");
+    expect(
+      screen.getByRole("button", { name: /Reveal key 1 of 2/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("links back to /orders on a reload or typed URL", async () => {
+    const paid = order();
+    stubFetch(() => jsonResponse(200, { data: paid }));
+
+    renderOrderPage(paid.ulid);
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Order details" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Back to my orders" }),
+    ).toHaveAttribute("href", "/orders");
   });
 });

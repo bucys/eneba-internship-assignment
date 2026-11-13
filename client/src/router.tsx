@@ -11,10 +11,7 @@ import {
   OrderConfirmationPage,
   OrderErrorBoundary,
 } from "./pages/OrderConfirmationPage";
-import {
-  OrdersErrorBoundary,
-  OrdersPlaceholderPage,
-} from "./pages/OrdersPlaceholderPage";
+import { OrdersErrorBoundary, OrdersPage } from "./pages/OrdersPage";
 import { ProductPage } from "./pages/ProductPage";
 import { RouteHydrateFallback } from "./pages/RouteHydrateFallback";
 
@@ -60,7 +57,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "orders",
-        Component: OrdersPlaceholderPage,
+        Component: OrdersPage,
         ErrorBoundary: OrdersErrorBoundary,
         loader: ({ request }) => requireAuth(request),
         handle: { requiresAuth: true },

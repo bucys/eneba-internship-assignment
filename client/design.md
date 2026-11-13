@@ -75,6 +75,9 @@ Computed with the WCAG relative luminance formula. These are the only pairs the 
 | `fg-soft` on `surface-deep` | text (key slot copy hint) | 12.4:1 | 4.5:1 |
 | `success` on `surface-deep` | icon (key slot "Copied" check) | 7.7:1 | 3:1 |
 | `link` on `surface` | text (secondary button hover inside a key slot) | 7.0:1 | 4.5:1 |
+| `success` on `surface` | text and border (order "Paid" badge) | 5.9:1 | 4.5:1 |
+| `success` on `surface-deep` | text and border ("Paid" badge on a hovered order row) | 7.7:1 | 4.5:1 |
+| `link` on `bg` | text ("Back to my orders" link) | 5.5:1 | 4.5:1 |
 
 Disabled controls (50% opacity) are exempt from contrast under WCAG.
 
@@ -126,6 +129,7 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | `Skeleton` | `className?` | Pulsing `surface-deep` block, `aria-hidden` |
 | `EmptyState` | `title`, `message`, `action?: ReactNode` | `<h2>` title |
 | `ErrorState` | `message?`, `onRetry` | `<h2>` "Something went wrong", secondary "Try again" |
+| `Pagination` | `page`, `lastPage`, `hrefFor(page)`, `label` | `<nav>` named by `label`: secondary Previous and Next links around a `fg-soft` "Page X of Y". At the first or last page the end is an `aria-disabled` span at 50% opacity, not a link. Renders nothing when `lastPage` is 1 |
 | `Alert` | `variant?` (`info`, `success`, `error`), `role?`, `children` | `surface` box with a variant border and icon. Role defaults to `alert` for errors, `status` otherwise |
 | `ToastProvider` / `useToast` | `useToast().show({ message, variant, action? })` returns an id. `action: { label, to }`. `dismiss(id)` | One `aria-live="polite"` region, bottom center on mobile, bottom right from `md`. Info and success close after 4s (paused on hover or focus), errors stay. Max 3, oldest drops. `action` renders a normal focusable router link after the message (44px tall, underlined, `cta` on hover) that closes the toast when clicked, for example "View cart". `useToast` lives in `toastContext.ts` |
 
@@ -158,6 +162,8 @@ Money is always integer cents (`Money` in `src/lib/money.ts`) and is only ever s
 |---|---|---|
 | `OrderItemRow` | `item`, `children?` | `<li>` on `surface`: cover, name link, platform and region, seller, quantity × unit price, line total. `children` (the key slots) render under the details |
 | `OrderKeys` | `item`, `keys` (from `useOrderKeys`) | `<ul>` named "Keys for {product}" with one `KeySlot` per unit, then the `fg-soft` line "Redeem this key on {platform}." ("these keys" above 1) |
+| `OrderSummaryRow` | `order` (`OrderSummary`), `fromPage` | `<li>` holding one link to `/orders/{ulid}` (router state `{ fromPage }`) on `surface`, hover `surface-deep`: first cover (`alt=""`), first product name plus `fg-soft` "and N more products", `fg-muted` "N items · date · #ABCD1234", a `success` outline "Paid" badge, and the total `Price` |
+| `OrderListSkeleton` | none | Three rows with the summary row's shape |
 | `KeySlot` | `label`, `code?`, `state` (`masked`, `pending`, `revealed`), `error?`, `onToggle`, `onRetry`, `onCopied` | `<li>` on `surface-deep`. Masked: fixed `•••••-•••••-•••••` in `fg-muted` mono, named "Key hidden". One secondary toggle (Reveal key, Revealing… as `loading`, Hide key) that keeps focus; accessible names like "Reveal key 2 of 3 for Hades". Revealed: the code in a mono `<code>` (wraps, selectable) and a ghost Copy button (check icon and "Copied" for 2 s). Copy failure selects the code and shows an `fg-soft` hint. Error: `danger` text with `role="alert"` and a ghost "Try again" |
 
 ## Do's and don'ts
