@@ -27,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Before throttling and auth:sanctum, so a preview write gets 403 rather than 401 or 429.
         $middleware->prependToGroup('api', BlockPreviewWrites::class);
 
+        // The store price params must reach ListProductsRequest untrimmed, so " 5" fails its pattern (spec 0012 AC-3).
+        $middleware->trimStrings(except: ['price_min', 'price_max']);
+
         // This API has no login page, so a guest gets the 401 JSON even without an Accept header (spec 0006 AC-4).
         $middleware->redirectGuestsTo(null);
 

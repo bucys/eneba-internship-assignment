@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\CatalogFilterController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
@@ -11,6 +12,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/products', [ProductController::class, 'index'])
     ->middleware('throttle:catalog')
     ->name('products.index');
+
+Route::get('/catalog/filters', CatalogFilterController::class)
+    ->middleware('throttle:catalog')
+    ->name('catalog.filters');
 
 Route::get('/products/{slug}', [ProductController::class, 'show'])
     ->where('slug', '[a-z0-9-]+')
