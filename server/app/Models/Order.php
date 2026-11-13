@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -73,5 +74,15 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * The first item in cart order (spec 0009 AC-2): the lowest order_items.id.
+     *
+     * @return HasOne<OrderItem, $this>
+     */
+    public function firstItem(): HasOne
+    {
+        return $this->hasOne(OrderItem::class)->oldestOfMany('id');
     }
 }

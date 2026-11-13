@@ -57,6 +57,11 @@ Route::post('/checkout', [CheckoutController::class, 'store'])
     ->middleware(['auth:sanctum', 'throttle:checkout'])
     ->name('checkout.store');
 
+// Owner scoped summaries, 10 per page, no items or codes (spec 0011 AC-1).
+Route::get('/orders', [OrderController::class, 'index'])
+    ->middleware(['auth:sanctum', 'throttle:account'])
+    ->name('orders.index');
+
 // HasUlids stores lowercase ULIDs; anything else is a 404 (spec 0009 AC-9).
 Route::get('/orders/{ulid}', [OrderController::class, 'show'])
     ->where('ulid', '[0-9a-z]{26}')
