@@ -83,3 +83,13 @@
     transition: none !important;
   }
 }
+
+/* Homepage bands alternate light, dark, light by the bands actually rendered, so an
+   empty or skipped block never leaves two same colour bands side by side (spec 0014 AC-12). */
+.home-bands > [data-band]:nth-child(odd of [data-band]) {
+  background-color: var(--color-bg);
+}
+
+.home-bands > [data-band]:nth-child(even of [data-band]) {
+  background-color: var(--color-surface-deep);
+}

@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CatalogFilterController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SearchSuggestionController;
@@ -26,6 +27,14 @@ Route::get('/products/{slug}', [ProductController::class, 'show'])
     ->where('slug', '[a-z0-9-]+')
     ->middleware('throttle:catalog')
     ->name('products.show');
+
+// Homepage blocks: one layout call, then one endpoint per block (spec 0014).
+Route::prefix('home')->name('home.')->middleware('throttle:catalog')->group(function () {
+    Route::get('/', [HomeController::class, 'layout'])->name('layout');
+    Route::get('/banners', [HomeController::class, 'banners'])->name('banners');
+    Route::get('/best-sellers', [HomeController::class, 'bestSellers'])->name('best-sellers');
+    Route::get('/deals', [HomeController::class, 'deals'])->name('deals');
+});
 
 Route::prefix('auth')->name('auth.')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])

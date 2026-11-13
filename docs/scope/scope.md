@@ -27,7 +27,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 12 | Order history | Journey 1: Purchase | done |
 | 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | done |
 | 14 | Search with typo tolerance | Journey 2: Discovery | done |
-| 15 | Homepage blocks | Journey 3: Landing | planned |
+| 15 | Homepage blocks | Journey 3: Landing | in-progress |
 | 16 | Submission package | Wrap up | planned |
 
 ## Foundations
@@ -221,10 +221,17 @@ spec [0013](../specs/0013-search-typo-tolerance/index.md) · code in `server/app
 
 ## Journey 3: Landing
 
-### 15. Homepage blocks · needs a decision
+### 15. Homepage blocks · in-progress
 A homepage assembled from blocks (hero banner, best sellers, deals) where each block fetches from its own endpoint and data source; the frontend hardcodes no content.
 **Done when:** each block loads independently with its own loading and error state, one failing block doesn't break the page, best sellers reflect real order data, and every card links into the purchase journey.
-- [ ] Design it (spec): `/architect homepage blocks`
+spec [0014](../specs/0014-homepage-blocks/index.md) · code in `server/app/Actions/Home/`, `client/src/components/home/`, `client/src/pages/HomePage.tsx`
+- [x] Design it (spec): `/architect homepage blocks`
+- [ ] Build it: `/develop homepage blocks`
+  - [x] Layout frame: `home_blocks` and `banners` tables, `HomeSeeder`, `GET /home`, `HomePage` layout states, `HomeSection` bands, `ErrorBoundary`, grid moved into its block (AC-1, AC-5, AC-6, AC-8, AC-9, AC-12)
+  - [x] Hero: `GET /home/banners`, `ScrollRail`, portrait tile strip with all states (AC-2, AC-9, AC-10)
+  - [x] Best sellers and Deals: both endpoints, `DemoOrdersSeeder` through `PlaceOrder`, `ProductRailBlock` (desktop rail, mobile list with Show all), `ProductCard` layout prop and ring hover (AC-3, AC-4, AC-7, AC-11, AC-12)
+  - [ ] Tests, `design.md` and contrast rows, `/ui`, 360px and keyboard check, CI, deploy, production seed (AC-13)
+- [ ] Verify it: `/check verify homepage blocks`
 
 ## Wrap up
 

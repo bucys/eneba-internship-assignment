@@ -22,7 +22,7 @@ Every page ships as a complete product surface: the shared header and footer, re
 |---|---|---|
 | `bg` | `#4618ac` | page and header background |
 | `surface` | `#351183` | cards, inputs, alerts, toasts |
-| `surface-deep` | `#1f0a4d` | footer, header border, card hover, skeleton and image placeholder |
+| `surface-deep` | `#1f0a4d` | footer, header border, dark homepage bands, skeleton and image placeholder |
 | `panel` | `#5825cc` | raised panels. Only `fg`, `fg-soft`, `cta`, `price` text on it. No secondary or ghost buttons on it |
 | `fg` | `#ffffff` | primary text |
 | `fg-soft` | `#dcd8e6` | labels, supporting copy |
@@ -87,6 +87,17 @@ Computed with the WCAG relative luminance formula. These are the only pairs the 
 | `link` on `bg` | text ("See all" link, Filters button) | 5.5:1 | 4.5:1 |
 | `cta` on `surface-deep` | active search suggestion bar (non text) | 11.9:1 | 3:1 |
 | `fg-muted` on `surface` | text (suggestion platform, "Searching…", "No games match") | 6.1:1 | 4.5:1 |
+| `price` on `surface` | product card hover ring (non text, 1px inset) | 7.8:1 | 3:1 |
+| `fg` on `surface` | icon (rail arrow chevron) | 13.5:1 | 3:1 |
+| `fg` on `black/90` | text (banner tile title) | 17.6:1 | 4.5:1 |
+| `fg-soft` on `black/90` | text (banner tile tagline) | 12.6:1 | 4.5:1 |
+| `fg-muted` on `black/90` | text (banner tile "Out of stock") | 8.0:1 | 4.5:1 |
+| `price` on `black/90` | text (banner tile price) | 10.1:1 | 4.5:1 |
+| `discount` on `black/90` | text (banner tile list price) | 7.6:1 | 4.5:1 |
+| `cta-fg` on `cta` | text (banner tile CTA pill) | 14.4:1 | 4.5:1 |
+| `cta-fg` on `discount-bg` | text (banner tile `-NN%` badge) | 6.8:1 | 4.5:1 |
+
+`black/90` rows are worst case: 90% black over a white art pixel (`#191919`), since the art shows through the remaining 10%. Over darker art or a band colour the ratios only rise.
 
 Disabled controls (50% opacity) are exempt from contrast under WCAG.
 
@@ -140,6 +151,8 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | `EmptyState` | `title`, `message`, `action?: ReactNode` | `<h2>` title |
 | `ErrorState` | `title?`, `message?`, and either `onRetry` or `action: ReactNode` | `<h2>` title (default "Something went wrong"); secondary "Try again" for `onRetry`, or `action` in its place (store 422 "Clear filters") |
 | `Pagination` | `page`, `lastPage`, `hrefFor(page)`, `label`, `onNavigate?` (runs on a page link click, for example to scroll to the top) | `<nav>` named by `label`: secondary Previous and Next links around a `fg-soft` "Page X of Y". At the first or last page the end is an `aria-disabled` span at 50% opacity, not a link. Renders nothing when `lastPage` is 1 |
+| `ScrollRail` | `label`, `children` (`<li>` items that set their own width), `listClassName?` | Positioned `<ul>` that scrolls sideways with scroll snap and a hidden scrollbar. From `md`, round `surface` arrow buttons "Scroll {label} left/right" overlay the edges, vertically centred, and scroll one visible width (instant under reduced motion). At an end the arrow gets `aria-disabled` and 40% opacity (never `disabled`, so focus stays). Both arrows hidden when nothing overflows |
+| `ErrorBoundary` | `children`, `fallback(reset)` | Class component. A render error in its children shows `fallback`; key it on new data to clear it |
 | `Alert` | `variant?` (`info`, `success`, `error`), `role?`, `children` | `surface` box with a variant border and icon. Role defaults to `alert` for errors, `status` otherwise |
 | `ToastProvider` / `useToast` | `useToast().show({ message, variant, action? })` returns an id. `action: { label, to }`. `dismiss(id)` | One `aria-live="polite"` region, bottom center on mobile, bottom right from `md`. Info and success close after 4s (paused on hover or focus), errors stay. Max 3, oldest drops. `action` renders a normal focusable router link after the message (44px tall, underlined, `cta` on hover) that closes the toast when clicked, for example "View cart". `useToast` lives in `toastContext.ts` |
 
@@ -148,9 +161,23 @@ Disabled controls (50% opacity) are exempt from contrast under WCAG.
 | Component | Props | Notes |
 |---|---|---|
 | `Price` | `price: Money \| null`, `listPrice?`, `discountPercent?`, `size?` (`md`, `lg`) | Price in `price` color. Strike plus `-NN%` badge only when `discountPercent > 0` and `listPrice` is set. `null` price shows "Out of stock" |
-| `ProductCard` | `slug`, `name`, `coverImageUrl`, `platformName`, `regionName`, `price`, `listPrice`, `discountPercent` | One link to `/products/<slug>`. 2:3 cover (`COVER_ASPECT_CLASS`, matches Steam portrait art), lazy image, `Gamepad2` placeholder when missing or broken. Name clamped to 2 lines. Sits on `surface`, hover `surface-deep` |
-| `ProductCardSkeleton` | none | Loading stand in with the same shape |
+| `ProductCard` | `slug`, `name`, `coverImageUrl`, `platformName`, `regionName`, `price`, `listPrice`, `discountPercent`, `layout?` (`vertical` default, `horizontal`), `ref?` (to the link) | One link to `/products/<slug>`. 2:3 cover (`COVER_ASPECT_CLASS`, matches Steam portrait art), lazy image, `Gamepad2` placeholder when missing or broken. Name clamped to 2 lines. Sits on `surface`; hover adds a 1px inset `price` ring (background unchanged). `horizontal`: 80px cover on the left, text on the right (homepage mobile lists). Inset focus outline (`-outline-offset-2`), so a scrolling rail never clips it |
+| `ProductCardSkeleton` | `layout?` | Loading stand in with the same shape as the matching layout |
 | `ProductGrid` | `children` (cards) | `<ul>` grid: 2, 3 (`md`), 4 (`lg`), 5 (`xl`) columns, `gap-4` |
+
+### Home (`src/components/home/`)
+
+Decided in [spec 0014](../docs/specs/0014-homepage-blocks/index.md). The home page renders a hidden `<h1>`, then the blocks `GET /home` lists, in order, inside one `.home-bands` wrapper.
+
+| Component | Props | Notes |
+|---|---|---|
+| `HomeSection` | `title`, `action?`, `children` | Full width `<section data-band>` named by its `<h2>` (`text-2xl`, `md:text-3xl`, extrabold), content in `Container`, `py-10` (`md:py-14`). Colour comes from `index.css`: bands alternate `bg`, `surface-deep`, `bg` by the bands actually rendered |
+| `HomeQueryBlock` | `title`, `query`, `skeleton`, `children(items)` | One block's states: `skeleton` while loading, `HomeBlockError` on a failed request, nothing for an empty list, else the content inside an `ErrorBoundary` keyed on `dataUpdatedAt` |
+| `HomeBlockError` | `title`, `message?`, `onRetry` | The block's band with its title and an `ErrorState` whose Try again refetches only that block |
+| `HeroBanners`, `HeroStrip`, `HeroStripSkeleton` | `title`; `title`, `banners` | Full width strip, flush with the page edges, of portrait tiles in a `ScrollRail`: about 2.5 visible below `sm`, 3.5 from `sm`, 5 from `md`, 6 from `lg`. Title is a visually hidden `<h2>`. Not a band |
+| `BannerTile` | `banner`, `loading` | One link to the product. 1:2 art (`alt=""`, eager for the first 3 tiles), `Gamepad2` on `surface-deep` when broken. A fade sits above an opaque `black/90` text panel: title (extrabold, 2 lines), `fg-soft` tagline (3 lines), live `Price`, CTA label as a yellow `cta` pill. Art zooms slightly on hover (`motion-safe`) |
+| `ProductRailBlock` | `title`, `query` | Best sellers and Deals. From `md` a `ScrollRail` of 200px `ProductCard`s; below `md` a list of horizontal cards: the first 4, then a centred secondary "Show all" (`aria-expanded="false"`, `aria-controls` the list) that reveals the rest and focuses the 5th card. Expanded state survives a resize |
+| `HomePageSkeleton` | none | Strip of 6 tile placeholders and one band of 6 card placeholders while the layout loads |
 
 ### Store (`src/components/store/`)
 

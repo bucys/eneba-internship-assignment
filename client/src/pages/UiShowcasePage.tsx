@@ -33,6 +33,7 @@ import { StoreFilterPanel } from "../components/store/StoreFilterPanel";
 import { DEFAULT_STORE_PARAMS, type StoreParams } from "../lib/storeParams";
 import { SearchSuggestions } from "../components/layout/SearchSuggestions";
 import type { SuggestionsView } from "../lib/suggestionsView";
+import { HomeBlocksShowcase } from "./HomeBlocksShowcase";
 
 // Dev only page: router.tsx registers it behind import.meta.env.DEV.
 
@@ -405,6 +406,10 @@ export function UiShowcasePage() {
           ))}
           <ProductCardSkeleton />
         </ProductGrid>
+      </Section>
+
+      <Section title="Homepage blocks">
+        <HomeBlocksShowcase />
       </Section>
 
       <Section title="Loading, empty and error states">

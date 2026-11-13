@@ -11,6 +11,7 @@ use App\Models\Seller;
 use App\Models\User;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoOrdersSeeder;
 use Database\Seeders\Support\OfferPlanner;
 use Database\Seeders\Support\ProductPlan;
 
@@ -87,7 +88,7 @@ function seedTableCounts(): array
 }
 
 it('creates the catalog with the expected counts and offers', function () {
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
 
     expect(Platform::count())->toBe(4)
         ->and(Region::count())->toBe(3)
@@ -107,7 +108,7 @@ it('creates the catalog with the expected counts and offers', function () {
 });
 
 it('matches the data file for names, slugs, covers, and facts', function () {
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
     $catalog = seedCatalogData();
 
     foreach ($catalog['titles'] as $title) {
@@ -145,7 +146,7 @@ it('rejects data that expands to a duplicate slug before writing anything', func
 });
 
 it('seeds prices and list prices that match the recomputed plans', function () {
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
     $plans = expectedPlans(seedCatalogData());
     $withListPrice = 0;
 
@@ -177,7 +178,7 @@ it('seeds prices and list prices that match the recomputed plans', function () {
 });
 
 it('seeds each offer with its planned stock and valid unique key codes', function () {
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
     $plans = expectedPlans(seedCatalogData());
     $unsold = unsoldCounts();
     $zeroTargets = 0;
@@ -211,13 +212,13 @@ it('seeds each offer with its planned stock and valid unique key codes', functio
 });
 
 it('reruns without changing counts or ids', function () {
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
     $counts = seedTableCounts();
     $productIds = Product::orderBy('id')->pluck('id')->all();
     $offerIds = Offer::orderBy('id')->pluck('id')->all();
     $keyCount = ProductKey::count();
 
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
 
     expect(seedTableCounts())->toBe($counts)
         ->and(Product::orderBy('id')->pluck('id')->all())->toBe($productIds)
@@ -226,7 +227,7 @@ it('reruns without changing counts or ids', function () {
 });
 
 it('keeps sold keys and orders on rerun and only tops up unsold keys', function () {
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
     $offer = Offer::has('availableKeys', '>=', 5)->firstOrFail();
     $target = unsoldCounts()[$offer->id];
     $orderItem = OrderItem::factory()->create(['offer_id' => $offer->id, 'quantity' => 3]);
@@ -236,7 +237,7 @@ it('keeps sold keys and orders on rerun and only tops up unsold keys', function 
     $orderCount = Order::count();
     $orderItemCount = OrderItem::count();
 
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
 
     expect(ProductKey::whereIn('id', $soldKeyIds)->pluck('order_item_id')->unique()->all())->toBe([$orderItem->id])
         ->and(seedTableCounts())->toBe($counts)
@@ -247,12 +248,12 @@ it('keeps sold keys and orders on rerun and only tops up unsold keys', function 
 });
 
 it('never deletes unsold keys above the target', function () {
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
     $offer = Offer::has('keys')->firstOrFail();
     ProductKey::factory()->count(4)->create(['offer_id' => $offer->id]);
     $keyCount = ProductKey::count();
 
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
 
     expect(ProductKey::count())->toBe($keyCount);
 });
@@ -294,7 +295,7 @@ it('updates content from the data file and leaves dropped rows and is_active alo
 });
 
 it('keeps a product turned off by hand inactive after a rerun', function () {
-    runSeeder(DatabaseSeeder::class);
+    runSeeder(CatalogSeeder::class);
     $product = Product::where('slug', 'celeste-steam-global')->firstOrFail();
     $product->update(['is_active' => false]);
 
@@ -308,15 +309,16 @@ it('creates the local test user once outside production', function () {
     runSeeder(DatabaseSeeder::class);
 
     expect(User::where('email', 'test@example.com')->count())->toBe(1)
-        ->and(User::count())->toBe(1);
+        ->and(User::pluck('email')->sort()->values()->all())->toBe([DemoOrdersSeeder::EMAIL, 'test@example.com']);
 });
 
-it('creates no user in production', function () {
+it('creates only the demo buyer in production', function () {
     $this->app['env'] = 'production';
 
     runSeeder(DatabaseSeeder::class);
 
-    expect(User::count())->toBe(0)
+    // The demo buyer has a random password nobody knows (spec 0014 AC-7).
+    expect(User::pluck('email')->all())->toBe([DemoOrdersSeeder::EMAIL])
         ->and(Product::count())->toBe(81);
 });
 

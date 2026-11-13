@@ -1,8 +1,12 @@
+import type { Ref } from "react";
 import { Link } from "react-router";
+import { cx } from "../../lib/cx";
 import type { Money } from "../../lib/money";
 import { Skeleton } from "../ui/Skeleton";
 import { COVER_ASPECT_CLASS, CoverImage } from "./CoverImage";
 import { Price } from "./Price";
+
+export type ProductCardLayout = "vertical" | "horizontal";
 
 type ProductCardProps = {
   slug: string;
@@ -13,6 +17,13 @@ type ProductCardProps = {
   price: Money | null;
   listPrice: Money | null;
   discountPercent: number | null;
+  layout?: ProductCardLayout;
+  ref?: Ref<HTMLAnchorElement>;
+};
+
+const layoutClasses: Record<ProductCardLayout, string> = {
+  vertical: "h-full flex-col gap-3",
+  horizontal: "flex-row items-start gap-3",
 };
 
 export function ProductCard({
@@ -24,34 +35,72 @@ export function ProductCard({
   price,
   listPrice,
   discountPercent,
+  layout = "vertical",
+  ref,
 }: ProductCardProps) {
   return (
+    // Inset focus outline, so a scrolling rail never clips the ring (spec 0014 AC-13).
     <Link
+      ref={ref}
       to={`/products/${slug}`}
-      className="flex h-full flex-col gap-3 rounded-sm bg-surface p-3 transition-colors hover:bg-surface-deep"
+      className={cx(
+        "flex rounded-sm bg-surface p-3 transition-shadow hover:ring-1 hover:ring-price hover:ring-inset focus-visible:-outline-offset-2",
+        layoutClasses[layout],
+      )}
     >
-      <CoverImage key={coverImageUrl} url={coverImageUrl} alt={name} />
-      <div className="flex flex-1 flex-col gap-1">
-        <span className="line-clamp-2 text-sm font-semibold text-fg">
-          {name}
-        </span>
-        <span className="text-xs text-fg-muted">
-          {platformName} · {regionName}
-        </span>
+      <div className={layout === "horizontal" ? "w-20 shrink-0" : "w-full"}>
+        <CoverImage key={coverImageUrl} url={coverImageUrl} alt={name} />
       </div>
-      <div className="flex flex-col gap-0.5">
-        {price !== null && <span className="text-xs text-fg-muted">From</span>}
-        <Price
-          price={price}
-          listPrice={listPrice}
-          discountPercent={discountPercent}
-        />
+      <div
+        className={cx(
+          "flex flex-1 flex-col",
+          layout === "horizontal" ? "min-w-0 gap-2" : "gap-3",
+        )}
+      >
+        <div className="flex flex-1 flex-col gap-1">
+          <span className="line-clamp-2 text-sm font-semibold text-fg">
+            {name}
+          </span>
+          <span className="text-xs text-fg-muted">
+            {platformName} · {regionName}
+          </span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          {price !== null && (
+            <span className="text-xs text-fg-muted">From</span>
+          )}
+          <Price
+            price={price}
+            listPrice={listPrice}
+            discountPercent={discountPercent}
+          />
+        </div>
       </div>
     </Link>
   );
 }
 
-export function ProductCardSkeleton() {
+type ProductCardSkeletonProps = { layout?: ProductCardLayout };
+
+export function ProductCardSkeleton({
+  layout = "vertical",
+}: ProductCardSkeletonProps) {
+  if (layout === "horizontal") {
+    return (
+      <div
+        aria-hidden="true"
+        className="flex flex-row items-start gap-3 rounded-sm bg-surface p-3"
+      >
+        <Skeleton className={`${COVER_ASPECT_CLASS} w-20 shrink-0`} />
+        <div className="flex flex-1 flex-col gap-2">
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="mt-2 h-5 w-1/3" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       aria-hidden="true"
