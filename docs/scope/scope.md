@@ -151,12 +151,12 @@ Signed in checkout with a simulated card form that can succeed or decline, creat
 **Done when:** a successful payment creates one paid order, a decline shows an error and leaves the cart intact, double submits don't create duplicate orders, and prices are recalculated on the server.
 spec [0009](../specs/0009-checkout-simulated-payment/index.md) · code in `server/app/Actions/Checkout/`, `server/app/Payments/`, `client/src/pages/CheckoutPage.tsx`, `client/src/pages/OrderConfirmationPage.tsx`
 - [x] Design it (spec): `/architect checkout & simulated payment`
-- [ ] Build it: `/develop checkout & simulated payment`
+- [x] Build it: `/develop checkout & simulated payment`
   - [x] Per user `CartLock` in the cart actions, simulated gateway, `CheckoutRequest`, replay first flow, `PlaceOrder` with key allocation, order resources, routes, limiter, Pest (AC-1 to AC-8, AC-18)
   - [x] `GET /orders/{ulid}` and the concurrency script passing 20 rounds (AC-6, AC-9, AC-18)
   - [x] Client data layer: `api/orders.ts`, card input helpers, `usePlaceOrder`, error mapping, Vitest (AC-12 to AC-14)
   - [x] Checkout page and order confirmation page with all states (AC-10 to AC-15)
-  - [ ] Checks green, CI, deploy, public purchase, stock drop, 360px and keyboard (AC-16, AC-17)
+  - [x] Checks green, CI, deploy, public purchase, stock drop, 360px and keyboard (AC-16, AC-17)
 - [ ] Verify it: `/check verify checkout & simulated payment`
 - [ ] Test it: `/test checkout & simulated payment`
 - [ ] Carried from feature 8: after a real purchase, the product page offer `stock` drops by one, and at 0 the row moves below every in stock row (spec 0007 verify.md, Value sourcing: stock)
