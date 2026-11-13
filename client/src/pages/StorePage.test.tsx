@@ -200,6 +200,86 @@ describe("StorePage URL", () => {
     expect(pushes).toEqual([]);
   });
 
+  // covers: spec 0012 AC-5 (verify: Enter then an immediate Tab pushed the same URL twice)
+  it("pushes once when blur lands after the Enter push but before the next render", async () => {
+    stubApi();
+    const { router, pushes } = renderStore();
+    const min = await screen.findByRole("textbox", { name: "Min" });
+    const user = userEvent.setup();
+    await user.type(min, "10");
+
+    // Plain DOM events, outside act, so React cannot re-render between them (as in a browser).
+    const committed = new Promise<void>((resolve) => {
+      const stop = router.subscribe((state) => {
+        if (state.location.search === "?price_min=10") {
+          stop();
+          resolve();
+        }
+      });
+    });
+    min.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    await committed;
+    min.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+
+    await waitFor(() => expect(router.state.navigation.state).toBe("idle"));
+    await screen.findByRole("button", { name: "Remove filter: From €10" });
+    expect(pushes).toEqual(["?price_min=10"]);
+  });
+
+  // covers: spec 0012 AC-5 (two ticks before a render must both apply)
+  it("keeps both of two ticks made before the next render", async () => {
+    stubApi();
+    const { router } = renderStore();
+    const steam = await screen.findByRole("checkbox", { name: "Steam" });
+    const xbox = screen.getByRole("checkbox", { name: "Xbox" });
+
+    steam.click();
+    xbox.click();
+
+    await waitFor(() =>
+      expect(router.state.location.search).toBe("?platform=steam,xbox"),
+    );
+    await waitFor(() => expect(xbox).toBeChecked());
+    expect(steam).toBeChecked();
+  });
+
+  // covers: spec 0012 AC-5 (a change after back builds on the restored URL)
+  it("builds the next change on the URL that back restored", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    const { router, pushes } = renderStore();
+
+    await user.click(await screen.findByRole("checkbox", { name: "Steam" }));
+    await user.click(screen.getByRole("checkbox", { name: "Xbox" }));
+    await act(() => router.navigate(-1));
+    await waitFor(() =>
+      expect(screen.getByRole("checkbox", { name: "Xbox" })).not.toBeChecked(),
+    );
+
+    await user.click(screen.getByRole("checkbox", { name: "Europe" }));
+    expect(router.state.location.search).toBe("?platform=steam&region=europe");
+    expect(pushes.at(-1)).toBe("?platform=steam&region=europe");
+  });
+
+  // covers: spec 0012 AC-5 (an interrupted change must not linger as the base)
+  it("forgets a change that another navigation to the same URL interrupted", async () => {
+    stubApi();
+    const { router, pushes } = renderStore("/store?price_min=10");
+    const steam = await screen.findByRole("checkbox", { name: "Steam" });
+
+    steam.click();
+    await act(() => router.navigate("/store?price_min=10"));
+    await waitFor(() => expect(steam).not.toBeChecked());
+    expect(router.state.location.search).toBe("?price_min=10");
+
+    const user = userEvent.setup();
+    await user.click(steam);
+    expect(router.state.location.search).toBe("?platform=steam&price_min=10");
+    expect(pushes.at(-1)).toBe("?platform=steam&price_min=10");
+  });
+
   // covers: spec 0012 AC-5 (review: a no op on page 2+ must keep the page)
   it("keeps the page and pushes nothing for a no op change on a later page", async () => {
     stubApi({

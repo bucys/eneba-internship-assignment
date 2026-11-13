@@ -1,4 +1,5 @@
 import type { CatalogFilters, FilterOption } from "../../api/catalog";
+import type { StoreParamsUpdate } from "../../lib/useStoreParams";
 import type { StoreParams } from "../../lib/storeParams";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -13,7 +14,7 @@ export type FilterOptionsState =
 type StoreFilterPanelProps = {
   params: StoreParams;
   options: FilterOptionsState;
-  onChange: (next: StoreParams) => void;
+  onChange: (update: StoreParamsUpdate) => void;
 };
 
 const legendClasses = "mb-2 text-sm font-extrabold text-fg";
@@ -79,10 +80,10 @@ export function StoreFilterPanel({
             options={options.options.platforms}
             selected={params.platform}
             onToggle={(slug, checked) =>
-              onChange({
-                ...params,
-                platform: toggle(params.platform, slug, checked),
-              })
+              onChange((current) => ({
+                ...current,
+                platform: toggle(current.platform, slug, checked),
+              }))
             }
           />
           <OptionGroup
@@ -90,10 +91,10 @@ export function StoreFilterPanel({
             options={options.options.regions}
             selected={params.region}
             onToggle={(slug, checked) =>
-              onChange({
-                ...params,
-                region: toggle(params.region, slug, checked),
-              })
+              onChange((current) => ({
+                ...current,
+                region: toggle(current.region, slug, checked),
+              }))
             }
           />
         </>
@@ -118,7 +119,7 @@ export function StoreFilterPanel({
           min={params.priceMin}
           max={params.priceMax}
           onApply={(priceMin, priceMax) =>
-            onChange({ ...params, priceMin, priceMax })
+            onChange((current) => ({ ...current, priceMin, priceMax }))
           }
         />
       </fieldset>

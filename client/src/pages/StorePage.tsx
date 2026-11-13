@@ -87,7 +87,7 @@ export function StorePage() {
   const total = data?.meta.total ?? 0;
   const showCount =
     !hasError && data !== undefined && total > 0 && !isBeyondLast;
-  const clearFilters = () => apply(DEFAULT_STORE_PARAMS);
+  const clearFilters = () => apply(() => DEFAULT_STORE_PARAMS);
   const heading = params.q === "" ? "Store" : `Results for "${params.q}"`;
 
   const panel = (
@@ -199,7 +199,10 @@ export function StorePage() {
                 label="Sort by"
                 value={params.sort}
                 onChange={(event) =>
-                  apply({ ...params, sort: event.target.value as StoreSort })
+                  apply((current) => ({
+                    ...current,
+                    sort: event.target.value as StoreSort,
+                  }))
                 }
               >
                 {STORE_SORTS.map((sort) => (

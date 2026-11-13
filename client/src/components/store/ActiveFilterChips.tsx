@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import type { StoreParamsUpdate } from "../../lib/useStoreParams";
 import type { CatalogFilters, FilterOption } from "../../api/catalog";
 import {
   DEFAULT_STORE_PARAMS,
@@ -12,10 +13,14 @@ type ActiveFilterChipsProps = {
   params: StoreParams;
   /** Option names; while missing, chips show the slug. */
   options?: CatalogFilters;
-  onChange: (next: StoreParams) => void;
+  onChange: (update: StoreParamsUpdate) => void;
 };
 
-type Chip = { key: string; label: string; next: StoreParams };
+type Chip = {
+  key: string;
+  label: string;
+  remove: (current: StoreParams) => StoreParams;
+};
 
 function nameFor(options: FilterOption[] | undefined, slug: string): string {
   return options?.find((option) => option.slug === slug)?.name ?? slug;
@@ -26,12 +31,18 @@ function buildChips(params: StoreParams, options?: CatalogFilters): Chip[] {
     ...params.platform.map((slug) => ({
       key: `platform-${slug}`,
       label: nameFor(options?.platforms, slug),
-      next: { ...params, platform: params.platform.filter((s) => s !== slug) },
+      remove: (current: StoreParams) => ({
+        ...current,
+        platform: current.platform.filter((s) => s !== slug),
+      }),
     })),
     ...params.region.map((slug) => ({
       key: `region-${slug}`,
       label: nameFor(options?.regions, slug),
-      next: { ...params, region: params.region.filter((s) => s !== slug) },
+      remove: (current: StoreParams) => ({
+        ...current,
+        region: current.region.filter((s) => s !== slug),
+      }),
     })),
   ];
 
@@ -40,7 +51,7 @@ function buildChips(params: StoreParams, options?: CatalogFilters): Chip[] {
     chips.push({
       key: "price",
       label: priceLabel,
-      next: { ...params, priceMin: null, priceMax: null },
+      remove: (current) => ({ ...current, priceMin: null, priceMax: null }),
     });
   }
 
@@ -48,7 +59,7 @@ function buildChips(params: StoreParams, options?: CatalogFilters): Chip[] {
     chips.push({
       key: "q",
       label: `Search: ${params.q}`,
-      next: { ...params, q: "" },
+      remove: (current) => ({ ...current, q: "" }),
     });
   }
 
@@ -74,7 +85,7 @@ export function ActiveFilterChips({
             <button
               type="button"
               aria-label={`Remove filter: ${chip.label}`}
-              onClick={() => onChange(chip.next)}
+              onClick={() => onChange(chip.remove)}
               className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-sm border border-fg-muted bg-surface px-3 text-sm font-semibold text-fg transition-colors hover:bg-surface-deep"
             >
               <span className="truncate">{chip.label}</span>
@@ -86,7 +97,9 @@ export function ActiveFilterChips({
       {canClear && (
         <Button
           variant="ghost"
-          onClick={() => onChange({ ...DEFAULT_STORE_PARAMS, q: params.q })}
+          onClick={() =>
+            onChange((current) => ({ ...DEFAULT_STORE_PARAMS, q: current.q }))
+          }
         >
           Clear all
         </Button>
