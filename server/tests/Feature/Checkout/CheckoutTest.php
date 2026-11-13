@@ -101,6 +101,44 @@ it('keeps the order snapshots when the catalog changes later', function () {
         ->assertJsonPath('data.items.0.product_name', $response->json('data.items.0.product_name'));
 });
 
+// Value sourcing: name snapshots stay, the product link and cover are live (spec 0009 AC-2).
+it('keeps every name snapshot but shows the live slug and cover after the catalog changes', function () {
+    $offer = cartOffer(1, ['price_cents' => 1000]);
+    fillCart($this->user, [$offer->id => 1]);
+    $created = $this->postJson('/api/v1/checkout', checkoutBody(1000), checkoutHeaders())->assertCreated();
+    $before = $created->json('data.items.0');
+
+    $product = $offer->product;
+    $product->update(['name' => 'Renamed', 'slug' => 'renamed-slug', 'cover_image_url' => 'https://shared.steamstatic.com/new.jpg']);
+    $product->platform->update(['name' => 'New platform']);
+    $product->region->update(['name' => 'New region']);
+    $offer->seller->update(['name' => 'New seller']);
+
+    $this->getJson('/api/v1/orders/'.$created->json('data.ulid'))
+        ->assertOk()
+        ->assertJsonPath('data.items.0.product_name', $before['product_name'])
+        ->assertJsonPath('data.items.0.platform_name', $before['platform_name'])
+        ->assertJsonPath('data.items.0.region_name', $before['region_name'])
+        ->assertJsonPath('data.items.0.seller_name', $before['seller_name'])
+        ->assertJsonPath('data.items.0.product.slug', 'renamed-slug')
+        ->assertJsonPath('data.items.0.product.cover_image_url', 'https://shared.steamstatic.com/new.jpg');
+});
+
+it('returns only the public order fields, never the user, key, or product key codes', function () {
+    $offer = cartOffer(1, ['price_cents' => 1000]);
+    fillCart($this->user, [$offer->id => 1]);
+    $key = (string) Str::uuid();
+
+    $response = $this->postJson('/api/v1/checkout', checkoutBody(1000), checkoutHeaders($key))->assertCreated();
+
+    expect(array_keys($response->json('data')))->toBe(['ulid', 'status', 'total', 'paid_at', 'items'])
+        ->and(array_keys($response->json('data.items.0')))->toBe([
+            'product', 'product_name', 'platform_name', 'region_name', 'seller_name', 'quantity', 'unit_price', 'line_total',
+        ])
+        ->and($response->content())->not->toContain($key)
+        ->and($response->content())->not->toContain((string) ProductKey::query()->value('code'));
+});
+
 it('replays the same key with 200 and writes nothing new, even with an invalid body or empty cart', function () {
     $offer = cartOffer(5, ['price_cents' => 1000]);
     fillCart($this->user, [$offer->id => 1]);

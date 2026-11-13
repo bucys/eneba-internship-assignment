@@ -3,6 +3,7 @@
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\Sanctum;
 
@@ -56,6 +57,37 @@ it('accepts this month as an expiry and a 4 digit CVC', function () {
     $this->postJson('/api/v1/checkout', checkoutBody(1000, [
         'card_expiry' => now('UTC')->format('m/y'),
         'card_cvc' => '1234',
+    ]), checkoutHeaders())->assertCreated();
+});
+
+// Value sourcing: the expiry month is compared in UTC. An empty cart answers 422 on `cart`
+// only once the body is valid, so a missing card_expiry error means the expiry passed.
+it('compares the expiry month in UTC at the month boundary', function (string $now, string $expiry, ?string $message) {
+    $this->travelTo(Carbon::parse($now, 'UTC'));
+
+    $response = $this->postJson('/api/v1/checkout', checkoutBody(1000, ['card_expiry' => $expiry]), checkoutHeaders())
+        ->assertUnprocessable();
+
+    $message === null
+        ? $response->assertJsonMissingValidationErrors(['card_expiry'])->assertJsonValidationErrors(['cart'])
+        : $response->assertJsonValidationErrors(['card_expiry' => $message]);
+})->with([
+    'this month on the 1st at midnight' => ['2027-03-01 00:00:00', '03/27', null],
+    'last month on the 1st at midnight' => ['2027-03-01 00:00:00', '02/27', 'This card has expired.'],
+    'this month on its last second' => ['2027-03-31 23:59:59', '03/27', null],
+    'next month while UTC is still in this one' => ['2027-02-28 23:30:00', '03/27', null],
+    'December of last year in January' => ['2027-01-01 00:00:00', '12/26', 'This card has expired.'],
+    'exactly 20 years ahead' => ['2027-03-01 00:00:00', '12/47', null],
+    '21 years ahead' => ['2027-03-01 00:00:00', '01/48', 'Enter the expiry date as MM/YY.'],
+]);
+
+it('accepts a card number with dashes and a padded name', function () {
+    $offer = cartOffer(1, ['price_cents' => 1000]);
+    $this->user->cartItems()->create(['offer_id' => $offer->id, 'quantity' => 1]);
+
+    $this->postJson('/api/v1/checkout', checkoutBody(1000, [
+        'card_number' => '4242-4242-4242-4242',
+        'card_name' => '  Jane Buyer  ',
     ]), checkoutHeaders())->assertCreated();
 });
 
