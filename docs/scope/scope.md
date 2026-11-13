@@ -25,7 +25,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 10 | Checkout & simulated payment | Journey 1: Purchase | done |
 | 11 | Key delivery & order confirmation | Journey 1: Purchase | done |
 | 12 | Order history | Journey 1: Purchase | done |
-| 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | planned |
+| 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | in-progress |
 | 14 | Search with typo tolerance | Journey 2: Discovery | planned |
 | 15 | Homepage blocks | Journey 3: Landing | planned |
 | 16 | Submission package | Wrap up | planned |
@@ -189,11 +189,19 @@ spec [0011](../specs/0011-order-history/index.md) · code in `server/app/Actions
 
 ## Journey 2: Discovery
 
-### 13. Store catalog: filters, sort, pagination · needs a decision
+### 13. Store catalog: filters, sort, pagination · in-progress
 Browse every product, narrow by platform, region, and price, change the sort order, and page through results.
 **Done when:** filters and sort combine correctly on the server, state lives in the URL (shareable, back button works), result counts and the no results state render, and the layout works on mobile.
-- [ ] Design it (spec): `/architect store catalog`
-- [ ] Follow up from the order history review: check `ProductController::index` for the page offset overflow fixed in `ListOrders` (a page near `PHP_INT_MAX` silently returned page 1's rows; capped by `ListOrders::MAX_PAGE`)
+spec [0012](../specs/0012-store-catalog/index.md) · code in `server/app/Actions/Catalog/ListProducts.php`, `server/app/Http/Requests/Catalog/ListProductsRequest.php`, `server/app/Actions/Catalog/ListCatalogFilters.php`, `client/src/pages/StorePage.tsx`, `client/src/lib/storeParams.ts`, `client/src/components/store/`
+- [x] Design it (spec): `/architect store catalog`
+- [x] Follow up from the order history review: check `ProductController::index` for the page offset overflow fixed in `ListOrders` (a page near `PHP_INT_MAX` silently returned page 1's rows; capped by `ListOrders::MAX_PAGE`) · covered by spec 0012 AC-3 (`ListProducts::MAX_PAGE`)
+- [ ] Build it: `/develop store catalog`
+  - [x] Server list API: `ListProductsRequest`, `ProductFilters`, `ProductSort`, filters, sorts, and `MAX_PAGE` in `ListProducts`, plus `GET /catalog/filters`, Pest (AC-1 to AC-4)
+  - [x] Client data layer: `storeParams` helpers, `productsQuery(params)`, `catalogFiltersQuery`, homepage call updated, Vitest (AC-5, AC-7)
+  - [x] `/store` page: canonical URL loader, results, count, pagination with overflow, every state, Vitest (AC-5, AC-8, AC-9)
+  - [x] Filters and entry points: sidebar and mobile `<dialog>` panel, price fields, sort, chips, Clear all, header Store link and search sync, homepage See all (AC-6, AC-7, AC-10)
+  - [ ] `/ui` entries, 360px, keyboard, contrast, checks green, CI, deploy, public store run (AC-11)
+- [ ] Verify it: `/check verify store catalog`
 
 ### 14. Search with typo tolerance · needs a decision
 A search box in the global header with live suggestions and a results page that copes with typos and partial names.
@@ -218,6 +226,7 @@ Everything the reviewers need: README with scope justification and run instructi
 Out of scope for this build pass, kept so the plan stays honest and the README can justify the cuts.
 - **Password reset & email verification**: needs a real mail provider (from spec 0006)
 - **Wishlist**: save products for later
+- **Store facet counts**: per option counts next to each store filter, e.g. Steam (33) (from spec 0012)
 - **Currency / region switch**: header selector for display currency and region · needs a decision
 - **Admin / seller panel**: manage products, offers, and key stock in the browser · needs a decision
 - **Payment provider test mode**: swap the simulated payment for a real sandbox · needs a decision · Beta
