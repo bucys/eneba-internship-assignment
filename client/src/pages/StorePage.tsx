@@ -101,13 +101,16 @@ export function StorePage() {
   function renderResults() {
     if (isInvalid) {
       return (
-        <div className="flex flex-col items-center gap-3 rounded-sm border border-surface px-6 py-12 text-center">
-          <h2 className="text-xl font-extrabold">
-            Some filters in this link are not valid.
-          </h2>
-          <Button variant="secondary" onClick={clearFilters} className="mt-2">
-            Clear filters
-          </Button>
+        <div role="alert">
+          <ErrorState
+            title="Some filters in this link are not valid."
+            message="Remove the bad filter, or clear them all."
+            action={
+              <Button variant="secondary" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            }
+          />
         </div>
       );
     }

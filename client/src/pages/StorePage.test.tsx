@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "../test/dom";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -118,6 +118,28 @@ function stubDesktop(matches: boolean) {
   }));
 }
 
+/** A viewport that starts below lg; `widen()` crosses lg and fires the change listeners. */
+function stubResizableViewport() {
+  let matches = false;
+  const listeners = new Set<() => void>();
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    get matches() {
+      return matches;
+    },
+    media: query,
+    addEventListener: (_: string, listener: () => void) =>
+      listeners.add(listener),
+    removeEventListener: (_: string, listener: () => void) =>
+      listeners.delete(listener),
+  }));
+  return {
+    widen() {
+      matches = true;
+      listeners.forEach((listener) => listener());
+    },
+  };
+}
+
 beforeEach(() => {
   vi.stubGlobal("scrollTo", vi.fn());
   stubDesktop(true);
@@ -176,6 +198,40 @@ describe("StorePage URL", () => {
     );
 
     expect(pushes).toEqual([]);
+  });
+
+  // covers: spec 0012 AC-5 (review: a no op on page 2+ must keep the page)
+  it("keeps the page and pushes nothing for a no op change on a later page", async () => {
+    stubApi({
+      products: (search) =>
+        jsonResponse(
+          200,
+          page([product(`p${search.get("page") ?? 1}`)], {
+            current_page: Number(search.get("page") ?? 1),
+            last_page: 3,
+            total: 60,
+          }),
+        ),
+    });
+    const user = userEvent.setup();
+    const { router, pushes } = renderStore("/store?price_min=10&page=2");
+
+    await screen.findByText("p2");
+    const min = screen.getByRole("textbox", { name: "Min" });
+    await user.click(min);
+    await user.keyboard("{Enter}");
+    await user.tab();
+    await user.tab();
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Sort by" }),
+      "name",
+    );
+
+    expect(pushes).toEqual([]);
+    expect(router.state.location.search).toBe("?price_min=10&page=2");
+
+    await user.click(screen.getByRole("checkbox", { name: "Steam" }));
+    expect(pushes).toEqual(["?platform=steam&price_min=10"]);
   });
 
   // covers: spec 0012 AC-5
@@ -290,8 +346,10 @@ describe("StorePage results", () => {
     });
     renderStore("/store?platform=sega");
 
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Some filters in this link are not valid.");
     expect(
-      await screen.findByText("Some filters in this link are not valid."),
+      within(alert).getByRole("button", { name: "Clear filters" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Try again" }),
@@ -502,5 +560,48 @@ describe("StorePage mobile dialog", () => {
     expect(
       screen.getByRole("button", { name: "Filters, 1 active" }),
     ).toHaveFocus();
+  });
+
+  // covers: spec 0012 AC-6 (review: scroll lock restores the previous value)
+  it("locks page scroll while open and restores the previous value on close", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    const root = document.documentElement;
+    root.style.overflow = "clip";
+    renderStore();
+
+    await user.click(await screen.findByRole("button", { name: "Filters" }));
+    expect(root.style.overflow).toBe("hidden");
+
+    await user.click(screen.getByRole("button", { name: "Close filters" }));
+    expect(root.style.overflow).toBe("clip");
+    root.style.overflow = "";
+  });
+
+  // covers: spec 0012 AC-6 (review: crossing lg closes the dialog)
+  it("closes the dialog and shows the sidebar when the viewport widens past lg", async () => {
+    stubApi();
+    const viewport = stubResizableViewport();
+    const user = userEvent.setup();
+    renderStore();
+
+    await user.click(await screen.findByRole("button", { name: "Filters" }));
+    expect(screen.getByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+    expect(document.documentElement.style.overflow).toBe("hidden");
+
+    act(() => viewport.widen());
+
+    expect(
+      screen.queryByRole("dialog", { name: "Filters" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Filters" }),
+    ).not.toBeInTheDocument();
+    expect(document.documentElement.style.overflow).toBe("");
+    const sidebar = screen.getByRole("complementary", { name: "Filters" });
+    expect(
+      within(sidebar).getAllByRole("checkbox", { name: "Steam" }),
+    ).toHaveLength(1);
+    expect(screen.getAllByRole("checkbox", { name: "Steam" })).toHaveLength(1);
   });
 });

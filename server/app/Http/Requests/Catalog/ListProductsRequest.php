@@ -28,6 +28,12 @@ class ListProductsRequest extends FormRequest
     public const MAX_QUERY_LENGTH = 100;
 
     /**
+     * Valid UTF-8 with no NUL byte. With the `u` flag, preg_match fails on invalid UTF-8, so the
+     * `regex` rule rejects it; otherwise Postgres throws and the request ends in a 500.
+     */
+    public const TEXT_PATTERN = '/\A[^\x00]*\z/u';
+
+    /**
      * Slug to id maps filled by the after() hook, so the lookup runs once per list.
      *
      * @var array{platform: Collection<string, int>, region: Collection<string, int>}|null
@@ -70,9 +76,9 @@ class ListProductsRequest extends FormRequest
         $hasValidMax = is_string($maxPrice) && preg_match(self::PRICE_PATTERN, $maxPrice) === 1;
 
         return [
-            'q' => ['bail', 'nullable', 'string', 'max:'.self::MAX_QUERY_LENGTH],
-            'platform' => ['bail', 'nullable', 'string', $this->listSizeRule()],
-            'region' => ['bail', 'nullable', 'string', $this->listSizeRule()],
+            'q' => ['bail', 'nullable', 'string', 'regex:'.self::TEXT_PATTERN, 'max:'.self::MAX_QUERY_LENGTH],
+            'platform' => ['bail', 'nullable', 'string', 'regex:'.self::TEXT_PATTERN, $this->listSizeRule()],
+            'region' => ['bail', 'nullable', 'string', 'regex:'.self::TEXT_PATTERN, $this->listSizeRule()],
             'price_min' => [...$priceRules, ...($hasValidMax ? ['lte:price_max'] : [])],
             'price_max' => $priceRules,
             'sort' => ['bail', 'nullable', 'string', Rule::enum(ProductSort::class)],

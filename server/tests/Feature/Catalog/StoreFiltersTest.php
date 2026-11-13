@@ -206,6 +206,12 @@ describe('invalid input', function () {
         'negative zero' => ['price_min=-0', 'price_min'],
         'above the cap' => ['price_max=10001', 'price_max'],
         'unknown sort' => ['sort=popular', 'sort'],
+        'NUL in q' => ['q=a%00b', 'q'],
+        'invalid UTF-8 in q' => ['q=%FF', 'q'],
+        'NUL in platform' => ['platform=st%00eam', 'platform'],
+        'invalid UTF-8 in platform' => ['platform=%FF', 'platform'],
+        'NUL in region' => ['region=eu%00rope', 'region'],
+        'invalid UTF-8 in region' => ['region=%C3%28', 'region'],
     ]);
 
     it('rejects more than ten distinct list values', function () {

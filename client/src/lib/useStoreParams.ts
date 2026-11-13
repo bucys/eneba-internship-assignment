@@ -17,7 +17,8 @@ export function useStoreParams() {
 
   function apply(next: StoreParams) {
     const target = { ...next, page: 1 };
-    if (toStoreSearch(target) === toStoreSearch(params)) return;
+    // Page is ignored on both sides, so a no op on page 2+ keeps the visitor's page.
+    if (toStoreSearch(target) === toStoreSearch({ ...params, page: 1 })) return;
     void navigate(storeHref(target), { preventScrollReset: true });
   }
 
