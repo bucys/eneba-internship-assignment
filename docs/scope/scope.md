@@ -26,7 +26,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 11 | Key delivery & order confirmation | Journey 1: Purchase | done |
 | 12 | Order history | Journey 1: Purchase | done |
 | 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | done |
-| 14 | Search with typo tolerance | Journey 2: Discovery | planned |
+| 14 | Search with typo tolerance | Journey 2: Discovery | in-progress |
 | 15 | Homepage blocks | Journey 3: Landing | planned |
 | 16 | Submission package | Wrap up | planned |
 
@@ -203,10 +203,21 @@ spec [0012](../specs/0012-store-catalog/index.md) · code in `server/app/Actions
   - [x] `/ui` entries, 360px, keyboard, contrast, checks green, CI, deploy, public store run (AC-11)
 - [x] Verify it: `/check verify store catalog`
 
-### 14. Search with typo tolerance · needs a decision
+### 14. Search with typo tolerance · in-progress
 A search box in the global header with live suggestions and a results page that copes with typos and partial names.
 **Done when:** searching "witcher", "witchr", or "wild hunt" finds The Witcher 3, suggestions appear while typing (debounced) and are keyboard navigable, and results reuse the store's filters.
-- [ ] Design it (spec): `/architect search with typo tolerance`
+spec [0013](../specs/0013-search-typo-tolerance/index.md) · code in `server/app/Support/ProductSearch.php`, `server/app/Actions/Catalog/SuggestProducts.php`, `client/src/components/layout/SearchForm.tsx`
+- [x] Design it (spec): `/architect search with typo tolerance`
+- [ ] Build it: `/develop search with typo tolerance`
+  - [x] Server matcher: `pg_trgm` migration and index, `SearchTerms`, `ProductSearch` (indexable `<%` check), relevance sort on `GET /products`, Pest (AC-1 to AC-3, AC-5, AC-6)
+  - [x] Suggestions API: `GET /search/suggestions` request, action, resource, Pest (AC-4, AC-6)
+  - [x] Client store relevance sort: `defaultSort(q)` in `storeParams`, sort select, Clear all, Vitest (AC-11)
+  - [x] Header combobox: suggestions query, debounce, highlighting, keyboard, states, live region, RTL tests (AC-7 to AC-10)
+  - [x] `/ui` entries for the dropdown states: results, searching, no matches, unavailable (AC-12)
+  - [x] Local checks green: server Pest, Pint, PHPStan; client format, lint, typecheck, Vitest, build (AC-12)
+  - [ ] 360px, keyboard, and contrast check in a browser (AC-12)
+  - [ ] Commit, CI green, Render and Vercel deploy, `pg_trgm` and index confirmed on Neon, public search run with the AC-6 terms (AC-12, AC-5, AC-6)
+- [ ] Verify it: `/check verify search with typo tolerance`
 
 ## Journey 3: Landing
 
