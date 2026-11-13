@@ -23,7 +23,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 8 | Product page with seller offers | Journey 1: Purchase | done |
 | 9 | Cart | Journey 1: Purchase | done |
 | 10 | Checkout & simulated payment | Journey 1: Purchase | done |
-| 11 | Key delivery & order confirmation | Journey 1: Purchase | in-progress |
+| 11 | Key delivery & order confirmation | Journey 1: Purchase | done |
 | 12 | Order history | Journey 1: Purchase | planned |
 | 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | planned |
 | 14 | Search with typo tolerance | Journey 2: Discovery | planned |
@@ -161,19 +161,19 @@ spec [0009](../specs/0009-checkout-simulated-payment/index.md) · code in `serve
 - [x] Test it: `/test checkout & simulated payment`
 - [x] Carried from feature 8: after a real purchase, the product page offer `stock` drops by one, and at 0 the row moves below every in stock row (spec 0007 verify.md, Value sourcing: stock)
 
-### 11. Key delivery & order confirmation · Beta · in-progress
+### 11. Key delivery & order confirmation · Beta · done
 Show the buyer the keys checkout already allocated (spec 0009): an owner only keys endpoint, fetched on the first Reveal, with masked keys, copy, and hide on the confirmation page.
 **Done when:** each paid unit's one key is returned only to its buyer (also under concurrent purchases, building on spec 0009's allocation and stock drop), and the confirmation page reveals the keys with a copy action.
 spec [0010](../specs/0010-key-delivery-order-confirmation/index.md) · code in `server/app/Actions/Orders/ShowOrderKeys.php`, `client/src/lib/orderKeys.ts`, `client/src/components/orders/`
 - [x] Design it (spec): `/architect key delivery & order confirmation`
-- [ ] Build it: `/develop key delivery & order confirmation`
+- [x] Build it: `/develop key delivery & order confirmation`
   - [x] Server keys API: `ShowOrderKeys`, `OrderItemKeysResource`, `NoStore`, route, item `id` on `OrderItemResource`, Pest (AC-1 to AC-3)
   - [x] Concurrency script scenario 4: winner reads its key, loser gets 404 (AC-4)
   - [x] Client data layer: keys query, `useOrderKeys` reveal state, error and copy hint helpers, fixtures, Vitest (AC-7, AC-9, AC-10)
   - [x] `KeySlot` and `OrderKeys` on the order page with all states, Vitest (AC-5 to AC-10)
-  - [ ] `/ui` states, 360px, keyboard, contrast, checks green, CI, deploy, public reveal and copy (AC-11)
-- [ ] Verify it: `/check verify key delivery & order confirmation`
-- [ ] Test it: `/test key delivery & order confirmation`
+  - [x] `/ui` states, 360px, keyboard, contrast, checks green, CI, deploy, public reveal and copy (AC-11)
+- [x] Verify it: `/check verify key delivery & order confirmation`
+- [x] Test it: `/test key delivery & order confirmation`
 
 ### 12. Order history
 Signed in users see past orders and can reveal their keys again.

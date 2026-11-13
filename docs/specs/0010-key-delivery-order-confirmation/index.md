@@ -1,7 +1,7 @@
 # 0010. Key delivery: a separate owner only keys endpoint, fetched on the first Reveal, with masked keys and copy on the order page
 
 **Date**: 2026-11-13
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

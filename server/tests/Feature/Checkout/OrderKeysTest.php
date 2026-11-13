@@ -81,6 +81,17 @@ it('gives the same 404 with no-store for another user\'s order and an unknown UL
         ->and($unknown->headers->get('Cache-Control'))->toContain('no-store');
 });
 
+it('answers a non owner with the same 404 body as the order endpoint', function () {
+    config(['app.debug' => false]);
+    $foreign = Order::factory()->create()->ulid;
+    Sanctum::actingAs(User::factory()->create());
+
+    $keys = $this->getJson(keysUrl($foreign))->assertNotFound();
+    $order = $this->getJson('/api/v1/orders/'.$foreign)->assertNotFound();
+
+    expect($keys->content())->toBe($order->content());
+});
+
 it('returns 401 with no-store without a token', function () {
     $response = $this->getJson(keysUrl(Order::factory()->create()->ulid))->assertUnauthorized();
 

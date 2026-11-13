@@ -48,6 +48,11 @@ describe("copyHint", () => {
     expect(copyHint()).toBe("Key selected. Use your device's copy option.");
   });
 
+  it("points non Apple touch devices to their own copy option too", () => {
+    stubDevice(true, "Mozilla/5.0 (Linux; Android 15; Pixel 9)");
+    expect(copyHint()).toBe("Key selected. Use your device's copy option.");
+  });
+
   it("says Cmd+C on Apple devices with a keyboard", () => {
     stubDevice(false, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
     expect(copyHint()).toBe("Key selected. Press Cmd+C to copy.");

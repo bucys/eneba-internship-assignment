@@ -296,6 +296,26 @@ describe("status announcements", () => {
       /^Key revealed: key 3 of 3 for Elden Ring$/,
     );
   });
+
+  // covers: spec 0010 AC-6
+  it("stays silent when a Reveal ends in an error, so only the alert speaks", async () => {
+    const user = userEvent.setup();
+    const { keyRequests } = stubApi();
+    renderPage();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Reveal key for Hades" }),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Revealing keys…");
+    await act(async () => {
+      keyRequests[0].resolve(jsonResponse(404, { message: "Not found." }));
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not load your key.",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(/^$/);
+  });
 });
 
 describe("incomplete keys response", () => {
@@ -491,6 +511,25 @@ describe("copying a key", () => {
     await user.click(
       screen.getByRole("button", { name: "Hide key for Hades" }),
     );
+    expect(screen.queryByText(/^Key selected/)).toBeNull();
+  });
+
+  // covers: spec 0010 AC-9
+  it("drops the hint once a later copy succeeds", async () => {
+    const user = userEvent.setup();
+    await revealHades(user);
+    stubClipboard({
+      writeText: vi.fn(async () => Promise.reject(new Error("denied"))),
+    });
+    const copy = screen.getByRole("button", { name: "Copy key for Hades" });
+
+    await user.click(copy);
+    expect(await screen.findByText(/^Key selected/)).toBeInTheDocument();
+
+    stubClipboard({ writeText: vi.fn(async () => undefined) });
+    await user.click(copy);
+
+    expect(copy).toHaveTextContent("Copied");
     expect(screen.queryByText(/^Key selected/)).toBeNull();
   });
 });
