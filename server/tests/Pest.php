@@ -3,6 +3,7 @@
 use App\Models\Offer;
 use App\Models\ProductKey;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -68,4 +69,29 @@ function cartOffer(int $stock = 5, array $attributes = []): Offer
     }
 
     return $offer;
+}
+
+/**
+ * A valid checkout body (spec 0009 AC-3) that pays the given total with the approving test card.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function checkoutBody(int $expectedTotal, array $overrides = []): array
+{
+    return array_merge([
+        'card_number' => '4242 4242 4242 4242',
+        'card_expiry' => now('UTC')->addYear()->format('m/y'),
+        'card_cvc' => '123',
+        'card_name' => 'Jane Buyer',
+        'expected_total' => $expectedTotal,
+    ], $overrides);
+}
+
+/**
+ * @return array<string, string>
+ */
+function checkoutHeaders(?string $key = null): array
+{
+    return ['Idempotency-Key' => $key ?? (string) Str::uuid()];
 }

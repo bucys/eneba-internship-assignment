@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,3 +50,14 @@ Route::prefix('cart')->name('cart.')->group(function () {
         Route::post('/merge', [CartController::class, 'merge'])->name('merge');
     });
 });
+
+// Not in BlockPreviewWrites' read only list, so previews get 403 (spec 0009 AC-8).
+Route::post('/checkout', [CheckoutController::class, 'store'])
+    ->middleware(['auth:sanctum', 'throttle:checkout'])
+    ->name('checkout.store');
+
+// HasUlids stores lowercase ULIDs; anything else is a 404 (spec 0009 AC-9).
+Route::get('/orders/{ulid}', [OrderController::class, 'show'])
+    ->where('ulid', '[0-9a-z]{26}')
+    ->middleware(['auth:sanctum', 'throttle:account'])
+    ->name('orders.show');

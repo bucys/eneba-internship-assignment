@@ -4,12 +4,13 @@ import { redirectIfSignedIn, requireAuth } from "./lib/auth";
 import { AuthPage } from "./pages/AuthPage";
 import { loginAction, registerAction } from "./pages/authActions";
 import { CartPage } from "./pages/CartPage";
-import {
-  CheckoutErrorBoundary,
-  CheckoutPlaceholderPage,
-} from "./pages/CheckoutPlaceholderPage";
+import { CheckoutErrorBoundary, CheckoutPage } from "./pages/CheckoutPage";
 import { HomePage } from "./pages/HomePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import {
+  OrderConfirmationPage,
+  OrderErrorBoundary,
+} from "./pages/OrderConfirmationPage";
 import {
   OrdersErrorBoundary,
   OrdersPlaceholderPage,
@@ -40,7 +41,7 @@ export const router = createBrowserRouter([
       { path: "cart", Component: CartPage },
       {
         path: "checkout",
-        Component: CheckoutPlaceholderPage,
+        Component: CheckoutPage,
         ErrorBoundary: CheckoutErrorBoundary,
         loader: ({ request }) => requireAuth(request),
         handle: { requiresAuth: true },
@@ -61,6 +62,13 @@ export const router = createBrowserRouter([
         path: "orders",
         Component: OrdersPlaceholderPage,
         ErrorBoundary: OrdersErrorBoundary,
+        loader: ({ request }) => requireAuth(request),
+        handle: { requiresAuth: true },
+      },
+      {
+        path: "orders/:ulid",
+        Component: OrderConfirmationPage,
+        ErrorBoundary: OrderErrorBoundary,
         loader: ({ request }) => requireAuth(request),
         handle: { requiresAuth: true },
       },

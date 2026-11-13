@@ -22,7 +22,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 7 | Authentication | Journey 1: Purchase | done |
 | 8 | Product page with seller offers | Journey 1: Purchase | done |
 | 9 | Cart | Journey 1: Purchase | done |
-| 10 | Checkout & simulated payment | Journey 1: Purchase | planned |
+| 10 | Checkout & simulated payment | Journey 1: Purchase | in-progress |
 | 11 | Key delivery & order confirmation | Journey 1: Purchase | planned |
 | 12 | Order history | Journey 1: Purchase | planned |
 | 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | planned |
@@ -146,10 +146,19 @@ spec [0008](../specs/0008-cart/index.md) · code in `server/app/Actions/Cart/`, 
   - [x] Checks green, CI, deploy, 360px and keyboard (AC-15)
 - [x] Verify it: `/check verify cart`
 
-### 10. Checkout & simulated payment · needs a decision · Beta
+### 10. Checkout & simulated payment · Beta · in-progress
 Signed in checkout with a simulated card form that can succeed or decline, creating an order exactly once.
 **Done when:** a successful payment creates one paid order, a decline shows an error and leaves the cart intact, double submits don't create duplicate orders, and prices are recalculated on the server.
-- [ ] Design it (spec): `/architect checkout & simulated payment`
+spec [0009](../specs/0009-checkout-simulated-payment/index.md) · code in `server/app/Actions/Checkout/`, `server/app/Payments/`, `client/src/pages/CheckoutPage.tsx`, `client/src/pages/OrderConfirmationPage.tsx`
+- [x] Design it (spec): `/architect checkout & simulated payment`
+- [ ] Build it: `/develop checkout & simulated payment`
+  - [x] Per user `CartLock` in the cart actions, simulated gateway, `CheckoutRequest`, replay first flow, `PlaceOrder` with key allocation, order resources, routes, limiter, Pest (AC-1 to AC-8, AC-18)
+  - [x] `GET /orders/{ulid}` and the concurrency script passing 20 rounds (AC-6, AC-9, AC-18)
+  - [x] Client data layer: `api/orders.ts`, card input helpers, `usePlaceOrder`, error mapping, Vitest (AC-12 to AC-14)
+  - [x] Checkout page and order confirmation page with all states (AC-10 to AC-15)
+  - [ ] Checks green, CI, deploy, public purchase, stock drop, 360px and keyboard (AC-16, AC-17)
+- [ ] Verify it: `/check verify checkout & simulated payment`
+- [ ] Test it: `/test checkout & simulated payment`
 - [ ] Carried from feature 8: after a real purchase, the product page offer `stock` drops by one, and at 0 the row moves below every in stock row (spec 0007 verify.md, Value sourcing: stock)
 
 ### 11. Key delivery & order confirmation · needs a decision · Beta

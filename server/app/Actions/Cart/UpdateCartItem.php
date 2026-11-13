@@ -4,6 +4,8 @@ namespace App\Actions\Cart;
 
 use App\Models\User;
 use App\Support\CartLine;
+use App\Support\CartLock;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateCartItem
@@ -15,19 +17,23 @@ class UpdateCartItem
      */
     public function handle(User $user, int $offerId, int $quantity): void
     {
-        $item = $user->cartItems()->where('offer_id', $offerId)->firstOrFail();
+        DB::transaction(function () use ($user, $offerId, $quantity) {
+            CartLock::forUser($user);
 
-        $offer = $this->buildCart->findOffer($offerId);
-        $cap = $offer === null ? 0 : CartLine::maxQuantityFor($offer);
+            $item = $user->cartItems()->where('offer_id', $offerId)->firstOrFail();
 
-        if ($cap === 0) {
-            throw ValidationException::withMessages(['offer_id' => 'This offer is no longer available.']);
-        }
+            $offer = $this->buildCart->findOffer($offerId);
+            $cap = $offer === null ? 0 : CartLine::maxQuantityFor($offer);
 
-        if ($quantity > $cap) {
-            throw ValidationException::withMessages(['quantity' => "Only {$cap} available."]);
-        }
+            if ($cap === 0) {
+                throw ValidationException::withMessages(['offer_id' => 'This offer is no longer available.']);
+            }
 
-        $item->update(['quantity' => $quantity]);
+            if ($quantity > $cap) {
+                throw ValidationException::withMessages(['quantity' => "Only {$cap} available."]);
+            }
+
+            $item->update(['quantity' => $quantity]);
+        });
     }
 }

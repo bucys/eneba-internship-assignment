@@ -1,4 +1,10 @@
 import type { ReactNode } from "react";
+import type { Cart, CartLine } from "../api/cart";
+import { CardPaymentForm } from "../components/checkout/CardPaymentForm";
+import { CheckoutPageSkeleton } from "../components/checkout/CheckoutPageSkeleton";
+import { CheckoutSummary } from "../components/checkout/CheckoutSummary";
+import { OrderItemRow } from "../components/orders/OrderItemRow";
+import { OrderPageSkeleton } from "../components/orders/OrderPageSkeleton";
 import { Container } from "../components/layout/Container";
 import { Price } from "../components/product/Price";
 import {
@@ -63,6 +69,42 @@ const sampleCards = [
     discountPercent: null,
   },
 ];
+
+function sampleLine(offerId: number, overrides: Partial<CartLine>): CartLine {
+  return {
+    offer_id: offerId,
+    quantity: 1,
+    max_quantity: 10,
+    available: true,
+    quantity_reduced: false,
+    unit_price: eur(998),
+    line_total: eur(998),
+    seller: { name: "KeyHub" },
+    product: {
+      slug: "sample-discounted",
+      name: "Sample Quest: Discounted Edition",
+      cover_image_url: "/sample-cover.svg",
+      platform: { slug: "steam", name: "Steam" },
+      region: { slug: "global", name: "Global" },
+    },
+    ...overrides,
+  };
+}
+
+const sampleCheckoutCart: Cart = {
+  lines: [
+    sampleLine(1, {
+      quantity: 3,
+      max_quantity: 3,
+      quantity_reduced: true,
+      line_total: eur(2994),
+    }),
+    sampleLine(2, { unit_price: eur(4999), line_total: eur(4999) }),
+  ],
+  item_count: 4,
+  total: eur(7993),
+  can_checkout: true,
+};
 
 type SectionProps = {
   title: string;
@@ -244,6 +286,51 @@ export function UiShowcasePage() {
         <Alert variant="error" role="status">
           This offer sold out while you were checking out.
         </Alert>
+      </Section>
+
+      <Section title="Checkout and order">
+        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_22rem] md:items-start">
+          <CardPaymentForm
+            onSubmit={() => undefined}
+            pending={false}
+            totalLabel="€79.93"
+          />
+          <CheckoutSummary cart={sampleCheckoutCart} />
+        </div>
+        <CardPaymentForm
+          onSubmit={() => undefined}
+          pending={false}
+          fieldErrors={{
+            card_number: "Enter a valid card number.",
+            card_expiry: "This card has expired.",
+          }}
+          formError="Your card was declined."
+          totalLabel="€79.93"
+        />
+        <CardPaymentForm
+          onSubmit={() => undefined}
+          pending
+          totalLabel="€79.93"
+        />
+        <ul className="flex flex-col gap-2">
+          <OrderItemRow
+            item={{
+              product: {
+                slug: "sample-discounted",
+                cover_image_url: "/sample-cover.svg",
+              },
+              product_name: "Sample Quest: Discounted Edition",
+              platform_name: "Steam",
+              region_name: "Global",
+              seller_name: "KeyHub",
+              quantity: 3,
+              unit_price: eur(998),
+              line_total: eur(2994),
+            }}
+          />
+        </ul>
+        <CheckoutPageSkeleton />
+        <OrderPageSkeleton />
       </Section>
 
       <Section title="Toasts">

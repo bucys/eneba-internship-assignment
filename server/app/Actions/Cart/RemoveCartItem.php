@@ -3,6 +3,8 @@
 namespace App\Actions\Cart;
 
 use App\Models\User;
+use App\Support\CartLock;
+use Illuminate\Support\Facades\DB;
 
 class RemoveCartItem
 {
@@ -11,6 +13,10 @@ class RemoveCartItem
      */
     public function handle(User $user, int $offerId): void
     {
-        $user->cartItems()->where('offer_id', $offerId)->delete();
+        DB::transaction(function () use ($user, $offerId) {
+            CartLock::forUser($user);
+
+            $user->cartItems()->where('offer_id', $offerId)->delete();
+        });
     }
 }

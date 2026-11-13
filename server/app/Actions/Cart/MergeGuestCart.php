@@ -5,6 +5,7 @@ namespace App\Actions\Cart;
 use App\Models\User;
 use App\Support\CartLimits;
 use App\Support\CartLine;
+use App\Support\CartLock;
 use Illuminate\Support\Facades\DB;
 
 class MergeGuestCart
@@ -23,6 +24,8 @@ class MergeGuestCart
     public function handle(User $user, array $items): void
     {
         DB::transaction(function () use ($user, $items) {
+            CartLock::forUser($user);
+
             $offers = $this->buildCart->loadOffers(array_column($items, 'offer_id'));
             $existing = array_flip($user->cartItems()->pluck('offer_id')->all());
 

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Payments\PaymentGateway;
+use App\Payments\SimulatedPaymentGateway;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Simulated payments only (spec 0009 AC-5); a real provider's test mode would be bound here.
+        $this->app->bind(PaymentGateway::class, SimulatedPaymentGateway::class);
     }
 
     /**
@@ -46,5 +49,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Separate from account, so cart stepper clicks never use up the /auth/me budget.
         RateLimiter::for('cart', fn (Request $request) => Limit::perMinute(120)->by((string) $request->user()?->getAuthIdentifier()));
+
+        // Limits card guessing and runaway retries (spec 0009 AC-8).
+        RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(10)->by((string) $request->user()?->getAuthIdentifier()));
     }
 }

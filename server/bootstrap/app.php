@@ -29,6 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Defence in depth: card fields never reach the session flash (spec 0009 AC-7).
+        $exceptions->dontFlash(['card_number', 'card_cvc', 'card_expiry', 'card_name']);
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

@@ -10,7 +10,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property OrderStatus $status
+ * @property Carbon $paid_at
+ */
 #[Fillable(['user_id', 'status', 'total_cents', 'currency', 'idempotency_key', 'paid_at'])]
 class Order extends Model
 {
@@ -41,6 +46,17 @@ class Order extends Model
             'status' => OrderStatus::class,
             'paid_at' => 'datetime',
         ];
+    }
+
+    /**
+     * What OrderResource reads: items in cart order (by id) with the live product link and cover.
+     */
+    public function loadForResource(): self
+    {
+        return $this->load([
+            'items' => fn ($query) => $query->orderBy('id'),
+            'items.product:id,slug,cover_image_url',
+        ]);
     }
 
     /**

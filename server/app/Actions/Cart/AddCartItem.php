@@ -5,6 +5,8 @@ namespace App\Actions\Cart;
 use App\Models\User;
 use App\Support\CartLimits;
 use App\Support\CartLine;
+use App\Support\CartLock;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AddCartItem
@@ -19,29 +21,33 @@ class AddCartItem
      */
     public function handle(User $user, int $offerId, int $quantity): void
     {
-        $offer = $this->buildCart->findOffer($offerId);
+        DB::transaction(function () use ($user, $offerId, $quantity) {
+            CartLock::forUser($user);
 
-        if ($offer === null || ! CartLine::isOfferActive($offer)) {
-            throw ValidationException::withMessages(['offer_id' => 'This offer is no longer available.']);
-        }
+            $offer = $this->buildCart->findOffer($offerId);
 
-        $cap = CartLine::maxQuantityFor($offer);
+            if ($offer === null || ! CartLine::isOfferActive($offer)) {
+                throw ValidationException::withMessages(['offer_id' => 'This offer is no longer available.']);
+            }
 
-        if ($cap === 0) {
-            throw ValidationException::withMessages(['offer_id' => 'This offer is out of stock.']);
-        }
+            $cap = CartLine::maxQuantityFor($offer);
 
-        $stored = $user->cartItems()->where('offer_id', $offerId)->value('quantity');
+            if ($cap === 0) {
+                throw ValidationException::withMessages(['offer_id' => 'This offer is out of stock.']);
+            }
 
-        if ($stored !== null && $stored >= $cap) {
-            throw ValidationException::withMessages(['quantity' => 'You already have the maximum for this offer.']);
-        }
+            $stored = $user->cartItems()->where('offer_id', $offerId)->value('quantity');
 
-        // A soft limit: two concurrent adds of new offers can both pass this check.
-        if ($stored === null && $user->cartItems()->count() >= CartLimits::MAX_LINES) {
-            throw ValidationException::withMessages(['offer_id' => 'Your cart is full.']);
-        }
+            if ($stored !== null && $stored >= $cap) {
+                throw ValidationException::withMessages(['quantity' => 'You already have the maximum for this offer.']);
+            }
 
-        $this->upsertCartLine->handle($user, $offerId, $quantity, $cap);
+            // A soft limit: two concurrent adds of new offers can both pass this check.
+            if ($stored === null && $user->cartItems()->count() >= CartLimits::MAX_LINES) {
+                throw ValidationException::withMessages(['offer_id' => 'Your cart is full.']);
+            }
+
+            $this->upsertCartLine->handle($user, $offerId, $quantity, $cap);
+        });
     }
 }
