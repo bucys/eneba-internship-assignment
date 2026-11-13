@@ -82,7 +82,7 @@ A single repository containing separate frontend and backend applications, confi
 - `.github/workflows/ci.yml` — CI on every push and PR: server job (Pint, PHPStan, Pest on Postgres 17), checkout-concurrency job (`scripts/checkout-concurrency.sh`, 5 rounds against a served API on Postgres 17), and client job (Prettier, oxlint, typecheck, Vitest, build)
 - `docker-compose.yml` — local Postgres only
 
-`docs/agent-logs/` is gitignored until the exported transcripts are reviewed and redacted. Remove that ignore line before submission.
+`docs/agent-logs/` stays gitignored, and raw Claude Code JSONL transcripts stay local. Add only reviewed, sanitized exports to the repository, and only if the assignment's submission requirements call for them (feature 18).
 
 ## Stack
 
