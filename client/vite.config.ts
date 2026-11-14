@@ -7,7 +7,8 @@ const PRODUCT_IMAGE_ORIGIN = "https://shared.steamstatic.com";
 
 // Production only: dev needs an inline React Refresh script that this policy would block.
 // It is a <meta> tag because the API origin comes from VITE_API_URL at build time.
-function contentSecurityPolicy(): Plugin {
+// img-src includes the API origin: banner art is served from the API's public/images.
+export function contentSecurityPolicy(): Plugin {
   let apiOrigin = "";
   return {
     name: "content-security-policy",
@@ -26,7 +27,7 @@ function contentSecurityPolicy(): Plugin {
         "default-src 'self'",
         "script-src 'self'",
         "style-src 'self'",
-        `img-src 'self' ${PRODUCT_IMAGE_ORIGIN}`,
+        `img-src 'self' ${PRODUCT_IMAGE_ORIGIN} ${apiOrigin}`,
         "font-src 'self'",
         `connect-src 'self' ${apiOrigin}`,
         "object-src 'none'",
