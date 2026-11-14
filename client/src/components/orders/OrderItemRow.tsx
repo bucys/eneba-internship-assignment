@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import type { OrderItem } from "../../api/orders";
 import { formatPrice } from "../../lib/money";
 import { CoverImage } from "../product/CoverImage";
+import { Price } from "../product/Price";
 
 type OrderItemRowProps = {
   item: OrderItem;
@@ -34,9 +35,7 @@ export function OrderItemRow({ item, children }: OrderItemRowProps) {
           <span className="text-sm text-fg-muted">
             {item.quantity} × {formatPrice(item.unit_price)}
           </span>
-          <span className="font-extrabold text-price">
-            {formatPrice(item.line_total)}
-          </span>
+          <Price price={item.line_total} />
         </div>
         {children}
       </div>

@@ -3,6 +3,8 @@
 **Date**: 2026-11-11
 **Status**: Accepted
 
+> **Partly superseded by [spec 0015](../0015-visual-fidelity-polish/index.md)** (visual fidelity and polish, 2026-11-14). The `price` token is renamed `accent` and `discount` / `discount-bg` give way to `saving` (spec 0015 AC-1); the `Price` look in AC-10 (one line, coloured price, discount pill) is now a two line column with a white price and plain `saving` text (AC-2); the `ProductCard` parts in AC-11 change (platform strip, region line, accent ring, AC-3 and AC-4), and `ProductGrid` stops at 4 columns from `xl` (AC-13). For those points read spec 0015 and `client/design.md`. Everything else in this spec still holds. The original text below is kept unchanged as history.
+
 ## Summary
 
 This spec sets the look of the whole client: Eneba's real colors, the Metropolis font, spacing, and a small set of base components (header, layout, buttons, form fields, price, product card, loading and error states, alerts and toasts). The values come from studying eneba.com live, kept as close as possible, with only the few colors that fail contrast lightened. Everything lives as Tailwind v4 theme tokens (named design values) plus plain React components you can explain line by line, with no UI library. A dev only `/ui` page shows every component and state, so each later feature reuses these parts instead of inventing its own.

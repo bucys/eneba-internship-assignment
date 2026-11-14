@@ -1,6 +1,7 @@
 import type { CartLine } from "../../api/cart";
 import { formatPrice } from "../../lib/money";
 import { CoverImage } from "../product/CoverImage";
+import { Price } from "../product/Price";
 
 type CheckoutLineRowProps = {
   line: CartLine;
@@ -34,11 +35,7 @@ export function CheckoutLineRow({ line }: CheckoutLineRowProps) {
           <span className="text-fg-muted">
             {line.quantity} × {formatPrice(line.unit_price)}
           </span>
-          {line.line_total && (
-            <span className="font-extrabold text-price">
-              {formatPrice(line.line_total)}
-            </span>
-          )}
+          {line.line_total && <Price price={line.line_total} />}
         </div>
       </div>
     </li>

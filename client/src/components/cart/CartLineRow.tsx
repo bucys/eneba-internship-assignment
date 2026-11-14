@@ -5,6 +5,7 @@ import { cartErrorMessage, useCartActions } from "../../lib/cart";
 import { cx } from "../../lib/cx";
 import { formatPrice } from "../../lib/money";
 import { CoverImage } from "../product/CoverImage";
+import { Price } from "../product/Price";
 import { useToast } from "../ui/toastContext";
 import { QuantityStepper } from "./QuantityStepper";
 
@@ -100,9 +101,7 @@ export function CartLineRow({
           <div className="ml-auto flex items-center gap-2">
             <div className="flex flex-col items-end">
               {line.line_total && (
-                <span className="font-extrabold text-price">
-                  {formatPrice(line.line_total)}
-                </span>
+                <Price price={line.line_total} className="items-end" />
               )}
               <span className="text-xs text-fg-muted">
                 {formatPrice(line.unit_price)} each

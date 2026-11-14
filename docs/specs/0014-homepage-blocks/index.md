@@ -3,6 +3,8 @@
 **Date**: 2026-11-13
 **Status**: Accepted
 
+> **Partly superseded by [spec 0015](../0015-visual-fidelity-polish/index.md)** (visual fidelity and polish, 2026-11-14). The portrait tile strip for the `banners` block in AC-10 (`ScrollRail`, `BannerTile`, every banner shown) is replaced by a split hero from `lg` (featured slot plus two side tiles) and one compact featured banner below `lg` (spec 0015 AC-8 to AC-11); a platform shortcuts row now sits under the hero (AC-7). The block endpoints, layout order, per block loading and error states, and the other blocks are unchanged. Everything else in this spec still holds. The original text below is kept unchanged as history.
+
 ## Summary
 
 This spec turns the homepage into blocks the server controls. A small `GET /home` call returns which blocks to show, in what order, with their titles (from a new `home_blocks` table). Each block then loads on its own from its own endpoint: a hero strip of portrait promo tiles (a new `banners` table), Best sellers (real units sold from paid orders), Deals (biggest percent off first), and the existing "Browse games" grid. Every block has its own loading, error, and empty handling, so one failing block never breaks the page. The look follows the Eneba screenshots in `docs/reference/`: full width bands in alternating colours, sideways rails on desktop, and short vertical lists on phones. A demo seeder places real orders through the real checkout code, so Best sellers is full on the public site from day one.

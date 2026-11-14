@@ -15,6 +15,19 @@ const { StorePage } = await import("./StorePage");
 const { storeLoader } = await import("./storeLoader");
 const { SearchForm } = await import("../components/layout/SearchForm");
 
+function findSort() {
+  return screen.findByRole("combobox", { name: /^Sort by/ });
+}
+
+/** Opens the sort picker and clicks an option, as a visitor would. */
+async function chooseSort(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+) {
+  await user.click(await findSort());
+  await user.click(screen.getByRole("option", { name: label }));
+}
+
 function product(slug: string, name = slug): Product {
   return {
     slug,
@@ -192,10 +205,7 @@ describe("StorePage URL", () => {
     await user.click(min);
     await user.keyboard("{Enter}");
     await user.tab();
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Sort by" }),
-      "name",
-    );
+    await chooseSort(user, "Name: A to Z");
 
     expect(pushes).toEqual([]);
   });
@@ -302,10 +312,7 @@ describe("StorePage URL", () => {
     await user.keyboard("{Enter}");
     await user.tab();
     await user.tab();
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Sort by" }),
-      "name",
-    );
+    await chooseSort(user, "Name: A to Z");
 
     expect(pushes).toEqual([]);
     expect(router.state.location.search).toBe("?price_min=10&page=2");
@@ -591,12 +598,11 @@ describe("StorePage relevance sort", () => {
     const user = userEvent.setup();
     const { router } = renderStore("/store?q=witcher&sort=name");
 
-    const select = await screen.findByRole("combobox", { name: "Sort by" });
-    expect(select).toHaveValue("name");
-    await user.selectOptions(select, "relevance");
+    expect(await findSort()).toHaveTextContent("Name: A to Z");
+    await chooseSort(user, "Relevance");
     expect(router.state.location.search).toBe("?q=witcher");
 
-    await user.selectOptions(select, "name");
+    await chooseSort(user, "Name: A to Z");
     expect(router.state.location.search).toBe("?q=witcher&sort=name");
   });
 
@@ -620,7 +626,7 @@ describe("StorePage relevance sort", () => {
     stubApi();
     const { router } = renderStore("/store?sort=relevance");
 
-    await screen.findByRole("combobox", { name: "Sort by" });
+    await findSort();
     expect(router.state.location.search).toBe("");
   });
 });

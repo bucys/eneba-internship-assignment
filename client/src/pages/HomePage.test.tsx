@@ -312,4 +312,47 @@ describe("HomePage", () => {
       within(deals).queryByRole("button", { name: "Show all" }),
     ).not.toBeInTheDocument();
   });
+
+  it("mounts only the split hero from lg", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(min-width: 64rem)" || query === "(min-width: 768px)",
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    stubApi({
+      "/api/v1/home": () =>
+        jsonResponse(200, { data: [{ type: "banners", title: "Featured" }] }),
+    });
+    renderHome();
+
+    const hero = await screen.findByRole("region", { name: "Featured" });
+    const links = await within(hero).findAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveClass("col-span-3");
+    expect(
+      within(hero).queryByRole("button", { name: /Scroll Featured/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the platform shortcuts right after the hero", async () => {
+    stubApi();
+    renderHome();
+
+    const nav = await screen.findByRole("navigation", {
+      name: "Shop by platform",
+    });
+    const links = within(nav).getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual([
+      "All games",
+      "Steam",
+      "PlayStation",
+      "Xbox",
+      "Nintendo",
+    ]);
+    expect(links[0]).toHaveAttribute("href", "/store");
+    expect(links[4]).toHaveAttribute("href", "/store?platform=nintendo");
+    const hero = await screen.findByRole("region", { name: "Featured" });
+    expect(hero.nextElementSibling).toContainElement(nav);
+  });
 });

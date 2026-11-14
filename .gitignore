@@ -10,3 +10,4 @@ docs/.agent-cache/
 .playwright-mcp/
 docs/reference/desktop/
 docs/reference/mobile/
+docs/reference/current/

@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
 import { ApiError } from "../api/client";
-import { getProductPageView, productPageTitle } from "./productPageView";
+import {
+  getProductPageView,
+  otherOffersSummary,
+  productPageTitle,
+} from "./productPageView";
 
 const notFound = new ApiError({
   kind: "http",
@@ -101,5 +105,34 @@ describe("productPageTitle", () => {
     ["error", undefined, "Could not load game | Eneba Marketplace (demo)"],
   ] as const)("titles the %s view", (view, name, expected) => {
     expect(productPageTitle(view, name)).toBe(expected);
+  });
+});
+
+describe("otherOffersSummary", () => {
+  const offer = (id: number, amount: number, stock = 5) => ({
+    id,
+    price: { amount, currency: "EUR" as const },
+    stock,
+  });
+
+  it("counts only in stock offers other than the best one, with their lowest price", () => {
+    const offers = [
+      offer(1, 1000),
+      offer(2, 1500),
+      offer(3, 900, 0),
+      offer(4, 1200),
+    ];
+
+    expect(otherOffersSummary(offers, 1)).toEqual({
+      count: 2,
+      lowest: { amount: 1200, currency: "EUR" },
+    });
+  });
+
+  it("returns null when no other offer is in stock", () => {
+    expect(
+      otherOffersSummary([offer(1, 1000), offer(2, 900, 0)], 1),
+    ).toBeNull();
+    expect(otherOffersSummary([], null)).toBeNull();
   });
 });

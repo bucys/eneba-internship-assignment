@@ -9,7 +9,8 @@ type OfferListProps = {
 // Renders offers in API order; the server already sorted them.
 export function OfferList({ offers, bestOfferId }: OfferListProps) {
   return (
-    <section aria-labelledby="offers-heading" className="mt-10">
+    // No scroll-mt: it would add to the html scroll-padding-top and double the gap.
+    <section id="offers" aria-labelledby="offers-heading">
       <h2 id="offers-heading" className="mb-4 text-xl font-extrabold">
         All offers
       </h2>

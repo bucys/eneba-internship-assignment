@@ -13,6 +13,7 @@ import { ProductGrid } from "../components/product/ProductGrid";
 import { toProductCardProps } from "../components/product/toProductCardProps";
 import { ActiveFilterChips } from "../components/store/ActiveFilterChips";
 import { FiltersDialog } from "../components/store/FiltersDialog";
+import { SortSelect } from "../components/store/SortSelect";
 import {
   StoreFilterPanel,
   type FilterOptionsState,
@@ -22,16 +23,13 @@ import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { Pagination } from "../components/ui/Pagination";
-import { Select } from "../components/ui/Select";
 import { cx } from "../lib/cx";
 import {
   activeFilterCount,
   DEFAULT_STORE_PARAMS,
   resultCountLabel,
-  sortOptions,
   storeErrorMessage,
   storeHref,
-  type StoreSort,
 } from "../lib/storeParams";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { useSlowPending } from "../lib/useSlowPending";
@@ -184,8 +182,8 @@ export function StorePage() {
       <div className="mt-6 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
         {isDesktop && <aside aria-label="Filters">{panel}</aside>}
 
-        <div className="flex min-w-0 flex-col gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
             {!isDesktop && (
               <FiltersDialog
                 activeCount={activeFilterCount(params)}
@@ -194,24 +192,19 @@ export function StorePage() {
                 {panel}
               </FiltersDialog>
             )}
-            <div className="w-full sm:ml-auto sm:w-60">
-              <Select
-                label="Sort by"
-                value={params.sort}
-                onChange={(event) =>
-                  apply((current) => ({
-                    ...current,
-                    sort: event.target.value as StoreSort,
-                  }))
-                }
+            {isDesktop && (
+              <p
+                aria-live="polite"
+                className="text-sm font-semibold text-fg-soft"
               >
-                {sortOptions(params.q).map((sort) => (
-                  <option key={sort.value} value={sort.value}>
-                    {sort.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
+                {showCount ? resultCountLabel(total) : ""}
+              </p>
+            )}
+            <SortSelect
+              value={params.sort}
+              query={params.q}
+              onChange={(sort) => apply((current) => ({ ...current, sort }))}
+            />
           </div>
 
           <ActiveFilterChips
@@ -224,9 +217,11 @@ export function StorePage() {
             onChange={apply}
           />
 
-          <p aria-live="polite" className="min-h-5 text-sm text-fg-soft">
-            {showCount ? resultCountLabel(total) : ""}
-          </p>
+          {!isDesktop && (
+            <p aria-live="polite" className="min-h-5 text-sm text-fg-soft">
+              {showCount ? resultCountLabel(total) : ""}
+            </p>
+          )}
 
           <div
             aria-busy={products.isPlaceholderData || undefined}

@@ -1,7 +1,8 @@
-import { ShoppingCart, User } from "lucide-react";
-import { Link, NavLink } from "react-router";
+import { LayoutGrid, ShoppingCart, User } from "lucide-react";
+import { Link, useLocation } from "react-router";
 import { cx } from "../../lib/cx";
 import { useAuthToken, useMe } from "../../lib/auth";
+import { STORE_PATH } from "../../lib/storeParams";
 import { AccountMenu, AccountPlaceholder, AccountRetry } from "./AccountMenu";
 import { Container } from "./Container";
 import { SearchForm } from "./SearchForm";
@@ -21,10 +22,26 @@ function badgeText(count: number) {
   return count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : String(count);
 }
 
-function navLinkClasses({ isActive }: { isActive: boolean }) {
-  return cx(
-    "inline-flex min-h-11 items-center rounded-sm px-2 text-sm font-semibold transition-colors hover:text-cta",
-    isActive ? "text-cta" : "text-fg",
+const ICON_LINK_CLASSES =
+  "relative inline-flex size-11 items-center justify-center rounded-full text-fg transition-colors hover:bg-surface";
+
+// The catalog entry at every width: an icon below md, icon plus label from md.
+function StoreLink() {
+  const isCurrent = useLocation().pathname === STORE_PATH;
+
+  return (
+    <Link
+      to={STORE_PATH}
+      aria-label="Store"
+      aria-current={isCurrent ? "page" : undefined}
+      className={cx(
+        "inline-flex size-11 items-center justify-center gap-1.5 rounded-full transition-colors hover:bg-surface md:size-auto md:min-h-11 md:rounded-sm md:px-2 md:text-sm md:font-semibold md:hover:bg-transparent md:hover:text-cta",
+        isCurrent ? "text-cta" : "text-fg",
+      )}
+    >
+      <LayoutGrid aria-hidden="true" className="size-6" />
+      <span className="hidden md:inline">Store</span>
+    </Link>
   );
 }
 
@@ -66,29 +83,27 @@ export function Header({ cartCount = 0 }: HeaderProps) {
 
         <SearchForm className="order-last w-full md:order-0 md:w-auto md:flex-1" />
 
-        <nav aria-label="Primary" className="ml-auto md:ml-0">
-          <NavLink to="/store" className={navLinkClasses}>
-            Store
-          </NavLink>
-        </nav>
+        <div className="ml-auto flex items-center gap-1 md:ml-0 md:gap-2">
+          <StoreLink />
 
-        <Link
-          to="/cart"
-          aria-label={cartLabel(cartCount)}
-          className="relative inline-flex size-11 items-center justify-center rounded-full text-fg transition-colors hover:bg-surface"
-        >
-          <ShoppingCart aria-hidden="true" className="size-6" />
-          {cartCount > 0 && (
-            <span
-              aria-hidden="true"
-              className="absolute top-0.5 right-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-cta-fg"
-            >
-              {badgeText(cartCount)}
-            </span>
-          )}
-        </Link>
+          <Link
+            to="/cart"
+            aria-label={cartLabel(cartCount)}
+            className={ICON_LINK_CLASSES}
+          >
+            <ShoppingCart aria-hidden="true" className="size-6" />
+            {cartCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute top-0.5 right-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-cta-fg"
+              >
+                {badgeText(cartCount)}
+              </span>
+            )}
+          </Link>
 
-        <HeaderAccount />
+          <HeaderAccount />
+        </div>
       </Container>
     </header>
   );

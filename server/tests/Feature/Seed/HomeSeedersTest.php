@@ -48,10 +48,15 @@ it('seeds a homepage with all four blocks full on a fresh database', function ()
     ]]);
 
     $banners = $this->getJson('/api/v1/home/banners')->assertOk()->assertJsonCount(8, 'data')->json('data');
+    $featured = array_shift($banners);
+    expect($featured['product']['slug'])->toBe('cyberpunk-2077-xbox-europe')
+        ->and($featured['image_url'])->toBe(url('images/banners/cyberpunk-2077-featured.webp'))
+        ->and($featured['product']['price'])->not->toBeNull();
     foreach ($banners as $banner) {
         expect($banner['image_url'])->toBe($banner['product']['cover_image_url'])
             ->and($banner['product']['price'])->not->toBeNull();
     }
+    $banners = [$featured, ...$banners];
     expect(collect($banners)->whereNotNull('product.discount_percent'))->toHaveCount(6)
         ->and(collect($banners)->pluck('product.platform.slug')->unique())->toHaveCount(4);
 
@@ -107,4 +112,15 @@ it('fails clearly when a banner names an inactive product', function () {
     expect(fn () => runHomeSeeder(HomeSeeder::class))
         ->toThrow(RuntimeException::class, 'Home banner names an inactive product: hollow-knight-xbox-north-america');
     expect(Banner::count())->toBe(0);
+});
+
+it('fails clearly before any write when a banner image file is missing', function () {
+    runHomeSeeder(CatalogSeeder::class);
+    $home = require database_path('data/home.php');
+    $home['banners'][0]['image'] = 'images/banners/missing.webp';
+
+    expect(fn () => app(HomeSeeder::class)->seedFrom($home))
+        ->toThrow(RuntimeException::class, 'Home banner image is missing: public/images/banners/missing.webp');
+    expect(Banner::count())->toBe(0)
+        ->and(HomeBlock::count())->toBe(0);
 });

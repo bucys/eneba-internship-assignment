@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ComponentType } from "react";
+import { Fragment, type ComponentType } from "react";
 import { ApiError } from "../api/client";
 import { bestSellersQuery, dealsQuery, homeLayoutQuery } from "../api/home";
 import { HeroBanners } from "../components/home/HeroBanners";
 import { HomePageSkeleton } from "../components/home/HomePageSkeleton";
+import { PlatformShortcuts } from "../components/home/PlatformShortcuts";
 import { ProductRailBlock } from "../components/home/ProductRailBlock";
 import { Container } from "../components/layout/Container";
 import { ProductListSection } from "../components/product/ProductListSection";
@@ -74,10 +75,17 @@ function HomeBody() {
     );
   }
 
+  // The platform shortcuts sit right under the hero, or first when the layout has none.
+  const hasHero = blocks.some(({ type }) => type === "banners");
+
   return (
     <div className="home-bands">
+      {!hasHero && <PlatformShortcuts />}
       {blocks.map(({ type, title, Block }) => (
-        <Block key={type} title={title} />
+        <Fragment key={type}>
+          <Block title={title} />
+          {type === "banners" && <PlatformShortcuts />}
+        </Fragment>
       ))}
     </div>
   );

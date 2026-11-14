@@ -197,4 +197,32 @@ describe("OrderConfirmationPage arrival (spec 0011 AC-7)", () => {
       screen.getByRole("link", { name: "Back to my orders" }),
     ).toHaveAttribute("href", "/orders");
   });
+
+  it("opens with the Done step only right after paying", async () => {
+    const paid = order();
+    queryClient.setQueryData(orderQueryKey(paid.ulid), paid);
+    stubFetch(() => jsonResponse(200, { data: paid }));
+
+    renderOrderPage(paid.ulid, { justPaid: true });
+
+    const progress = await screen.findByRole("list", {
+      name: "Checkout progress",
+    });
+    expect(
+      within(progress).getByRole("listitem", { current: "step" }),
+    ).toHaveTextContent("Done");
+  });
+
+  it("shows no stepper when the order is opened any other way", async () => {
+    const paid = order();
+    queryClient.setQueryData(orderQueryKey(paid.ulid), paid);
+    stubFetch(() => jsonResponse(200, { data: paid }));
+
+    renderOrderPage(paid.ulid);
+
+    await screen.findByRole("heading", { level: 1, name: "Order details" });
+    expect(
+      screen.queryByRole("list", { name: "Checkout progress" }),
+    ).not.toBeInTheDocument();
+  });
 });

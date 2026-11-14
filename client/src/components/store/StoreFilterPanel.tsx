@@ -1,3 +1,4 @@
+import { cx } from "../../lib/cx";
 import type { CatalogFilters, FilterOption } from "../../api/catalog";
 import type { StoreParamsUpdate } from "../../lib/useStoreParams";
 import type { StoreParams } from "../../lib/storeParams";
@@ -18,6 +19,8 @@ type StoreFilterPanelProps = {
 };
 
 const legendClasses = "mb-2 text-sm font-extrabold text-fg";
+// Each group sits in its own panel from lg, where the panel is a sidebar (spec 0015 AC-13).
+const groupClasses = "lg:rounded-sm lg:bg-surface lg:p-4";
 
 /** Adds a ticked slug at the end, so the URL keeps the order the visitor ticked them. */
 function toggle(list: string[], slug: string, checked: boolean): string[] {
@@ -38,30 +41,34 @@ function OptionGroup({
   onToggle: (slug: string, checked: boolean) => void;
 }) {
   return (
-    <fieldset>
-      <legend className={legendClasses}>{legend}</legend>
-      {options.map((option) => (
-        <Checkbox
-          key={option.slug}
-          label={option.name}
-          checked={selected.includes(option.slug)}
-          onChange={(event) => onToggle(option.slug, event.target.checked)}
-        />
-      ))}
-    </fieldset>
+    <div className={groupClasses}>
+      <fieldset>
+        <legend className={legendClasses}>{legend}</legend>
+        {options.map((option) => (
+          <Checkbox
+            key={option.slug}
+            label={option.name}
+            checked={selected.includes(option.slug)}
+            onChange={(event) => onToggle(option.slug, event.target.checked)}
+          />
+        ))}
+      </fieldset>
+    </div>
   );
 }
 
 function OptionGroupSkeleton({ legend }: { legend: string }) {
   return (
-    <fieldset aria-busy="true">
-      <legend className={legendClasses}>{legend}</legend>
-      <div className="flex flex-col gap-3 py-1">
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-5 w-3/4" />
-        ))}
-      </div>
-    </fieldset>
+    <div className={groupClasses}>
+      <fieldset aria-busy="true">
+        <legend className={legendClasses}>{legend}</legend>
+        <div className="flex flex-col gap-3 py-1">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-5 w-3/4" />
+          ))}
+        </div>
+      </fieldset>
+    </div>
   );
 }
 
@@ -106,23 +113,25 @@ export function StoreFilterPanel({
         </>
       )}
       {options.status === "error" && (
-        <div className="flex flex-col items-start gap-2">
+        <div className={cx("flex flex-col items-start gap-2", groupClasses)}>
           <p className="text-sm text-fg-soft">Filters could not load.</p>
           <Button variant="secondary" onClick={options.onRetry}>
             Try again
           </Button>
         </div>
       )}
-      <fieldset>
-        <legend className={legendClasses}>Price (EUR)</legend>
-        <PriceRangeFields
-          min={params.priceMin}
-          max={params.priceMax}
-          onApply={(priceMin, priceMax) =>
-            onChange((current) => ({ ...current, priceMin, priceMax }))
-          }
-        />
-      </fieldset>
+      <div className={groupClasses}>
+        <fieldset>
+          <legend className={legendClasses}>Price (EUR)</legend>
+          <PriceRangeFields
+            min={params.priceMin}
+            max={params.priceMax}
+            onApply={(priceMin, priceMax) =>
+              onChange((current) => ({ ...current, priceMin, priceMax }))
+            }
+          />
+        </fieldset>
+      </div>
     </div>
   );
 }

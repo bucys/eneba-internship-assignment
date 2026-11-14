@@ -3,7 +3,10 @@ import { useState } from "react";
 import { ApiError } from "../api/client";
 import type { Banner } from "../api/home";
 import type { Product } from "../api/products";
-import { HeroStrip, HeroStripSkeleton } from "../components/home/HeroBanners";
+import {
+  HeroCompact,
+  HeroCompactSkeleton,
+} from "../components/home/HeroBanners";
 import {
   MobileProductList,
   ProductRail,
@@ -94,13 +97,12 @@ export function HomeBlocksShowcase() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <h3 className="font-extrabold">Hero tile strip</h3>
+        <h3 className="font-extrabold">Compact hero (below lg)</h3>
         <p className="text-sm text-fg-soft">
-          Tile 2 has a broken image, tile 3 is out of stock. Arrows show from md
-          up when the strip overflows.
+          Only the first banner shows, with its product cover.
         </p>
-        <HeroStrip title="Featured" banners={sampleBanners} />
-        <HeroStripSkeleton />
+        <HeroCompact title="Featured" banners={sampleBanners} />
+        <HeroCompactSkeleton />
       </div>
       <div className="flex flex-col gap-2">
         <h3 className="font-extrabold">Product rail (desktop)</h3>

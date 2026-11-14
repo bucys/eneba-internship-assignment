@@ -8,11 +8,12 @@ type PriceProps = {
   listPrice?: Money | null;
   discountPercent?: number | null;
   size?: PriceSize;
+  className?: string;
 };
 
 const currentSizeClasses: Record<PriceSize, string> = {
-  md: "text-base",
-  lg: "text-2xl",
+  md: "text-lg",
+  lg: "text-3xl",
 };
 
 const listSizeClasses: Record<PriceSize, string> = {
@@ -25,32 +26,40 @@ export function Price({
   listPrice = null,
   discountPercent = null,
   size = "md",
+  className,
 }: PriceProps) {
   if (price === null) {
-    return <span className="text-sm text-fg-muted">Out of stock</span>;
+    return (
+      <span className={cx("text-sm text-fg-muted", className)}>
+        Out of stock
+      </span>
+    );
   }
 
   const showDiscount =
     discountPercent !== null && discountPercent > 0 && listPrice !== null;
 
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span
-        className={cx("font-extrabold text-price", currentSizeClasses[size])}
-      >
-        {formatPrice(price)}
-      </span>
+    <span className={cx("inline-flex flex-col", className)}>
       {showDiscount && (
-        <>
-          <s className={cx("text-discount", listSizeClasses[size])}>
+        <span
+          className={cx("flex items-baseline gap-2", listSizeClasses[size])}
+        >
+          <s className="text-fg-muted">
             <span className="sr-only">was </span>
             {formatPrice(listPrice)}
           </s>
-          <span className="rounded-sm bg-discount-bg px-1.5 py-0.5 text-xs font-extrabold text-cta-fg">
-            {`-${discountPercent}%`}
-          </span>
-        </>
+          <span className="font-extrabold text-saving">{`-${discountPercent}%`}</span>
+        </span>
       )}
+      <span
+        className={cx(
+          "leading-tight font-extrabold text-fg",
+          currentSizeClasses[size],
+        )}
+      >
+        {formatPrice(price)}
+      </span>
     </span>
   );
 }

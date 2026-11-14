@@ -4,23 +4,25 @@
  * Homepage banners (spec 0014). HomeSeeder upserts them; the layout rows live in HomeSeeder.
  *
  * Banner copy is original and never names a price: the tile shows the live cheapest price.
- * Each banner's art is copied from its product's cover_image_url at seed time.
+ * Each banner's art is its product's cover_image_url, unless it names an `image` (a path under
+ * server/public/, spec 0015 AC-12), which becomes an absolute URL built from APP_URL.
  */
 
 return [
     'banners' => [
         [
-            'product_slug' => 'elden-ring-shadow-of-the-erdtree-steam-global',
-            'title' => 'Shadow of the Erdtree',
-            'tagline' => 'Cross into the Land of Shadow and face the hardest fights the Lands Between has ever seen.',
-            'cta_label' => 'Buy now',
-            'position' => 1,
-        ],
-        [
             'product_slug' => 'cyberpunk-2077-xbox-europe',
             'title' => 'Cyberpunk 2077',
             'tagline' => 'Rewrite your body, pick your crew, and carve a name for yourself in Night City.',
             'cta_label' => 'Shop now',
+            'image' => 'images/banners/cyberpunk-2077-featured.webp',
+            'position' => 1,
+        ],
+        [
+            'product_slug' => 'elden-ring-shadow-of-the-erdtree-steam-global',
+            'title' => 'Shadow of the Erdtree',
+            'tagline' => 'Cross into the Land of Shadow and face the hardest fights the Lands Between has ever seen.',
+            'cta_label' => 'Buy now',
             'position' => 2,
         ],
         [

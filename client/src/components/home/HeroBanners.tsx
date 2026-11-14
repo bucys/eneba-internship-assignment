@@ -1,51 +1,98 @@
 import { useQuery } from "@tanstack/react-query";
 import { useId } from "react";
 import { homeBannersQuery, type Banner } from "../../api/home";
-import { ScrollRail } from "../ui/ScrollRail";
+import { cx } from "../../lib/cx";
+import { useMediaQuery } from "../../lib/useMediaQuery";
+import { Container } from "../layout/Container";
 import { Skeleton } from "../ui/Skeleton";
-import { BannerTile } from "./BannerTile";
+import { BannerSideTile } from "./BannerSideTile";
+import { CompactFeaturedBanner } from "./CompactFeaturedBanner";
+import { FeaturedBanner } from "./FeaturedBanner";
 import { HomeQueryBlock } from "./HomeQueryBlock";
 
-// About 2.5 tiles below sm, 3.5 from sm, 5 from md, 6 from lg (spec 0014 AC-10).
-const TILE_CLASS = "w-2/5 shrink-0 snap-start sm:w-[28.5%] md:w-1/5 lg:w-1/6";
-const EAGER_TILES = 3;
-const SKELETON_TILES = 6;
-
-export function HeroStripSkeleton() {
+// The split hero from lg (spec 0015 AC-8, AC-11). Only one layout is ever mounted.
+export const SPLIT_HERO_QUERY = "(min-width: 64rem)";
+const SPLIT_GRID_CLASS = "grid h-[22.5rem] grid-cols-3 grid-rows-2 gap-4";
+// Matches CompactFeaturedBanner: a 2:1 art band plus the text strip below sm, h-64 from sm.
+export function HeroCompactSkeleton() {
   return (
-    <div aria-hidden="true" className="flex overflow-hidden">
-      {Array.from({ length: SKELETON_TILES }, (_, index) => (
-        <div key={index} className={TILE_CLASS}>
-          <Skeleton className="aspect-[1/2] w-full rounded-none border-r border-bg" />
-        </div>
-      ))}
-    </div>
+    <Container className="pt-4">
+      <div aria-hidden="true" className="flex flex-col sm:h-64">
+        <Skeleton className="aspect-[2/1] rounded-b-none sm:aspect-auto sm:h-full sm:rounded-sm" />
+        <Skeleton className="h-13 rounded-t-none sm:hidden" />
+      </div>
+    </Container>
   );
 }
 
-type HeroStripProps = {
+export function HeroSplitSkeleton() {
+  return (
+    <Container className="pt-6">
+      <div aria-hidden="true" className={SPLIT_GRID_CLASS}>
+        <Skeleton className="col-span-2 row-span-2" />
+        <Skeleton />
+        <Skeleton />
+      </div>
+    </Container>
+  );
+}
+
+/** The loading stand in for whichever hero layout this viewport mounts. */
+export function HeroSkeleton() {
+  const isSplit = useMediaQuery(SPLIT_HERO_QUERY);
+  return isSplit ? <HeroSplitSkeleton /> : <HeroCompactSkeleton />;
+}
+
+type HeroLayoutProps = {
   title: string;
   banners: Banner[];
 };
 
-export function HeroStrip({ title, banners }: HeroStripProps) {
+export function HeroSplit({ title, banners }: HeroLayoutProps) {
   const headingId = useId();
+  const [featured, ...rest] = banners;
+  const sideTiles = rest.slice(0, 2);
 
   return (
     <section aria-labelledby={headingId}>
       <h2 id={headingId} className="sr-only">
         {title}
       </h2>
-      <ScrollRail label={title}>
-        {banners.map((banner, index) => (
-          <li key={banner.id} className={TILE_CLASS}>
-            <BannerTile
+      <Container className="pt-6">
+        <div className={SPLIT_GRID_CLASS}>
+          <FeaturedBanner
+            banner={featured}
+            className={cx(
+              "row-span-2",
+              sideTiles.length === 0 ? "col-span-3" : "col-span-2",
+            )}
+          />
+          {sideTiles.map((banner) => (
+            <BannerSideTile
+              key={banner.id}
               banner={banner}
-              loading={index < EAGER_TILES ? "eager" : "lazy"}
+              className={sideTiles.length === 1 ? "row-span-2" : undefined}
             />
-          </li>
-        ))}
-      </ScrollRail>
+          ))}
+        </div>
+      </Container>
+    </section>
+  );
+}
+
+/** Below lg: only the first banner, with the same wide art as the desktop featured slot. */
+export function HeroCompact({ title, banners }: HeroLayoutProps) {
+  const headingId = useId();
+  const [featured] = banners;
+
+  return (
+    <section aria-labelledby={headingId}>
+      <h2 id={headingId} className="sr-only">
+        {title}
+      </h2>
+      <Container className="pt-4">
+        <CompactFeaturedBanner banner={featured} />
+      </Container>
     </section>
   );
 }
@@ -54,14 +101,21 @@ type HeroBannersProps = { title: string };
 
 export function HeroBanners({ title }: HeroBannersProps) {
   const query = useQuery(homeBannersQuery());
+  const isSplit = useMediaQuery(SPLIT_HERO_QUERY);
 
   return (
     <HomeQueryBlock
       title={title}
       query={query}
-      skeleton={<HeroStripSkeleton />}
+      skeleton={isSplit ? <HeroSplitSkeleton /> : <HeroCompactSkeleton />}
     >
-      {(banners) => <HeroStrip title={title} banners={banners} />}
+      {(banners) =>
+        isSplit ? (
+          <HeroSplit title={title} banners={banners} />
+        ) : (
+          <HeroCompact title={title} banners={banners} />
+        )
+      }
     </HomeQueryBlock>
   );
 }

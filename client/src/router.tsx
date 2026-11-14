@@ -38,13 +38,13 @@ export const router = createBrowserRouter([
       { index: true, Component: HomePage },
       { path: "store", Component: StorePage, loader: storeLoader },
       { path: "products/:slug", Component: ProductPage },
-      { path: "cart", Component: CartPage },
+      { path: "cart", Component: CartPage, handle: { checkoutStep: 1 } },
       {
         path: "checkout",
         Component: CheckoutPage,
         ErrorBoundary: CheckoutErrorBoundary,
         loader: ({ request }) => requireAuth(request),
-        handle: { requiresAuth: true },
+        handle: { requiresAuth: true, checkoutStep: 2 },
       },
       {
         path: "login",

@@ -19,11 +19,10 @@
   --color-cta: #fad318;
   --color-cta-hover: #fbdc46;
   --color-cta-fg: #000000;
-  --color-price: #3ddcb3;
+  --color-accent: #3ddcb3;
+  --color-saving: #9be15d;
   --color-success: #23c299;
   --color-warning: #f0a613;
-  --color-discount: #ed8ea8;
-  --color-discount-bg: #e76a8c;
   --color-danger: #f68a9f;
   --color-danger-bg: #eb002e;
 
@@ -50,14 +49,21 @@
 @layer base {
   :root {
     color-scheme: dark;
+    /* Sticky header height: two rows below md (search wraps), one row from md. */
+    --header-h: 7.5625rem;
+
+    @variant md {
+      --header-h: 4.3125rem;
+    }
+  }
+
+  /* The checkout header (cart, checkout) is one row at every width, so it never takes the two row value. */
+  :root:has([data-header="checkout"]) {
+    --header-h: 4.3125rem;
   }
 
   html {
-    scroll-padding-top: 8rem;
-
-    @variant md {
-      scroll-padding-top: 5rem;
-    }
+    scroll-padding-top: calc(var(--header-h) + 0.5rem);
   }
 
   body {

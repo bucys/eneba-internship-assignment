@@ -1,7 +1,9 @@
 import type { MouseEvent } from "react";
-import { Outlet, ScrollRestoration } from "react-router";
+import { Outlet, ScrollRestoration, useMatches } from "react-router";
 import { useCartCount } from "../../lib/cart";
+import type { CheckoutStep } from "../checkout/Stepper";
 import { ToastProvider } from "../ui/Toast";
+import { CheckoutHeader } from "./CheckoutHeader";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 
@@ -12,8 +14,24 @@ function focusMain(event: MouseEvent<HTMLAnchorElement>) {
   document.getElementById(MAIN_ID)?.focus();
 }
 
+function hasCheckoutStep(
+  handle: unknown,
+): handle is { checkoutStep: CheckoutStep } {
+  return (
+    typeof handle === "object" && handle !== null && "checkoutStep" in handle
+  );
+}
+
+/** The deepest route's `handle.checkoutStep` (1 on /cart, 2 on /checkout), if any. */
+function useCheckoutStep(): CheckoutStep | null {
+  const matches = useMatches();
+  const handle = matches.at(-1)?.handle;
+  return hasCheckoutStep(handle) ? handle.checkoutStep : null;
+}
+
 export function AppLayout() {
   const cartCount = useCartCount();
+  const checkoutStep = useCheckoutStep();
 
   return (
     <ToastProvider>
@@ -25,7 +43,11 @@ export function AppLayout() {
         >
           Skip to content
         </a>
-        <Header cartCount={cartCount} />
+        {checkoutStep === null ? (
+          <Header cartCount={cartCount} />
+        ) : (
+          <CheckoutHeader step={checkoutStep} />
+        )}
         <main id={MAIN_ID} tabIndex={-1} className="flex-1 outline-none">
           <Outlet />
         </main>

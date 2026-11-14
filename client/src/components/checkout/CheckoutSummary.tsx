@@ -17,7 +17,7 @@ export function CheckoutSummary({ cart, className }: CheckoutSummaryProps) {
     <section
       aria-labelledby="checkout-summary-heading"
       className={cx(
-        "flex flex-col gap-4 rounded-sm bg-surface p-5 md:sticky md:top-24",
+        "flex flex-col gap-4 rounded-sm bg-surface p-5 md:sticky md:top-[calc(var(--header-h)+1rem)]",
         className,
       )}
     >

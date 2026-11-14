@@ -16,7 +16,7 @@ export function CartSummary({ cart }: CartSummaryProps) {
   return (
     <section
       aria-labelledby="cart-summary-heading"
-      className="flex flex-col gap-4 rounded-sm bg-surface p-5 md:sticky md:top-24"
+      className="flex flex-col gap-4 rounded-sm bg-surface p-5 md:sticky md:top-[calc(var(--header-h)+1rem)]"
     >
       <h2 id="cart-summary-heading" className="text-xl font-extrabold">
         Summary

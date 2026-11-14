@@ -9,7 +9,6 @@ import {
 } from "react";
 import { resultCountLabel } from "../../lib/storeParams";
 import { Button } from "../ui/Button";
-import { buttonClasses } from "../ui/buttonClasses";
 
 type FiltersButtonProps = {
   count: number;
@@ -33,7 +32,7 @@ export function FiltersButton({
       aria-label={count > 0 ? `Filters, ${count} active` : undefined}
       aria-haspopup="dialog"
       aria-expanded={expanded}
-      className={buttonClasses("secondary", "md", "gap-2")}
+      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-surface-deep px-4 text-sm font-extrabold whitespace-nowrap text-fg transition-colors hover:bg-surface"
     >
       <SlidersHorizontal aria-hidden="true" className="size-4" />
       Filters

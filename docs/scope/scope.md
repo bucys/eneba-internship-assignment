@@ -28,7 +28,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 13 | Store catalog: filters, sort, pagination | Journey 2: Discovery | done |
 | 14 | Search with typo tolerance | Journey 2: Discovery | done |
 | 15 | Homepage blocks | Journey 3: Landing | done |
-| 16 | Visual fidelity & polish | Polish | planned |
+| 16 | Visual fidelity & polish | Polish | done |
 | 17 | Performance & reliability | Polish | planned |
 | 18 | Submission readiness | Wrap up | planned |
 
@@ -238,10 +238,23 @@ spec [0014](../specs/0014-homepage-blocks/index.md) · code in `server/app/Actio
 
 ## Polish
 
-### 16. Visual fidelity & polish · needs a decision
+### 16. Visual fidelity & polish · done
 Bring the existing UI close to the supplied Eneba desktop and mobile references, without changing established functionality. Close visual fidelity, not pixel perfection.
 **Done when:** a spec records the visual audit findings against `docs/reference/desktop/` and `docs/reference/mobile/`, the shared design rules, and bounded acceptance criteria; those criteria pass on desktop and at 360px; existing tests and user journeys are unchanged; contrast and keyboard checks still pass.
-- [ ] Design it (spec): `/architect visual fidelity & polish`
+spec [0015](../specs/0015-visual-fidelity-polish/index.md) · code in `client/src/components/`, `client/src/index.css`, `client/design.md`, `server/database/data/home.php`, `server/database/seeders/HomeSeeder.php`
+- [x] Design it (spec): `/architect visual fidelity & polish`
+- [x] Build it: `/develop visual fidelity & polish`
+  - [x] Shared system: tokens, Price, ProductCard (AC-1 to AC-4)
+  - [x] Browse journey: single row header from `md` (two lines below it), split hero, platform shortcuts, featured art seed (AC-5 to AC-12)
+  - [x] Find and buy journeys: store panels, product page buy box, checkout header and stepper, row prices (AC-13 to AC-20)
+  - [x] Account pass, full checks, paired screenshots in verify.md (AC-21 to AC-25)
+- [x] Verify it: `/check verify visual fidelity & polish`
+- Supplied: `server/public/images/banners/cyberpunk-2077-featured.webp` (text free, 3:1 WebP, 2172 by 724, 249 KB, subject on the right; approved minimum per spec 0015 AC-12)
+- Deferred follow ups (non blocking minors from the [review](../reviews/2026-11-15-main-visual-fidelity-polish.md); not part of feature 17 unless enrolled there):
+  - `HomePageSkeleton` has no placeholder for the platform shortcuts row, so content shifts when the page loads.
+  - `BuyBox` imports `otherOffersSummary` from `pages/productPageView`; move it to `lib/` or beside the offer components.
+  - No tests for `ProductBreadcrumb`, `ProductInfoRows`, `ProductTitleBlock` (AC-15, AC-17 rely on the manual verify pass).
+  - Featured banner text may overlap the art's subject around 1024 to 1100px; check and cap the text column or extend the gradient if it does.
 
 ### 17. Performance & reliability · Beta · needs a decision
 Investigate production homepage latency, fix confirmed bugs, and resolve the review findings that matter.

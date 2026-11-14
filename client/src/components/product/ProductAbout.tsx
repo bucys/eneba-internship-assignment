@@ -20,7 +20,7 @@ export function ProductAbout({ product }: ProductAboutProps) {
   }
 
   return (
-    <section aria-labelledby="about-heading" className="mt-10">
+    <section aria-labelledby="about-heading">
       <h2 id="about-heading" className="mb-4 text-xl font-extrabold">
         About
       </h2>

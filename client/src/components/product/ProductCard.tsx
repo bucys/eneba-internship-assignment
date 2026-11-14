@@ -44,12 +44,20 @@ export function ProductCard({
       ref={ref}
       to={`/products/${slug}`}
       className={cx(
-        "flex rounded-sm bg-surface p-3 transition-shadow hover:ring-1 hover:ring-price hover:ring-inset focus-visible:-outline-offset-2",
+        "flex rounded-sm bg-surface p-3 transition-shadow hover:ring-1 hover:ring-accent hover:ring-inset focus-visible:-outline-offset-2 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-inset",
         layoutClasses[layout],
       )}
     >
-      <div className={layout === "horizontal" ? "w-20 shrink-0" : "w-full"}>
+      <div
+        className={cx(
+          "relative",
+          layout === "horizontal" ? "w-20 shrink-0" : "w-full",
+        )}
+      >
         <CoverImage key={coverImageUrl} url={coverImageUrl} alt={name} />
+        <span className="absolute inset-x-0 bottom-0 truncate rounded-b-sm bg-black/70 px-1 py-1 text-center text-xs font-semibold text-fg">
+          {platformName}
+        </span>
       </div>
       <div
         className={cx(
@@ -61,8 +69,8 @@ export function ProductCard({
           <span className="line-clamp-2 text-sm font-semibold text-fg">
             {name}
           </span>
-          <span className="text-xs text-fg-muted">
-            {platformName} · {regionName}
+          <span className="text-xs font-extrabold text-accent uppercase">
+            {regionName}
           </span>
         </div>
         <div className="flex flex-col gap-0.5">
@@ -95,7 +103,8 @@ export function ProductCardSkeleton({
         <div className="flex flex-1 flex-col gap-2">
           <Skeleton className="h-4 w-4/5" />
           <Skeleton className="h-3 w-1/2" />
-          <Skeleton className="mt-2 h-5 w-1/3" />
+          <Skeleton className="mt-2 h-3 w-1/4" />
+          <Skeleton className="h-6 w-1/3" />
         </div>
       </div>
     );
@@ -109,7 +118,8 @@ export function ProductCardSkeleton({
       <Skeleton className={`${COVER_ASPECT_CLASS} w-full`} />
       <Skeleton className="h-4 w-4/5" />
       <Skeleton className="h-3 w-1/2" />
-      <Skeleton className="mt-2 h-5 w-1/3" />
+      <Skeleton className="mt-2 h-3 w-1/4" />
+      <Skeleton className="h-6 w-1/3" />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Container } from "../layout/Container";
 import { ProductCardSkeleton } from "../product/ProductCard";
-import { HeroStripSkeleton } from "./HeroBanners";
+import { HeroSkeleton } from "./HeroBanners";
 
 const CARD_SKELETONS = 6;
 
@@ -8,7 +8,7 @@ const CARD_SKELETONS = 6;
 export function HomePageSkeleton() {
   return (
     <div aria-hidden="true">
-      <HeroStripSkeleton />
+      <HeroSkeleton />
       <Container className="py-10 md:py-14">
         <div className="mb-4 h-8 w-48 animate-pulse rounded-sm bg-surface-deep" />
         <div className="flex gap-4 overflow-hidden">

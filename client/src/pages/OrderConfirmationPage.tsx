@@ -11,6 +11,7 @@ import {
 } from "react-router";
 import { ApiError } from "../api/client";
 import { orderQuery, type Order } from "../api/orders";
+import { Stepper } from "../components/checkout/Stepper";
 import { Container } from "../components/layout/Container";
 import { OrderItemRow } from "../components/orders/OrderItemRow";
 import { OrderKeys } from "../components/orders/OrderKeys";
@@ -39,17 +40,21 @@ function PageShell({
   heading,
   title,
   backTo,
+  stepper,
   children,
 }: {
   heading: string;
   title: string;
   /** Shown above the heading on every visit that is not the one right after paying. */
   backTo?: string;
+  /** The Done step, shown above the heading right after paying (spec 0015 AC-19). */
+  stepper?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <Container className="flex flex-col gap-6 py-10">
       <title>{title}</title>
+      {stepper}
       {backTo && (
         <Link
           to={backTo}
@@ -132,8 +137,9 @@ function useArrival() {
   }, [justPaid, hasState, navigate]);
 
   return justPaid
-    ? { heading: "Payment successful", title: ORDER_CONFIRMED_TITLE }
+    ? { justPaid, heading: "Payment successful", title: ORDER_CONFIRMED_TITLE }
     : {
+        justPaid,
         heading: "Order details",
         title: ORDER_DETAILS_TITLE,
         backTo: ordersPageHref(readFromPage(location.state)),
@@ -144,11 +150,14 @@ export function OrderConfirmationPage() {
   const { ulid = "" } = useParams();
   const query = useQuery(orderQuery(ulid));
   const isSlow = useSlowPending(query.isPending);
-  const arrival = useArrival();
+  const { justPaid, ...arrival } = useArrival();
 
   if (query.data) {
     return (
-      <PageShell {...arrival}>
+      <PageShell
+        {...arrival}
+        stepper={justPaid ? <Stepper current={3} /> : undefined}
+      >
         <OrderDetails key={query.data.ulid} order={query.data} />
       </PageShell>
     );
