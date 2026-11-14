@@ -6,6 +6,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { StoreSort } from "../../lib/storeParams";
 import { SortSelect } from "./SortSelect";
 
+vi.mock("../../lib/env", () => ({
+  env: { apiUrl: "https://api.example.test" },
+}));
+
 function renderSort(value: StoreSort = "name", query = "") {
   const onChange = vi.fn();
   render(

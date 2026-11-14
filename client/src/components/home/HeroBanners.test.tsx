@@ -2,10 +2,14 @@
 import "../../test/dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Banner } from "../../api/home";
 import { FeaturedBanner } from "./FeaturedBanner";
 import { HeroCompact, HeroSplit } from "./HeroBanners";
+
+vi.mock("../../lib/env", () => ({
+  env: { apiUrl: "https://api.example.test" },
+}));
 
 function banner(id: number, title: string): Banner {
   const slug = title.toLowerCase().replace(/\W+/g, "-");
