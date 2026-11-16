@@ -87,6 +87,7 @@ Three `--waterfall` runs, each after at least 16 min 40 s with no traffic from t
 | 0 | Baseline (`eabd7aa`) | parallel | 5679.5 | 6693.7 | | |
 | 0 | Baseline (`eabd7aa`) | serial | 5577.3 | 6385.7 | | |
 | 1 | AC-5 (a) OPcache on (`PHP_OPCACHE_ENABLE=1`) | waterfall | 973.4 | 1566.4 | −83.0% (max −76.4%) | Keep |
+| 2 | AC-5 (b) rate limiter on APCu (`CACHE_LIMITER_STORE=apc`) | waterfall | 729.1 | 7959.1 | −25.1% (max +408.1%, one network stall, see Step 2) | Keep |
 
 ### Step 1: AC-5 (a) OPcache
 
@@ -115,7 +116,51 @@ Baseline values are in brackets.
 2. **The database is now the larger part of server time.** `db` is 71 to 86% of `app` on every call (it was about 17% before). `db` also dropped (by 36 to 58%), because a query's measured time includes PDO and PHP work on the same starved CPU.
 3. **The concurrency penalty is much smaller.** In wave 2, each call's `app` is 420 to 560 ms against about 110 ms for `/home` alone, so running four together still costs about 4 times per call, but on a much smaller base.
 4. **Next candidate.** `/home` still runs 7 to 11 queries where its action needs 1, and those queries now dominate. That makes AC-5 (b) (limiter off the `database` store) the logical next step, measured against this step's 973.4 ms (keep bar: ≤ 876.1 ms).
-5. **Watch item.** OPcache reserves up to 256 MB of shared memory on a 512 MB instance; only the pages in use count. Check the Render memory graph. A lower `PHP_OPCACHE_MEMORY_CONSUMPTION` would be its own measured step.
+5. **Watch item.** OPcache reserves up to 256 MB of shared memory on a 512 MB instance; only the pages in use count. Check the Render memory graph (later found unavailable on Render Free, see Step 2). A lower `PHP_OPCACHE_MEMORY_CONSUMPTION` would be its own measured step.
+
+### Step 2: AC-5 (b) rate limiter on APCu
+
+**Taken**: 2026-11-16, 10:09 to 10:12 UTC · **Code**: `11eb3ac` (APCu in the image, `apc` store, `cache.limiter`, `LimiterStoreGuard`) · **Change**: Render env `CACHE_LIMITER_STORE=apc`; `PHP_OPCACHE_ENABLE=1` and `CACHE_STORE=database` unchanged. `/up` answered "Application up" before the run, so the guard passed on boot (APCu enabled under FPM). Warmed the same way as Step 1: three `/home` calls (header checks below), then 5 s. All 50 calls answered 200; no 429.
+
+**`--waterfall`, 10 warm runs**, against Step 1 waterfall
+
+| call | median total | change | max total | median app | change | median db | change | db share of app | median wait before PHP (ttfb − app) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `/home` | 153.1 (238.0) | −35.7% | 7432.7 | 32.3 (107.5) | −70.0% | 27.2 (92.8) | −70.7% | 84% | 112.4 |
+| `/home/banners` | 504.7 (694.8) | −27.4% | 997.5 | 372.7 (548.8) | −32.1% | 221.8 (437.1) | −49.3% | 60% | 129.3 |
+| `/home/best-sellers` | 503.8 (674.7) | −25.3% | 998.0 | 337.1 (423.9) | −20.5% | 266.2 (349.5) | −23.8% | 79% | 127.5 |
+| `/home/deals` | 520.4 (703.2) | −26.0% | 998.0 | 373.2 (533.2) | −30.0% | 229.8 (385.6) | −40.4% | 62% | 112.3 |
+| `/products` | 550.6 (720.9) | −23.6% | 999.8 | 386.6 (561.2) | −31.1% | 292.5 (398.9) | −26.7% | 76% | 128.0 |
+| **run finish** | **729.1** (973.4) | **−25.1%** | **7959.1** (1566.4) | | | | | | |
+
+Step 1 values are in brackets. The wait column is median ttfb minus median app, a rough figure for network plus queueing.
+
+**AC-4 decision: Keep.** The median run finish fell 25.1% (973.4 → 729.1 ms), past the 10% bar (≤ 876.1 ms). Without run 3 the median would be 716.6 ms, so the outlier does not drive the result.
+
+**The maximum is one network stall, not server work.** In run 3, `/home` took 7432.3 ms to first byte while its `app` was 35.1 ms, so about 7.4 s passed outside PHP (Cloudflare, Render routing, or the connection). The four block calls in the same run were normal (460 to 526 ms). The next highest finish is run 1 at 1142.0 ms, the first wave after warm up. Excluding run 3, the maximum would be 1142.0 ms (−27.1% against 1566.4).
+
+**AC-17 (iv) evidence on production**
+
+- **Query count.** `/home` reports `desc="1 queries"` on every call (7 to 11 before, in the baseline and Step 1). The limiter's database reads and writes are gone.
+- **Limiter headers.** Three `/home` calls in a row returned `x-ratelimit-limit: 120` with `x-ratelimit-remaining` 119, 118, 117, so the `catalog` counter is shared across FPM workers and counts each hit.
+- **Login limiter, round 1** (10:10:06 UTC, one email with no account, `ratelimit-probe-202611161010@example.test`): 422, 422, 422, 422, 422, then 429 `Too Many Attempts.` with `retry-after: 59`. `x-ratelimit-remaining` went 4, 3, 2, 1, 0, 0. Every 422 was "These credentials do not match our records."
+- **Login limiter, round 2** (10:11:19 UTC, same email, after waiting 65 s): the same sequence, 5 × 422 then 429 with `retry-after: 59`, remaining 4 to 0. The window expired and the counter restarted cleanly.
+- **Real users not affected.** The probe used an address with no account, so only the probe's own email and IP buckets were used: 12 of the 20 per minute IP login budget across two separate windows.
+- **Render memory graph before and after: unavailable.** Render Free does not show CPU or memory metrics for the service (checked in the dashboard on 2026-11-16), so no production memory figure exists for either step. None is estimated here, and the plan was not upgraded to get one. What is known instead:
+  - **Instance limit**: 512 MB RAM (Render Free).
+  - **Local APCu evidence** ([rationale.md](rationale.md#limiter-store-amendment-2026-11-16), throwaway `serversideup/php:8.4-fpm-nginx` container with OPcache and APCu on): the limiter used about 140 KB of the 32 MB APCu segment after roughly 70 keys, and the whole container used 89 MiB after about 1,100 requests. That is a local figure, not Render.
+  - **Reserved, not used**: OPcache may reserve up to 256 MB and APCu 32 MB of shared memory. Only touched pages count against the instance, so the reservation alone does not use 288 MB.
+
+**Residual risk: out of memory with no warning.** Production memory cannot be watched on this plan, so a slow climb toward 512 MB (OPcache filling as more files compile, FPM workers under a burst, or APCu filling) would show up only as a crash or a restart, not as a graph. The local figures leave a wide margin, and a restart only resets the limiter counters (accepted in spec 0016 Consequences). If Render ever restarts the service with an out of memory event, the first steps would be a lower `PHP_OPCACHE_MEMORY_CONSUMPTION` or fewer FPM workers, each measured as its own step.
+
+**AC-5 (b): Keep.** 973.4 → 729.1 ms median run finish (−25.1%), with the limiter checks above passing on production.
+
+**What changed in the picture**
+
+1. **The limiter was most of `/home`'s server time.** `app` on `/home` fell from 107.5 to 32.3 ms, and its 6 to 10 limiter round trips to Neon are gone.
+2. **Block calls gained less, because their own queries remain.** In wave 2 the `db` share is 60 to 79% of `app`; the remaining time is the block queries themselves, run four at a time on a 0.15 CPU slice.
+3. **The client now waits mostly on wave 2.** `/home` finishes in about 150 ms; the run finish is about 150 ms plus the slowest block call (about 500 to 650 ms). That gap is what AC-6 (prefetch, run all five at once) targets next.
+4. **About 110 to 130 ms of each call is outside PHP** (ttfb minus app). That is network and edge time from Vilnius, not something the server can remove.
 
 ## Raw evidence
 
@@ -534,6 +579,130 @@ call (ms)             median ttfb median total    max total   median app    medi
 /home/deals                 662.1        703.2       1118.6        533.2        385.6
 /products                   677.9        720.9       1184.4        561.2        398.9
 run finish                               973.4       1566.4
+```
+
+</details>
+
+<details><summary><code>step-2-apcu-waterfall</code> (2026-11-16 10:09 UTC)</summary>
+
+```text
+Mode: waterfall · runs: 10 · API: https://eneba-api.onrender.com/api/v1
+Run 1
+  /home                 200  connect    13.7  ttfb   142.0  total   142.2  app    41.8  db    35.7
+  /home/banners         200  connect    10.5  ttfb   995.3  total   997.5  app   709.9  db   456.1
+  /home/best-sellers    200  connect     0.0  ttfb   971.9  total   998.0  app   712.8  db   256.6
+  /home/deals           200  connect     0.0  ttfb   971.6  total   998.0  app   616.3  db   244.3
+  /products             200  connect     0.0  ttfb   972.1  total   999.8  app   805.2  db   307.6
+  finish               1142.0 ms
+Run 2
+  /home                 200  connect    12.3  ttfb   147.3  total   149.5  app    48.2  db    41.3
+  /home/deals           200  connect     0.0  ttfb   342.4  total   378.5  app   276.8  db   176.3
+  /home/best-sellers    200  connect     0.0  ttfb   446.8  total   483.7  app   297.6  db   202.6
+  /home/banners         200  connect    11.5  ttfb   496.1  total   501.4  app   322.8  db   154.7
+  /products             200  connect     0.0  ttfb   555.3  total   592.0  app   409.2  db   299.9
+  finish               741.5 ms
+Run 3
+  /home                 200  connect    17.0  ttfb  7432.3  total  7432.7  app    35.1  db    29.8
+  /home/best-sellers    200  connect     0.0  ttfb   430.8  total   460.7  app   253.1  db   224.1
+  /home/deals           200  connect     0.0  ttfb   428.5  total   460.7  app   272.2  db   262.6
+  /home/banners         200  connect    14.8  ttfb   486.7  total   491.2  app   371.2  db   360.8
+  /products             200  connect     0.0  ttfb   487.9  total   526.3  app   334.9  db   229.0
+  finish               7959.1 ms
+Run 4
+  /home                 200  connect    19.4  ttfb   189.8  total   190.2  app    31.6  db    26.7
+  /home/banners         200  connect    15.0  ttfb   508.0  total   508.1  app   300.8  db   217.5
+  /home/best-sellers    200  connect     0.0  ttfb   469.9  total   508.1  app   303.0  db   206.2
+  /home/deals           200  connect     0.0  ttfb   472.1  total   508.1  app   303.2  db   121.0
+  /products             200  connect     0.0  ttfb   478.8  total   517.5  app   405.4  db   306.9
+  finish               707.6 ms
+Run 5
+  /home                 200  connect    55.9  ttfb   175.9  total   176.1  app    29.1  db    23.8
+  /home/best-sellers    200  connect     0.0  ttfb   364.2  total   389.3  app   266.9  db   258.4
+  /home/deals           200  connect     0.0  ttfb   361.9  total   389.3  app   258.1  db   128.1
+  /products             200  connect     0.0  ttfb   435.2  total   462.6  app   367.9  db   223.8
+  /home/banners         200  connect    10.6  ttfb   483.2  total   485.7  app   234.7  db   126.9
+  finish               661.8 ms
+Run 6
+  /home                 200  connect    15.2  ttfb   138.3  total   140.3  app    33.0  db    28.1
+  /products             200  connect     0.0  ttfb   274.7  total   303.0  app   178.3  db   169.0
+  /home/banners         200  connect    10.8  ttfb   480.4  total   484.5  app   381.6  db   226.0
+  /home/best-sellers    200  connect     0.0  ttfb   459.3  total   488.8  app   392.5  db   378.3
+  /home/deals           200  connect     0.0  ttfb   548.1  total   576.4  app   413.9  db   204.3
+  finish               716.6 ms
+Run 7
+  /home                 200  connect    16.2  ttfb   130.1  total   131.9  app    29.0  db    24.0
+  /home/banners         200  connect    11.4  ttfb   394.0  total   398.7  app   291.6  db   188.1
+  /home/deals           200  connect     0.0  ttfb   449.0  total   492.9  app   366.2  db   301.5
+  /home/best-sellers    200  connect     0.0  ttfb   454.5  total   499.5  app   371.3  db   304.7
+  /products             200  connect     0.0  ttfb   467.4  total   514.2  app   320.8  db   310.4
+  finish               646.1 ms
+Run 8
+  /home                 200  connect    14.1  ttfb   135.0  total   205.9  app    30.5  db    25.3
+  /home/best-sellers    200  connect     0.0  ttfb   501.0  total   532.8  app   399.4  db   389.6
+  /home/deals           200  connect     0.0  ttfb   498.9  total   532.8  app   395.7  db   215.2
+  /home/banners         200  connect    14.7  ttfb   600.0  total   603.5  app   482.6  db   216.7
+  /products             200  connect     0.0  ttfb   580.3  total   620.8  app   415.3  db   323.1
+  finish               826.7 ms
+Run 9
+  /home                 200  connect    14.7  ttfb   133.1  total   135.4  app    31.4  db    26.0
+  /home/banners         200  connect    14.4  ttfb   574.1  total   574.3  app   374.2  db   286.7
+  /home/best-sellers    200  connect     0.0  ttfb   538.8  total   574.3  app   282.9  db   274.1
+  /home/deals           200  connect     0.0  ttfb   541.6  total   574.8  app   380.3  db   311.6
+  /products             200  connect     0.0  ttfb   541.2  total   574.8  app   311.1  db   135.6
+  finish               710.2 ms
+Run 10
+  /home                 200  connect    24.9  ttfb   154.7  total   156.7  app    33.1  db    27.7
+  /home/banners         200  connect    13.3  ttfb   645.8  total   646.4  app   467.2  db   367.7
+  /products             200  connect     0.0  ttfb   612.3  total   647.8  app   465.0  db   285.2
+  /home/deals           200  connect     0.0  ttfb   640.4  total   676.7  app   504.1  db   494.0
+  /home/best-sellers    200  connect     0.0  ttfb   642.7  total   677.9  app   558.3  db   427.5
+  finish               834.6 ms
+
+call (ms)             median ttfb median total    max total   median app    median db
+/home                       144.7        153.1       7432.7         32.3         27.2
+/home/banners               502.0        504.7        997.5        372.7        221.8
+/home/best-sellers          464.6        503.8        998.0        337.1        266.2
+/home/deals                 485.5        520.4        998.0        373.2        229.8
+/products                   514.6        550.6        999.8        386.6        292.5
+run finish                               729.1       7959.1
+```
+
+</details>
+
+<details><summary><code>step-2-apcu-headers-and-login-limiter</code> (2026-11-16 10:09 to 10:11 UTC)</summary>
+
+```text
+== /up
+HTTP/2 200 
+cache-control: no-cache, private
+== /api/v1/home
+HTTP/2 200 
+cache-control: no-cache, private
+server-timing: app;dur=249.9, db;dur=137.5;desc="1 queries"
+x-ratelimit-limit: 120
+x-ratelimit-remaining: 119
+server-timing: app;dur=36.5, db;dur=31.4;desc="1 queries"
+x-ratelimit-remaining: 118
+server-timing: app;dur=37.4, db;dur=30.7;desc="1 queries"
+x-ratelimit-remaining: 117
+
+== round 1 2026-11-16T10:10:06Z email=ratelimit-probe-202611161010@example.test
+1  HTTP/2 422  | x-ratelimit-remaining: 4 |  | {"message":"These credentials do not match our records.","errors":{"email":["These credent
+2  HTTP/2 422  | x-ratelimit-remaining: 3 |  | {"message":"These credentials do not match our records.","errors":{"email":["These credent
+3  HTTP/2 422  | x-ratelimit-remaining: 2 |  | {"message":"These credentials do not match our records.","errors":{"email":["These credent
+4  HTTP/2 422  | x-ratelimit-remaining: 1 |  | {"message":"These credentials do not match our records.","errors":{"email":["These credent
+5  HTTP/2 422  | x-ratelimit-remaining: 0 |  | {"message":"These credentials do not match our records.","errors":{"email":["These credent
+6  HTTP/2 429  | x-ratelimit-remaining: 0 | retry-after: 59 | {
+    "message": "Too Many Attempts."
+}
+
+== round 2 2026-11-16T10:11:19Z email=ratelimit-probe-202611161010@example.test
+1  HTTP/2 422  | x-ratelimit-remaining: 4 |  | {"message":"These credentials do not match our records.","er
+2  HTTP/2 422  | x-ratelimit-remaining: 3 |  | {"message":"These credentials do not match our records.","er
+3  HTTP/2 422  | x-ratelimit-remaining: 2 |  | {"message":"These credentials do not match our records.","er
+4  HTTP/2 422  | x-ratelimit-remaining: 1 |  | {"message":"These credentials do not match our records.","er
+5  HTTP/2 422  | x-ratelimit-remaining: 0 |  | {"message":"These credentials do not match our records.","er
+6  HTTP/2 429  | x-ratelimit-remaining: 0 | retry-after: 59 | {     "message": "Too Many Attempts." }
 ```
 
 </details>
