@@ -12,6 +12,7 @@ use App\Http\Requests\Cart\CartLinesRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\CartResource;
 use App\Models\User;
+use App\Support\CartAdjustment;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -27,9 +28,9 @@ class CartController extends Controller
     {
         $user = $this->user($request);
 
-        $addCartItem->handle($user, $request->integer('offer_id'), $request->integer('quantity', 1));
+        $adjustments = $addCartItem->handle($user, $request->integer('offer_id'), $request->integer('quantity', 1));
 
-        return $this->cartFor($user);
+        return $this->withAdjustments($this->cartFor($user), $adjustments);
     }
 
     public function update(UpdateCartItemRequest $request, string $offerId, UpdateCartItem $updateCartItem): CartResource
@@ -54,9 +55,9 @@ class CartController extends Controller
     {
         $user = $this->user($request);
 
-        $mergeGuestCart->handle($user, $request->lines());
+        $adjustments = $mergeGuestCart->handle($user, $request->lines());
 
-        return $this->cartFor($user);
+        return $this->withAdjustments($this->cartFor($user), $adjustments);
     }
 
     public function preview(CartLinesRequest $request): CartResource
@@ -67,6 +68,18 @@ class CartController extends Controller
     private function cartFor(User $user): CartResource
     {
         return new CartResource($this->buildCart->forUser($user));
+    }
+
+    /**
+     * Only add and merge carry `meta` (spec 0016 AC-10, AC-11).
+     *
+     * @param  list<CartAdjustment>  $adjustments
+     */
+    private function withAdjustments(CartResource $cart, array $adjustments): CartResource
+    {
+        return $cart->additional(['meta' => [
+            'adjustments' => array_map(fn (CartAdjustment $adjustment) => $adjustment->toArray(), $adjustments),
+        ]]);
     }
 
     private function user(Request $request): User

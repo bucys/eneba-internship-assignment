@@ -23,9 +23,11 @@ export function AddToCartButton({
 
   async function handleClick() {
     try {
-      await add(offerId, stock);
+      const [adjustment] = await add(offerId, stock);
       toast.show({
-        message: "Added to cart.",
+        message: adjustment
+          ? `Only ${adjustment.added} available, so we added ${adjustment.added}.`
+          : "Added to cart.",
         variant: "success",
         action: { label: "View cart", to: "/cart" },
       });

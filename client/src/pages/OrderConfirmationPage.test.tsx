@@ -141,6 +141,53 @@ describe("OrderConfirmationPage", () => {
 });
 
 describe("OrderConfirmationPage arrival (spec 0011 AC-7)", () => {
+  // covers: spec 0016 AC-15 (confirmation heading row)
+  it("stays neutral while the order loads right after paying, then says Payment successful", async () => {
+    const paid = order();
+    let respond!: (response: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>((resolve) => (respond = resolve))),
+    );
+
+    renderOrderPage(paid.ulid, { justPaid: true });
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Order details" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Payment successful")).not.toBeInTheDocument();
+    expect(document.title).toBe("Order details | Eneba Marketplace (demo)");
+    expect(
+      screen.queryByRole("link", { name: "Back to my orders" }),
+    ).not.toBeInTheDocument();
+
+    respond(jsonResponse(200, { data: paid }));
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "Payment successful",
+      }),
+    ).toBeInTheDocument();
+    expect(document.title).toBe("Order confirmed | Eneba Marketplace (demo)");
+  });
+
+  // covers: spec 0016 AC-15 (confirmation heading row)
+  it("never says Payment successful when the order fails to load right after paying", async () => {
+    stubFetch(() => jsonResponse(403, { message: "Forbidden." }));
+
+    renderOrderPage("01jcheckoutorder0000000000", { justPaid: true });
+
+    expect(
+      await screen.findByRole("button", { name: "Try again" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Order details" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Payment successful")).not.toBeInTheDocument();
+    expect(document.title).toBe("Order details | Eneba Marketplace (demo)");
+  });
+
   it("says Payment successful once after checkout, with no back link, then clears the state", async () => {
     const paid = order();
     queryClient.setQueryData(orderQueryKey(paid.ulid), paid);

@@ -14,7 +14,7 @@ import {
   onAfterSignIn,
 } from "./lib/auth";
 import { authToken, startTokenStorageSync } from "./lib/authToken";
-import { mergeGuestCart } from "./lib/cart";
+import { mergeGuestCartAndNotify } from "./lib/cartMergeNotice";
 import { guestCart, startGuestCartStorageSync } from "./lib/guestCart";
 import { queryClient } from "./lib/queryClient";
 import { router } from "./router";
@@ -26,9 +26,9 @@ startGuestCartStorageSync();
 
 // The guest cart merges into the account on sign in, or on start if a token and guest lines
 // both exist (an earlier merge failed). A failed merge keeps the lines for next time.
-onAfterSignIn(mergeGuestCart);
+onAfterSignIn(mergeGuestCartAndNotify);
 if (authToken.get() !== null && guestCart.get().length > 0) {
-  mergeGuestCart().catch(() => {});
+  mergeGuestCartAndNotify().catch(() => {});
 }
 
 createRoot(document.getElementById("root")!).render(

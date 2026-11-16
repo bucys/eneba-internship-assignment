@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Cart, CartLineInput } from "../api/cart";
+import type { Cart, CartLineInput, CartWriteResult } from "../api/cart";
 
 vi.mock("./env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
-const mergeCart = vi.fn<(items: CartLineInput[]) => Promise<Cart>>();
+const mergeCart = vi.fn<(items: CartLineInput[]) => Promise<CartWriteResult>>();
 const previewCart = vi.fn<(items: CartLineInput[]) => Promise<Cart>>();
 vi.mock("../api/cart", () => ({
   mergeCart: (items: CartLineInput[]) => mergeCart(items),
@@ -25,6 +25,7 @@ const {
 } = await import("./cart");
 
 const MERGED: Cart = { ...EMPTY_CART, item_count: 3 };
+const MERGE_RESULT: CartWriteResult = { cart: MERGED, adjustments: [] };
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -59,7 +60,7 @@ describe("mergeGuestCart", () => {
 
   it("sends one request when called twice at once and stores the merged cart", async () => {
     guestCart.replace([{ offer_id: 1, quantity: 2 }]);
-    mergeCart.mockResolvedValue(MERGED);
+    mergeCart.mockResolvedValue(MERGE_RESULT);
 
     await Promise.all([mergeGuestCart(), mergeGuestCart()]);
 
@@ -69,18 +70,30 @@ describe("mergeGuestCart", () => {
     expect(guestCart.get()).toEqual([]);
   });
 
+  // covers: spec 0016 AC-11
+  it("resolves to the merge's adjustments, and to [] when nothing was sent", async () => {
+    await expect(mergeGuestCart()).resolves.toEqual([]);
+
+    const adjustments = [{ offer_id: 1, requested: 4, added: 2 }];
+    guestCart.replace([{ offer_id: 1, quantity: 4 }]);
+    mergeCart.mockResolvedValue({ cart: MERGED, adjustments });
+
+    await expect(mergeGuestCart()).resolves.toEqual(adjustments);
+    expect(queryClient.getQueryData(CART_KEY)).toEqual(MERGED);
+  });
+
   it("keeps lines added or changed while the request ran", async () => {
     guestCart.replace([
       { offer_id: 1, quantity: 2 },
       { offer_id: 2, quantity: 1 },
     ]);
-    const response = deferred<Cart>();
+    const response = deferred<CartWriteResult>();
     mergeCart.mockReturnValue(response.promise);
 
     const merging = mergeGuestCart();
     guestCart.setQuantity(2, 3, 10);
     guestCart.add(3, 5);
-    response.resolve(MERGED);
+    response.resolve(MERGE_RESULT);
     await merging;
 
     expect(guestCart.get()).toEqual([
@@ -103,7 +116,7 @@ describe("mergeGuestCart", () => {
     const request = vi.fn((_name: string, task: () => Promise<void>) => task());
     vi.stubGlobal("navigator", { locks: { request } });
     guestCart.replace([{ offer_id: 1, quantity: 1 }]);
-    mergeCart.mockResolvedValue(MERGED);
+    mergeCart.mockResolvedValue(MERGE_RESULT);
 
     await mergeGuestCart();
 
@@ -120,6 +133,19 @@ describe("runCartWrite", () => {
     await runCartWrite(async () => MERGED);
 
     expect(queryClient.getQueryData(CART_KEY)).toEqual(MERGED);
+  });
+
+  // covers: spec 0016 AC-10
+  it("stores the cart of an add or merge result and returns the adjustments", async () => {
+    const adjustments = [{ offer_id: 1, requested: 1, added: 0 }];
+
+    const result = await runCartWrite(async () => ({
+      cart: MERGED,
+      adjustments,
+    }));
+
+    expect(queryClient.getQueryData(CART_KEY)).toEqual(MERGED);
+    expect(result.adjustments).toEqual(adjustments);
   });
 
   it("leaves the cache alone when the token changed during the request", async () => {

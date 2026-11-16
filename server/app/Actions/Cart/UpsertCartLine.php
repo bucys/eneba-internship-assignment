@@ -12,15 +12,21 @@ use Illuminate\Support\Facades\DB;
  */
 class UpsertCartLine
 {
-    public function handle(User $user, int $offerId, int $quantity, int $cap): void
+    /**
+     * Returns the quantity Postgres stored, so callers can report a cap (spec 0016 AC-10).
+     */
+    public function handle(User $user, int $offerId, int $quantity, int $cap): int
     {
         $now = now();
 
-        DB::statement(
+        $row = DB::selectOne(
             'insert into cart_items (user_id, offer_id, quantity, created_at, updated_at) values (?, ?, ?, ?, ?)
              on conflict (user_id, offer_id) do update
-             set quantity = least(cart_items.quantity + excluded.quantity, ?), updated_at = excluded.updated_at',
+             set quantity = least(cart_items.quantity + excluded.quantity, ?), updated_at = excluded.updated_at
+             returning quantity',
             [$user->id, $offerId, min($quantity, $cap), $now, $now, $cap],
         );
+
+        return (int) $row->quantity;
     }
 }

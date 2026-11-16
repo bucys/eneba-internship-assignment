@@ -36,11 +36,32 @@ export type CartLineInput = {
   quantity: number;
 };
 
+/** A guest line or add that stored less than it asked for (spec 0016 AC-10, AC-11). */
+export type CartAdjustment = {
+  offer_id: number;
+  requested: number;
+  added: number;
+};
+
+/** What add and merge return: the cart plus the lines that were capped or dropped. */
+export type CartWriteResult = { cart: Cart; adjustments: CartAdjustment[] };
+
 type CartBody = { data: Cart };
+
+// `meta` is optional so a client deployed before the API it calls still adds to the cart.
+type CartWriteBody = CartBody & { meta?: { adjustments: CartAdjustment[] } };
 
 async function cartRequest(path: string, init: RequestInit = {}) {
   const body = await apiFetch<CartBody>(path, init);
   return body.data;
+}
+
+async function cartWriteRequest(
+  path: string,
+  init: RequestInit,
+): Promise<CartWriteResult> {
+  const body = await apiFetch<CartWriteBody>(path, init);
+  return { cart: body.data, adjustments: body.meta?.adjustments ?? [] };
 }
 
 export function fetchCart(signal?: AbortSignal) {
@@ -56,14 +77,14 @@ export function previewCart(items: CartLineInput[], signal?: AbortSignal) {
 }
 
 export function mergeCart(items: CartLineInput[]) {
-  return cartRequest("/cart/merge", {
+  return cartWriteRequest("/cart/merge", {
     method: "POST",
     body: JSON.stringify({ items }),
   });
 }
 
 export function addCartItem(offerId: number) {
-  return cartRequest("/cart/items", {
+  return cartWriteRequest("/cart/items", {
     method: "POST",
     body: JSON.stringify({ offer_id: offerId }),
   });

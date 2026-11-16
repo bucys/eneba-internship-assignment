@@ -3,6 +3,7 @@
 namespace App\Actions\Cart;
 
 use App\Models\User;
+use App\Support\CartAdjustment;
 use App\Support\CartLimits;
 use App\Support\CartLine;
 use App\Support\CartLock;
@@ -18,10 +19,13 @@ class AddCartItem
 
     /**
      * Error order is fixed by spec 0008 AC-3: unavailable, out of stock, at max, cart full.
+     * Returns one adjustment when less than $quantity was added (spec 0016 AC-10).
+     *
+     * @return list<CartAdjustment>
      */
-    public function handle(User $user, int $offerId, int $quantity): void
+    public function handle(User $user, int $offerId, int $quantity): array
     {
-        DB::transaction(function () use ($user, $offerId, $quantity) {
+        return DB::transaction(function () use ($user, $offerId, $quantity) {
             CartLock::forUser($user);
 
             $offer = $this->buildCart->findOffer($offerId);
@@ -36,7 +40,8 @@ class AddCartItem
                 throw ValidationException::withMessages(['offer_id' => 'This offer is out of stock.']);
             }
 
-            $stored = $user->cartItems()->where('offer_id', $offerId)->value('quantity');
+            $value = $user->cartItems()->where('offer_id', $offerId)->value('quantity');
+            $stored = $value === null ? null : (int) $value;
 
             if ($stored !== null && $stored >= $cap) {
                 throw ValidationException::withMessages(['quantity' => 'You already have the maximum for this offer.']);
@@ -47,7 +52,9 @@ class AddCartItem
                 throw ValidationException::withMessages(['offer_id' => 'Your cart is full.']);
             }
 
-            $this->upsertCartLine->handle($user, $offerId, $quantity, $cap);
+            $added = $this->upsertCartLine->handle($user, $offerId, $quantity, $cap) - ($stored ?? 0);
+
+            return $added < $quantity ? [new CartAdjustment($offerId, $quantity, $added)] : [];
         });
     }
 }

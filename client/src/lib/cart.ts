@@ -13,7 +13,9 @@ import {
   removeCartItem,
   updateCartItem,
   type Cart,
+  type CartAdjustment,
   type CartLineInput,
+  type CartWriteResult,
 } from "../api/cart";
 import { ApiError } from "../api/client";
 import { useAuthToken } from "./auth";
@@ -53,45 +55,51 @@ export function useGuestCartLines(): CartLineInput[] {
   return useSyncExternalStore(guestCart.subscribe, guestCart.getSnapshot);
 }
 
-/** Runs a signed in cart write; a result that arrives after the token changed never reaches the cache. */
-export async function runCartWrite(
-  request: () => Promise<Cart>,
-): Promise<Cart> {
-  const token = authToken.get();
-  const cart = await request();
-  if (authToken.get() === token) {
-    queryClient.setQueryData(CART_KEY, cart);
-  }
-  return cart;
+function cartOf(result: Cart | CartWriteResult): Cart {
+  return "cart" in result ? result.cart : result;
 }
 
-async function mergeNow(): Promise<void> {
+/** Runs a signed in cart write; a result that arrives after the token changed never reaches the cache. */
+export async function runCartWrite<T extends Cart | CartWriteResult>(
+  request: () => Promise<T>,
+): Promise<T> {
+  const token = authToken.get();
+  const result = await request();
+  if (authToken.get() === token) {
+    queryClient.setQueryData(CART_KEY, cartOf(result));
+  }
+  return result;
+}
+
+async function mergeNow(): Promise<CartAdjustment[]> {
   const sent = guestCart.get();
   const token = authToken.get();
-  if (sent.length === 0 || token === null) return;
+  if (sent.length === 0 || token === null) return [];
 
-  const cart = await mergeCart(sent);
+  const { cart, adjustments } = await mergeCart(sent);
   guestCart.removeSent(sent);
   if (authToken.get() === token) {
     // A GET /cart started before the merge must not overwrite the merged cart.
     await queryClient.cancelQueries({ queryKey: CART_KEY });
     queryClient.setQueryData(CART_KEY, cart);
   }
+  return adjustments;
 }
 
-function withMergeLock(task: () => Promise<void>): Promise<void> {
+function withMergeLock<T>(task: () => Promise<T>): Promise<T> {
   const locks = typeof navigator === "undefined" ? undefined : navigator.locks;
   if (!locks) return task();
   return locks.request(MERGE_LOCK, task);
 }
 
-let mergeInFlight: Promise<void> | null = null;
+let mergeInFlight: Promise<CartAdjustment[]> | null = null;
 
 /**
  * The only place that merges the guest cart into the account (spec 0008 AC-11).
  * One call at a time per tab (shared promise) and across tabs (Web Lock).
+ * Resolves to the lines the server capped or dropped (spec 0016 AC-11), `[]` when nothing was sent.
  */
-export function mergeGuestCart(): Promise<void> {
+export function mergeGuestCart(): Promise<CartAdjustment[]> {
   mergeInFlight ??= withMergeLock(mergeNow).finally(() => {
     mergeInFlight = null;
   });
@@ -159,16 +167,19 @@ export function useCartCount(): number {
   return server.data?.item_count ?? 0;
 }
 
-/** Applies a cart change to the guest cart or the account, deciding from the token at the moment of the action. */
-export async function runCartChange(
+/**
+ * Applies a cart change to the guest cart or the account, deciding from the token at the moment
+ * of the action. Resolves to the write's result, or undefined for a guest change.
+ */
+export async function runCartChange<T>(
   guestChange: () => void,
-  write: () => Promise<unknown>,
-): Promise<void> {
+  write: () => Promise<T>,
+): Promise<T | undefined> {
   if (authToken.get() === null) {
     guestChange();
-    return;
+    return undefined;
   }
-  await write();
+  return write();
 }
 
 /**
@@ -177,30 +188,39 @@ export async function runCartChange(
  */
 export function useCartActions() {
   const mutation = useMutation({
-    mutationFn: (request: () => Promise<Cart>) => runCartWrite(request),
+    mutationFn: (request: () => Promise<Cart | CartWriteResult>) =>
+      runCartWrite(request),
   });
 
-  function run(guestChange: () => void, request: () => Promise<Cart>) {
+  function run(
+    guestChange: () => void,
+    request: () => Promise<Cart | CartWriteResult>,
+  ) {
     return runCartChange(guestChange, () => mutation.mutateAsync(request));
   }
 
   return {
     isPending: mutation.isPending,
-    add: (offerId: number, stock: number) =>
-      run(
+    /** Resolves to the server's adjustments; a guest add caps locally and resolves to `[]`. */
+    add: async (offerId: number, stock: number): Promise<CartAdjustment[]> => {
+      const result = await run(
         () => guestCart.add(offerId, stock),
         () => addCartItem(offerId),
-      ),
+      );
+      return result !== undefined && "adjustments" in result
+        ? result.adjustments
+        : [];
+    },
     setQuantity: (offerId: number, quantity: number, cap: number) =>
       run(
         () => guestCart.setQuantity(offerId, quantity, cap),
         () => updateCartItem(offerId, quantity),
-      ),
+      ).then(() => undefined),
     remove: (offerId: number) =>
       run(
         () => guestCart.remove(offerId),
         () => removeCartItem(offerId),
-      ),
+      ).then(() => undefined),
   };
 }
 

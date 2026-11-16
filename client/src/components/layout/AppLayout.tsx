@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { Outlet, ScrollRestoration, useMatches } from "react-router";
 import { useCartCount } from "../../lib/cart";
+import { CartMergeToast } from "../cart/CartMergeToast";
 import type { CheckoutStep } from "../checkout/Stepper";
 import { ToastProvider } from "../ui/Toast";
 import { CheckoutHeader } from "./CheckoutHeader";
@@ -35,6 +36,7 @@ export function AppLayout() {
 
   return (
     <ToastProvider>
+      <CartMergeToast />
       <div className="flex min-h-svh flex-col">
         <a
           href={`#${MAIN_ID}`}

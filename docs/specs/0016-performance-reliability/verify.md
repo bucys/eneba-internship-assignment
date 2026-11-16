@@ -281,6 +281,43 @@ Run finishes, sorted: 522.5, 544.5, 555.8, 556.8, 573.7, 575.8, 667.0, 676.7, 69
 - [x] Scroll a rail between its ends: no re-render; reach an end: the arrow updates → AC-15
 - [x] Firefox 159, Space on the closed sort control at 1440 and 390 px: the list opens and stays open → AC-15
 
+### Step 4: AC-9 root cause of the 10 for 6 checkout
+
+**Date**: 2026-11-16 · **Code at**: `7f2d19a`, before any cart change · **Where**: local Postgres 17 (`eneba_test`), a throwaway Pest test that drove the real HTTP endpoints (removed after the run).
+
+Reproduction: one offer with 6 unsold keys at €10.00, empty cart.
+
+| Call | Result |
+|---|---|
+| `POST /cart/items` `{ quantity: 10 }` | 200, line quantity 6, `quantity_reduced: false`, total €60.00, no `meta` |
+| `POST /cart/items` `{ quantity: 10 }` again | 422 "You already have the maximum for this offer." |
+| `cart_items.quantity` | 6 |
+| `POST /checkout` with `expected_total` 6000 | 201, item quantity 6, total €60.00 |
+| Order and keys | `total_cents` 6000, 6 keys sold |
+
+**Root cause**: the expected one from spec 0008 AC-3. `UpsertCartLine` caps the stored quantity at `min(stock, 10)` with `LEAST`, so an add of 10 against 6 keys stores 6 and returns 200 with nothing to say it was capped. Checkout then buys exactly the 6 the cart shows. It charged the shown quantity and allocated the same number of keys, so **there is no checkout bug** and no checkout fix. The problem was the silent cap, and AC-10 to AC-12 fix it.
+
+**Regression pin**: `server/tests/Feature/Cart/CartAdjustmentsTest.php`, "reports a capped add of 10 with 6 keys left, and checkout buys exactly those 6". It checks `added: 6, requested: 10`, a stored line of 6, a total of 6 × the unit price, and exactly 6 keys sold (AC-13).
+
+### Step 4: cart adjustments, toasts, and buy journey fixes
+
+**Date**: 2026-11-16 · **Code**: `CartAdjustment`, `UpsertCartLine` (`RETURNING quantity`), `AddCartItem` (with the `(int)` cast), `MergeGuestCart`, `CartController`; client `api/cart.ts`, `lib/cart.ts`, `lib/cartMergeNotice.ts`, `CartMergeToast.tsx`, `AddToCartButton.tsx`, `OrderConfirmationPage.tsx` (not committed yet) · **Browser**: Playwright Chromium against local `npm run dev` and `php artisan serve`, 1440 px.
+
+- [x] API: add 10 to an offer with 2 keys → `meta.adjustments` `[{ offer_id: 29, requested: 10, added: 2 }]`, line 2 → AC-10
+- [x] API: add at the max → 422 "You already have the maximum for this offer." with no `meta`; `PATCH` has no `meta` → AC-10, AC-11
+- [x] Browser: guest adds 2 of an offer with 2 keys, signs in to an account that already holds 1 → merge returns `[{ offer_id: 29, requested: 2, added: 1 }]`, cart shows 2, one toast "Some items in your cart were changed to match available stock." stays visible after the redirect → AC-11, AC-12
+- [x] Browser: merge toast lifetime. One toast after the capped merge, gone at once on sign out (inside its 4 s window), and nothing on the next sign in (no guest lines, no merge request) → AC-12
+- [x] Browser: signed in add at the max → error toast "You already have the maximum for this offer." → AC-12
+- [x] Browser: signed in add within stock → `adjustments: []`, toast "Added to cart." → AC-12
+- [ ] Capped add toast ("Only {added} available, so we added {added}.") in a browser: not reachable from the UI. The client always sends quantity 1, and a line at the max gets 422 first, so a capped add needs a stock change between the server's check and the write. Covered by Vitest (`AddToCartButton.test.tsx`) → AC-12
+- [x] Browser: full purchase of the merged cart (2 × €51.59 + 1 × €22.19) → 201 `paid`, total €125.37, and the confirmation says "Payment successful" → AC-16 (local)
+- [x] Browser: confirmation reloaded with `justPaid` and the order request held → h1 "Order details", title "Order details | …", no "Payment successful"; on release → "Payment successful", "Order confirmed | …" → AC-15 (confirmation heading row)
+- [x] Browser: same with the order request answering 500 → "Try again", h1 "Order details", no "Payment successful" → AC-15 (confirmation heading row)
+
+**Tests**: Pest `CartAdjustmentsTest.php` (9 cases: the three AC-13 cases, within stock `[]`, at max 422 with no meta, merge past the line limit, merge onto a line already above the cap gives `added: 0`, empty merge, other endpoints without `meta`). Vitest: `AddToCartButton.test.tsx` (adjusted, normal, response without `meta`, 422, guest), `CartMergeToast.test.tsx` (one toast, merge before mount, no adjustments, removed on sign out or a new sign in, none when the user signed out during the merge), `cart.test.ts` (merge resolves to adjustments, `runCartWrite` with the new result shape), `OrderConfirmationPage.test.tsx` (loading and error after paying). The new add toast and confirmation tests fail on the old code and pass on the fix.
+
+**Checks**: server `php artisan test` (486 passed), `composer analyse`, `composer format:check`; client `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` (49 files, 453 tests), `npm run build`, all green.
+
 ## Raw evidence
 
 The full output of each `scripts/measure-home.sh` call, unedited.

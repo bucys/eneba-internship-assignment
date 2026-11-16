@@ -151,6 +151,10 @@ export function OrderConfirmationPage() {
   const query = useQuery(orderQuery(ulid));
   const isSlow = useSlowPending(query.isPending);
   const { justPaid, ...arrival } = useArrival();
+  // "Payment successful" waits for the loaded order; until then the page stays neutral.
+  const pendingArrival = justPaid
+    ? { heading: "Order details", title: ORDER_DETAILS_TITLE }
+    : arrival;
 
   if (query.data) {
     return (
@@ -177,14 +181,14 @@ export function OrderConfirmationPage() {
 
   if (query.isError) {
     return (
-      <PageShell {...arrival}>
+      <PageShell {...pendingArrival}>
         <ErrorState onRetry={() => void query.refetch()} />
       </PageShell>
     );
   }
 
   return (
-    <PageShell {...arrival}>
+    <PageShell {...pendingArrival}>
       {isSlow && (
         <Alert role="status">
           Waking up the server. The first visit after a quiet spell can take up
