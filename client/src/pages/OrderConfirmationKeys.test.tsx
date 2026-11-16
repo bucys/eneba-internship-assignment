@@ -431,16 +431,90 @@ describe("copying a key", () => {
     await user.click(copy);
 
     expect(writeText).toHaveBeenCalledWith("HADES-44444");
-    expect(copy).toHaveTextContent("Copied");
+    expect(copy).toHaveAccessibleName("Copied key for Hades");
     expect(screen.getByRole("status")).toHaveTextContent("Key copied");
 
     act(() => vi.advanceTimersByTime(1500));
     await user.click(copy);
     act(() => vi.advanceTimersByTime(1500));
-    expect(copy).toHaveTextContent("Copied");
+    expect(copy).toHaveAccessibleName("Copied key for Hades");
     act(() => vi.advanceTimersByTime(600));
-    expect(copy).toHaveTextContent("Copy");
+    expect(copy).toHaveAccessibleName("Copy key for Hades");
     expect(writeText).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the copy control as an icon only, named for its key", async () => {
+    const user = userEvent.setup();
+    await revealHades(user);
+    stubClipboard({ writeText: vi.fn(async () => undefined) });
+    const copy = screen.getByRole("button", { name: "Copy key for Hades" });
+
+    expect(copy).toHaveTextContent(/^$/);
+    expect(copy.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+
+    await user.click(copy);
+    expect(copy).toHaveTextContent(/^$/);
+    expect(copy).toHaveAccessibleName("Copied key for Hades");
+  });
+
+  it("keeps a key that fits out of the tab order", async () => {
+    const user = userEvent.setup();
+    await revealHades(user);
+
+    const code = screen.getByText("HADES-44444");
+    expect(code).not.toHaveAttribute("tabindex");
+    expect(code).not.toHaveClass("mask-r-from-75%");
+  });
+
+  it("makes a key wider than its box focusable, with a fade until scrolled to the end", async () => {
+    // jsdom has no layout, so fake a key 300px wide in a 200px box.
+    const scrollWidth = vi
+      .spyOn(HTMLElement.prototype, "scrollWidth", "get")
+      .mockReturnValue(300);
+    const clientWidth = vi
+      .spyOn(HTMLElement.prototype, "clientWidth", "get")
+      .mockReturnValue(200);
+    try {
+      const user = userEvent.setup();
+      await revealHades(user);
+
+      const code = screen.getByText("HADES-44444");
+      expect(code).toHaveAttribute("tabindex", "0");
+      expect(code).toHaveClass("mask-r-from-75%");
+      // The mask clips the key's own outline (WCAG 2.4.7), so an unmasked
+      // wrapper draws the focus ring.
+      expect(code).toHaveClass("outline-none");
+      expect(code.parentElement).toHaveClass("has-focus-visible:outline-2");
+      expect(code.parentElement).not.toHaveClass("mask-r-from-75%");
+
+      act(() => {
+        code.scrollLeft = 100;
+        code.dispatchEvent(new Event("scroll"));
+      });
+      expect(code).not.toHaveClass("mask-r-from-75%");
+    } finally {
+      scrollWidth.mockRestore();
+      clientWidth.mockRestore();
+    }
+  });
+
+  it("mirrors the copy state in a visual tooltip that Escape dismisses", async () => {
+    const user = userEvent.setup();
+    await revealHades(user);
+    stubClipboard({ writeText: vi.fn(async () => undefined) });
+    const copy = screen.getByRole("button", { name: "Copy key for Hades" });
+    const tooltip = screen.getByTestId("copy-tooltip");
+
+    expect(tooltip).toHaveAttribute("aria-hidden", "true");
+    expect(tooltip).toHaveTextContent("Copy");
+
+    await user.click(copy);
+    expect(tooltip).toHaveTextContent("Copied");
+    expect(tooltip).toHaveClass("block");
+
+    await user.keyboard("{Escape}");
+    expect(tooltip).toHaveClass("hidden");
+    expect(copy).toHaveFocus();
   });
 
   // covers: spec 0010 AC-6, AC-8
@@ -461,7 +535,7 @@ describe("copying a key", () => {
     // A new node in the live region, so the repeated text is read again.
     expect(second).not.toBe(first);
     expect(copy).toHaveFocus();
-    expect(copy).toHaveTextContent("Copied");
+    expect(copy).toHaveAccessibleName("Copied key for Hades");
   });
 
   // covers: spec 0010 AC-6
@@ -484,7 +558,7 @@ describe("copying a key", () => {
 
     expect(
       screen.getByRole("button", { name: "Copy key for Hades" }),
-    ).toHaveTextContent("Copy");
+    ).toBeInTheDocument();
   });
 
   // covers: spec 0010 AC-9
@@ -529,7 +603,7 @@ describe("copying a key", () => {
     stubClipboard({ writeText: vi.fn(async () => undefined) });
     await user.click(copy);
 
-    expect(copy).toHaveTextContent("Copied");
+    expect(copy).toHaveAccessibleName("Copied key for Hades");
     expect(screen.queryByText(/^Key selected/)).toBeNull();
   });
 });

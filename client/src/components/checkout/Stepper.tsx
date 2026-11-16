@@ -20,7 +20,10 @@ type StepperProps = {
  */
 export function Stepper({ current }: StepperProps) {
   return (
-    <ol aria-label="Checkout progress" className="flex items-center gap-2">
+    <ol
+      aria-label="Checkout progress"
+      className="flex items-center gap-1 sm:gap-2"
+    >
       {STEPS.map(({ step, label }, index) => {
         const isDone = step < current;
         const isCurrent = step === current;
@@ -29,7 +32,7 @@ export function Stepper({ current }: StepperProps) {
             <span
               aria-hidden="true"
               className={cx(
-                "flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-extrabold",
+                "flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-sm font-extrabold sm:size-8",
                 isCurrent && "border-cta bg-cta text-cta-fg",
                 isDone && "border-success text-success",
                 !isDone && !isCurrent && "border-fg-muted text-fg-muted",
@@ -55,13 +58,13 @@ export function Stepper({ current }: StepperProps) {
           <li
             key={step}
             aria-current={isCurrent ? "step" : undefined}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1 sm:gap-2"
           >
             {index > 0 && (
               <span
                 aria-hidden="true"
                 className={cx(
-                  "h-0.5 w-4 sm:w-10",
+                  "h-0.5 w-3 sm:w-10",
                   step <= current ? "bg-success" : "bg-fg-muted",
                 )}
               />

@@ -1,5 +1,6 @@
 import { Check, Copy } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { cx } from "../../lib/cx";
 import { copyHint, type KeySlotState } from "../../lib/orderKeys";
 import { Button } from "../ui/Button";
 
@@ -16,6 +17,39 @@ type RevealedKeyProps = {
   initialCopyState?: CopyState;
 };
 
+/** Whether the element scrolls sideways, and whether text is still hidden past its right edge. */
+function useHorizontalOverflow(ref: RefObject<HTMLElement | null>) {
+  const [overflows, setOverflows] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const target = element;
+
+    function measure() {
+      const maxScroll = target.scrollWidth - target.clientWidth;
+      setOverflows(maxScroll > 1);
+      setHasMore(target.scrollLeft < maxScroll - 1);
+    }
+
+    measure();
+    target.addEventListener("scroll", measure, { passive: true });
+    // jsdom has no ResizeObserver.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(measure);
+    observer?.observe(target);
+    return () => {
+      target.removeEventListener("scroll", measure);
+      observer?.disconnect();
+    };
+  }, [ref]);
+
+  return { overflows, hasMore };
+}
+
 // Mounted only while revealed, so Hide resets the copy state and clears the timer.
 function RevealedKey({
   code,
@@ -24,8 +58,10 @@ function RevealedKey({
   initialCopyState = "idle",
 }: RevealedKeyProps) {
   const [copyState, setCopyState] = useState<CopyState>(initialCopyState);
+  const [tooltipDismissed, setTooltipDismissed] = useState(false);
   const codeRef = useRef<HTMLElement>(null);
   const timerRef = useRef<number | undefined>(undefined);
+  const { overflows, hasMore } = useHorizontalOverflow(codeRef);
 
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
@@ -49,6 +85,7 @@ function RevealedKey({
       return;
     }
     setCopyState("copied");
+    setTooltipDismissed(false);
     onCopied();
     timerRef.current = window.setTimeout(() => setCopyState("idle"), COPIED_MS);
   }
@@ -57,27 +94,61 @@ function RevealedKey({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <code
-          ref={codeRef}
-          className="min-w-0 flex-1 font-mono text-base break-all text-fg select-text"
+      <div className="flex items-center gap-2">
+        {/* The fade mask also clips the key's own outline, so this unmasked
+            wrapper draws the focus ring instead. */}
+        <div className="min-w-0 flex-1 outline-offset-2 outline-cta has-focus-visible:outline-2">
+          {/* Focusable only when it scrolls, so keyboard users can scroll a long key. */}
+          <code
+            ref={codeRef}
+            tabIndex={overflows ? 0 : undefined}
+            className={cx(
+              "block overflow-x-auto font-mono text-sm whitespace-nowrap text-fg outline-none select-text sm:text-base",
+              hasMore && "mask-r-from-75%",
+            )}
+          >
+            {code}
+          </code>
+        </div>
+        <span
+          className="group relative shrink-0"
+          onMouseLeave={() => setTooltipDismissed(false)}
         >
-          {code}
-        </code>
-        <Button
-          variant="ghost"
-          aria-label={`${copied ? "Copied" : "Copy"} ${label}`}
-          onClick={() => void copy()}
-        >
-          <span className="inline-flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            aria-label={`${copied ? "Copied" : "Copy"} ${label}`}
+            onClick={() => void copy()}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setTooltipDismissed(true);
+            }}
+            onBlur={() => setTooltipDismissed(false)}
+            className="peer"
+          >
             {copied ? (
               <Check aria-hidden="true" className="size-4 text-success" />
             ) : (
               <Copy aria-hidden="true" className="size-4" />
             )}
-            {copied ? "Copied" : "Copy"}
+          </Button>
+          {/* Visual only: the button's name already says this. Shown on hover,
+              keyboard focus, and while "Copied" lasts (touch has no hover). */}
+          <span
+            aria-hidden="true"
+            data-testid="copy-tooltip"
+            className={cx(
+              "absolute right-0 bottom-full z-10 pb-1",
+              tooltipDismissed && "hidden",
+              !tooltipDismissed &&
+                (copied
+                  ? "block"
+                  : "hidden group-hover:block peer-focus-visible:block"),
+            )}
+          >
+            <span className="block rounded-sm bg-white px-2 py-1 text-xs font-bold whitespace-nowrap text-surface-deep shadow-lg">
+              {copied ? "Copied" : "Copy"}
+            </span>
           </span>
-        </Button>
+        </span>
       </div>
       {copyState === "fallback" && (
         <p className="text-sm text-fg-soft">{copyHint()}</p>
@@ -134,7 +205,7 @@ export function KeySlot({
             <span
               role="img"
               aria-label="Key hidden"
-              className="font-mono text-base text-fg-muted"
+              className="font-mono text-sm whitespace-nowrap text-fg-muted sm:text-base"
             >
               {KEY_MASK}
             </span>

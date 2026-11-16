@@ -13,11 +13,11 @@ type OrderItemRowProps = {
 
 export function OrderItemRow({ item, children }: OrderItemRowProps) {
   return (
-    <li className="flex gap-4 rounded-sm bg-surface p-4">
-      <div className="w-16 shrink-0 self-start md:w-20">
+    <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 rounded-sm bg-surface p-4">
+      <div className="w-16 self-start sm:row-span-2 md:w-20">
         <CoverImage url={item.product.cover_image_url} alt="" />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1">
         <Link
           to={`/products/${item.product.slug}`}
           className="font-semibold wrap-break-word text-fg transition-colors hover:text-cta"
@@ -37,8 +37,13 @@ export function OrderItemRow({ item, children }: OrderItemRowProps) {
           </span>
           <Price price={item.line_total} />
         </div>
-        {children}
       </div>
+      {/* Full card width below sm, so a key fits on one line on narrow phones. */}
+      {children && (
+        <div className="col-span-2 sm:col-span-1 sm:col-start-2 sm:mt-1">
+          {children}
+        </div>
+      )}
     </li>
   );
 }

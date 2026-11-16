@@ -221,7 +221,7 @@ export function SearchForm({ className }: SearchFormProps) {
         }}
         onKeyDown={handleKeyDown}
         placeholder="Search for games, top ups and more"
-        className="min-h-11 w-full rounded-sm border border-fg-muted bg-surface py-2 pr-3 pl-10 text-sm text-fg transition-colors placeholder:text-fg-muted hover:border-fg-soft"
+        className="min-h-11 w-full rounded-sm border border-fg-muted bg-surface py-2 pr-3 pl-10 text-base text-fg transition-colors pointer-fine:text-sm placeholder:text-fg-muted hover:border-fg-soft"
       />
       {view !== null && (
         <SearchSuggestions
