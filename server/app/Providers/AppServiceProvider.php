@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Payments\PaymentGateway;
 use App\Payments\SimulatedPaymentGateway;
+use App\Support\LimiterStoreGuard;
 use App\Support\RequestTimings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Events\QueryExecuted;
@@ -30,6 +31,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Console is skipped: apc.enable_cli is 0, and the image runs artisan at build and start.
+        if (! $this->app->runningInConsole()) {
+            $this->assertLimiterStoreUsable();
+        }
+
         // Render has no shell, so a mistaken migrate:fresh or db:wipe in production would lose real orders.
         DB::prohibitDestructiveCommands($this->app->isProduction());
 
@@ -58,5 +64,19 @@ class AppServiceProvider extends ServiceProvider
 
         // Limits card guessing and runaway retries (spec 0009 AC-8).
         RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(10)->by((string) $request->user()?->getAuthIdentifier()));
+    }
+
+    private function assertLimiterStoreUsable(): void
+    {
+        $name = config('cache.limiter');
+        $name = is_string($name) ? $name : null;
+
+        $store = $name === null || $name === '' ? null : config("cache.stores.{$name}");
+
+        LimiterStoreGuard::assertUsable(
+            $name,
+            is_array($store) ? $store : null,
+            function_exists('apcu_enabled') && apcu_enabled(),
+        );
     }
 }

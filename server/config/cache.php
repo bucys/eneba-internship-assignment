@@ -19,6 +19,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Rate Limiter Store
+    |--------------------------------------------------------------------------
+    |
+    | Null uses the default store. The "?: null" turns an empty env value into
+    | null, because CacheManager::store('') throws instead of falling back.
+    | Never point this at "file": its increment loses hits under concurrency.
+    |
+    */
+
+    'limiter' => env('CACHE_LIMITER_STORE') ?: null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------
     |
@@ -33,6 +46,10 @@ return [
     */
 
     'stores' => [
+
+        'apc' => [
+            'driver' => 'apc',
+        ],
 
         'array' => [
             'driver' => 'array',

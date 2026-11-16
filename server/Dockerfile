@@ -7,6 +7,11 @@ ENV TRUSTED_PROXY=cloudflare
 
 WORKDIR /var/www/html
 
+# APCu holds the rate limiter counters in FPM shared memory (spec 0016 AC-5 b). The image runs as www-data, so install as root.
+USER root
+RUN install-php-extensions apcu
+USER www-data
+
 # Dependencies first, so this layer stays cached until composer.lock changes.
 COPY --chown=www-data:www-data composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --no-progress
