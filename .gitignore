@@ -5,7 +5,17 @@
 node_modules/
 vendor/
 agent-logs-backup/
-docs/agent-logs/
+.agent-logs-redact.tsv
+# Agent logs: only the sanitized export output is trackable (scripts/export-agent-logs.py).
+docs/agent-logs/*
+!docs/agent-logs/README.md
+!docs/agent-logs/manifest.json
+!docs/agent-logs/readable/
+!docs/agent-logs/full/
+docs/agent-logs/readable/*
+docs/agent-logs/full/*
+!docs/agent-logs/readable/session-[0-9][0-9][0-9].md
+!docs/agent-logs/full/session-[0-9][0-9][0-9].md
 docs/.agent-cache/
 .playwright-mcp/
 docs/reference/desktop/

@@ -491,6 +491,7 @@ describe("StorePage results", () => {
       "aria-busy",
       "true",
     );
+    await waitFor(() => expect(release).toBeDefined());
     release?.();
     expect(await screen.findByText("next")).toBeInTheDocument();
   });

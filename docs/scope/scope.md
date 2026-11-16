@@ -30,7 +30,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 15 | Homepage blocks | Journey 3: Landing | done |
 | 16 | Visual fidelity & polish | Polish | done |
 | 17 | Performance & reliability | Polish | done |
-| 18 | Submission readiness | Wrap up | in-progress |
+| 18 | Submission readiness | Wrap up | done |
 
 ## Foundations
 
@@ -270,9 +270,9 @@ spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/a
 - [x] Verify it: `/check verify performance & reliability` (2026-11-16, `72c0bcf`, AC-1 amended to matched routes; full production purchase still NOT TESTED; spec 0016 verify.md Step 6)
 - [x] Test it: `/test performance & reliability` (2026-11-16, 5 test files touched, server 492 and client 457 passing)
 - Follow ups from the closeout (spec 0016 Follow-up, carried to feature 18):
-  - A full purchase on production was not tested in feature 17; decide whether to run one.
-  - `StoreFiltersTest` CI flake (about 6 in 1000 runs, random product names); not fixed, rerun the job.
-  - Temporary production account `smoke-f17-1794830008@example.test` stays (no delete endpoint); remove by hand or keep.
+  - A full purchase on production was not tested in feature 17; decide whether to run one. Resolved in feature 18: run and passed on 2026-11-16 (see below).
+  - `StoreFiltersTest` CI flake (about 6 in 1000 runs, random product names). Resolved in feature 18: fixed in `cb83c49`.
+  - Temporary production account `smoke-f17-1794830008@example.test` stays (no delete endpoint). Resolved in feature 18: kept by decision (random password, tokens revoked, no orders).
   - Deferred triage rows: CartPage and ProductPage tests, `otherOffersSummary` move, design.md rows, stepper `aria-live` check, all auth rows.
   - Spec 0015 AC-9 gradient wording is stale after `b8293a7`.
 - Carried in from feature 15 ([review](../reviews/2026-11-13-main-homepage-blocks.md)):
@@ -282,10 +282,21 @@ spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/a
 
 ## Wrap up
 
-### 18. Submission readiness
+### 18. Submission readiness · done
 Final end to end audit, documentation, deployment checks, and submission preparation. Replaces the former feature 16 (Submission package).
 **Done when:** the assignment's submission requirements are reviewed and each one is met; the README explains scope, architecture, run instructions and tradeoffs, including every "Submission README (feature 16)" obligation in specs 0002, 0004, 0007, 0008, 0009, 0010 and 0014 (those now belong here); a secrets audit covers the repo, git history, and any log artifact; original Claude Code JSONL transcripts stay local and their gitignore protection stays in place, and only sanitized, reviewed exports are included where the assignment requires them; the public URL passes a full purchase run on desktop and mobile.
-- [ ] Build it: `/develop submission readiness`
+- [x] Build it: `/develop submission readiness`
+  - [x] README covers scope, architecture, run instructions, tradeoffs and hosting limits (`cb83c49`)
+  - [x] `StoreFiltersTest` flake fixed with fixed product names (`cb83c49`); 60 local reruns of the file pass
+  - [x] `StorePage.test.tsx` "keeps the previous results dimmed" flake (about 1 in 5 runs): the test released the deferred request before it existed. It now waits for it (test only change); 40 file runs and 40 isolated runs pass
+  - [x] Agent logs: `scripts/export-agent-logs.py` writes a readable and a full Markdown view per session to `docs/agent-logs/`, verified verbatim against the JSONL, then sanitized; only those exports are trackable, while raw JSONL, `agent-logs-backup/` and `.agent-logs-redact.tsv` stay gitignored
+  - [x] `scripts/checkout-concurrency.sh` uses a random password per run instead of a fixed one (5 rounds pass locally)
+  - [x] Secrets audit (2026-11-16): tracked files, all 85 commits of history and the exported logs; no Neon or database credentials, Render or Vercel tokens, production `APP_KEY` or other infrastructure secrets
+  - [x] Final checks: client 462 and server 492 tests passing, format, lint, types, PHPStan and build clean
+- Production purchase verified (2026-11-16, `cb83c49`, CI green on all three jobs: server, checkout-concurrency, client):
+  - Order `01m7jgy8emqfq000c1wqjt63hs` (€5.09, paid 15:52 UTC) on the live Vercel client and Render API, through guest cart, registration, cart merge, checkout with the approving test card, and confirmation.
+  - Key reveal, copy, and hide: PASS. My orders and Order details: PASS.
+  - Desktop 1280px and mobile 360px: PASS, with no console errors or warnings and no horizontal overflow.
 
 ## Deferred
 Out of scope for this build pass, kept so the plan stays honest and the README can justify the cuts.

@@ -186,6 +186,7 @@ server/      Laravel 13 API (PHP 8.4, Sanctum, Pest, PHPStan)
 docs/specs/  One spec per feature: the decision, acceptance criteria, rationale, verification
 docs/scope/  The feature plan and what was deferred
 docs/reviews/ Code review findings and how each was resolved
+docs/agent-logs/ Claude Code conversation history, sanitized: a readable and a full view per session
 scripts/     Checkout concurrency test, homepage timing, agent log export
 docker/      Local Postgres init script
 ```
@@ -202,4 +203,4 @@ docker/      Local Postgres init script
 
 ## How AI was used
 
-The project was built with Claude Code, following a spec first workflow. Each feature went through a written spec (`docs/specs/`) with acceptance criteria, then the build, then verification against the running app, then tests, and code reviews (`docs/reviews/`). The specs record why each decision was made and which alternatives were rejected. The full agent conversation history is submitted separately.
+The project was built with Claude Code, following a spec first workflow. Each feature went through a written spec (`docs/specs/`) with acceptance criteria, then the build, then verification against the running app, then tests, and code reviews (`docs/reviews/`). The specs record why each decision was made and which alternatives were rejected. The full agent conversation history is in [`docs/agent-logs/`](docs/agent-logs/README.md), one numbered session per Claude Code conversation. Each session has two views. The readable view holds every prompt and every reply from Claude, verbatim. The full view is the technical transcript, with tool calls, results and subagents. Both are generated from the original transcripts by `scripts/export-agent-logs.py`. Secrets, personal emails, account identifiers and local paths are replaced with `[REDACTED:kind]`.

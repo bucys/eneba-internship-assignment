@@ -14,6 +14,8 @@ PORT="${PORT:-8001}"
 API="http://127.0.0.1:$PORT/api/v1"
 ROUNDS="${ROUNDS:-20}"
 WORK="$(mktemp -d)"
+# A new random password each run, so no fixed credential lives in the repo. Hex keeps the JSON body safe.
+BUYER_PASSWORD="$(od -An -tx1 -N24 /dev/urandom | tr -d ' \n')"
 
 # The test DB, an in memory cache per request (so limiters never trip across 100s of requests),
 # and logs to stderr, which lands in $WORK/server.log, never server/storage/logs. LOG_CHANNEL=null does
@@ -63,7 +65,7 @@ trap cleanup EXIT
 # Prints "<token> <user id>".
 register() {
   curl -sf -X POST "$API/auth/register" -H 'Accept: application/json' -H 'Content-Type: application/json' \
-    -d "{\"name\":\"Buyer\",\"email\":\"buyer-$(uuidgen | tr 'A-Z' 'a-z')@example.test\",\"password\":\"correct horse battery\"}" |
+    -d "{\"name\":\"Buyer\",\"email\":\"buyer-$(uuidgen | tr 'A-Z' 'a-z')@example.test\",\"password\":\"$BUYER_PASSWORD\"}" |
     jq -r '"\(.data.token) \(.data.user.id)"'
 }
 

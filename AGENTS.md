@@ -46,7 +46,13 @@ Do not substitute summaries, git commits or specification documents for full tra
 
 Retain original Claude Code JSONL transcripts as the source of truth.
 
-Export readable Markdown transcripts to docs/agent-logs/, using sequential filenames such as session-001.md.
+Export Markdown transcripts to docs/agent-logs/ with `scripts/export-agent-logs.py`. Each session gets a sequential number (kept stable by `manifest.json`) and two views:
+
+- `readable/session-NNN.md`: every user prompt and Claude's visible replies, verbatim, plus question and answer pairs; tool work appears as short markers.
+- `full/session-NNN.md`: the complete technical transcript, with tool calls, results, thinking, injected context and subagents.
+- `README.md` indexes every session and links to both views.
+
+The exporter verifies both views against the JSONL before sanitizing them. It redacts secrets, personal emails, Vercel account identifiers and home directory paths as `[REDACTED:kind]`. Exact credentials that no pattern can catch go in the private, gitignored `.agent-logs-redact.tsv` (`kind<TAB>literal`), never in the script. The exporter refuses to run without that file.
 
 Verify that all sessions are included and that exported messages match the original transcripts.
 
@@ -82,7 +88,7 @@ A single repository containing separate frontend and backend applications, confi
 - `.github/workflows/ci.yml` — CI on every push and PR: server job (Pint, PHPStan, Pest on Postgres 17), checkout-concurrency job (`scripts/checkout-concurrency.sh`, 5 rounds against a served API on Postgres 17), and client job (Prettier, oxlint, typecheck, Vitest, build)
 - `docker-compose.yml` — local Postgres only
 
-`docs/agent-logs/` stays gitignored, and raw Claude Code JSONL transcripts stay local. Add only reviewed, sanitized exports to the repository, and only if the assignment's submission requirements call for them (feature 18).
+In `docs/agent-logs/`, Git can track only the sanitized export: `README.md`, `manifest.json`, `readable/session-NNN.md` and `full/session-NNN.md`. Everything else there stays ignored. Raw Claude Code JSONL transcripts stay local, and `agent-logs-backup/` and `.agent-logs-redact.tsv` stay gitignored. Review and re-export before committing logs (feature 18).
 
 ## Stack
 
@@ -108,7 +114,7 @@ cd client && npm run format              # Prettier write
 cd server && php artisan test               # Pest, against eneba_test
 cd server && composer format:check && composer analyse   # Pint check, PHPStan
 cd server && composer format                # Pint write
-python3 scripts/export-agent-logs.py        # export transcripts to docs/agent-logs/
+python3 scripts/export-agent-logs.py        # export sanitized readable/ + full/ transcripts to docs/agent-logs/
 ```
 
 ## Specs
