@@ -1,7 +1,7 @@
 # 0016. Performance and reliability: measure the homepage first, keep only the fixes the numbers justify, tell buyers when the cart caps, and close every open review finding
 
 **Date**: 2026-11-16
-**Status**: In Progress (verified 2026-11-16 with `/check verify` at `72c0bcf`, see [verify.md, Step 6](verify.md#step-6-final-verification-recheck-2026-11-16); stays In Progress until `/test` passes; a full purchase on production is **NOT TESTED**)
+**Status**: Accepted (2026-11-16: verified with `/check verify` at `72c0bcf`, see [verify.md, Step 6](verify.md#step-6-final-verification-recheck-2026-11-16); acceptance tests pass with `/test`; a full purchase on production is **NOT TESTED**, carried to feature 18 in Follow-up)
 
 > **Amends** [spec 0008](../0008-cart/index.md) AC-3 and AC-6 (caps are no longer silent: add and merge report them in `meta.adjustments`) and [spec 0014](../0014-homepage-blocks/index.md) AC-9 (the `/` route prefetches every block). Spec 0014 AC-3 is no longer amended: the 30 s browser cache (AC-7) was skipped on 2026-11-16, so the home endpoints keep their freshness rules. Everything else in those specs still holds.
 

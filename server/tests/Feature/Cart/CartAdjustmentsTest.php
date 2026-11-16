@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\CartItem;
+use App\Models\Offer;
 use App\Models\Order;
 use App\Models\ProductKey;
 use App\Models\User;
@@ -85,6 +86,26 @@ it('reports capped and dropped merge lines in request order, not full ones', fun
 
     expect(CartItem::query()->where('offer_id', $capped->id)->value('quantity'))->toBe(3)
         ->and(CartItem::query()->where('offer_id', $full->id)->value('quantity'))->toBe(2);
+});
+
+it('reports unknown and inactive merge lines as dropped with added 0', function () {
+    // covers: spec 0016 AC-11
+    $inactive = Offer::factory()->inactive()->create();
+    ProductKey::factory()->count(5)->create(['offer_id' => $inactive->id]);
+    $unknownId = Offer::query()->max('id') + 1000;
+
+    $this->postJson('/api/v1/cart/merge', ['items' => [
+        ['offer_id' => $unknownId, 'quantity' => 1],
+        ['offer_id' => $inactive->id, 'quantity' => 3],
+    ]])
+        ->assertOk()
+        ->assertJsonPath('data.lines', [])
+        ->assertJsonPath('meta.adjustments', [
+            ['offer_id' => $unknownId, 'requested' => 1, 'added' => 0],
+            ['offer_id' => $inactive->id, 'requested' => 3, 'added' => 0],
+        ]);
+
+    expect($this->user->cartItems()->count())->toBe(0);
 });
 
 it('reports added 0, never negative, when a stored line is already above the cap', function () {

@@ -39,6 +39,13 @@ it('adds Server-Timing to success and error responses alike', function (string $
     '500 from an exception' => ['GET', '/api/v1/_timing/boom', 500],
 ]);
 
+it('leaves the 404 for a path that matches no route without Server-Timing', function () {
+    // covers: spec 0016 AC-1 (amended): the api group middleware never runs without a matched route
+    $response = $this->getJson('/api/v1/nope-route')->assertNotFound();
+
+    expect($response->headers->has('Server-Timing'))->toBeFalse();
+});
+
 it('adds Server-Timing to a 429 from the throttle', function () {
     $this->getJson('/api/v1/_timing/limited')->assertOk();
 

@@ -29,7 +29,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 14 | Search with typo tolerance | Journey 2: Discovery | done |
 | 15 | Homepage blocks | Journey 3: Landing | done |
 | 16 | Visual fidelity & polish | Polish | done |
-| 17 | Performance & reliability | Polish | in-progress |
+| 17 | Performance & reliability | Polish | done |
 | 18 | Submission readiness | Wrap up | planned |
 
 ## Foundations
@@ -256,7 +256,7 @@ spec [0015](../specs/0015-visual-fidelity-polish/index.md) · code in `client/sr
   - No tests for `ProductBreadcrumb`, `ProductInfoRows`, `ProductTitleBlock` (AC-15, AC-17 rely on the manual verify pass).
   - Featured banner text may overlap the art's subject around 1024 to 1100px; check and cap the text column or extend the gradient if it does.
 
-### 17. Performance & reliability · Beta · in-progress
+### 17. Performance & reliability · Beta · done
 Investigate production homepage latency, fix confirmed bugs, and resolve the review findings that matter.
 **Done when:** homepage latency is measured before and after with recorded evidence; each fix is justified by that evidence, or the limit is documented as an infrastructure constraint (for example Render free tier workers); confirmed checkout bugs are fixed with a regression test each; every relevant finding in `docs/reviews/` is fixed, explicitly skipped (won't fix), or deferred, each with a documented reason; CI is green.
 spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/app/Http/Middleware/ServerTiming.php`, `server/app/Support/RequestTimings.php`, `scripts/measure-home.sh`
@@ -268,7 +268,7 @@ spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/a
   - [x] Cart caps and buy journey: `/debug` the 10 for 6 case (no checkout bug), `meta.adjustments` on add and merge, toasts, regression tests, `(int)` cast, confirmation heading (`4959afe`); the other buy journey triage rows deferred (AC-9 to AC-13, AC-15)
   - [x] Account journey and close out, as amended on 2026-11-16 (finish mode): auth triage rows deferred, Resolution sections in all 11 review files, AC-8 reuses the existing final warm and cold numbers with the Infrastructure limits note written, CI green on `4959afe`; **no production purchase run**, AC-16 rests on the production smoke test plus local purchase and concurrency evidence (AC-8, AC-14, AC-15, AC-16)
 - [x] Verify it: `/check verify performance & reliability` (2026-11-16, `72c0bcf`, AC-1 amended to matched routes; full production purchase still NOT TESTED; spec 0016 verify.md Step 6)
-- [ ] Test it: `/test performance & reliability`
+- [x] Test it: `/test performance & reliability` (2026-11-16, 5 test files touched, server 492 and client 457 passing)
 - Follow ups from the closeout (spec 0016 Follow-up, carried to feature 18):
   - A full purchase on production was not tested in feature 17; decide whether to run one.
   - `StoreFiltersTest` CI flake (about 6 in 1000 runs, random product names); not fixed, rerun the job.

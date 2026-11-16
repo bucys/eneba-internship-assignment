@@ -11,6 +11,10 @@ it('refuses an apc limiter store while APCu is off', function () {
     LimiterStoreGuard::assertUsable('apc', ['driver' => 'apc'], false);
 })->throws(RuntimeException::class, 'Rate limiter store uses APCu, but APCu is not enabled.');
 
+it('refuses any store with the apc driver while APCu is off, whatever its name', function () {
+    LimiterStoreGuard::assertUsable('shared_counters', ['driver' => 'apc'], false);
+})->throws(RuntimeException::class, 'Rate limiter store uses APCu, but APCu is not enabled.');
+
 it('accepts a usable limiter store setting', function (?string $name, ?array $config, bool $apcuEnabled) {
     LimiterStoreGuard::assertUsable($name, $config, $apcuEnabled);
 
