@@ -13,6 +13,8 @@ vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
 const { queryClient } = await import("../lib/queryClient");
 const { HomePage } = await import("./HomePage");
+const { homeLoader } = await import("./homeLoader");
+const { HOME_BLOCK_QUERIES } = await import("../api/home");
 
 const LAYOUT: HomeBlock[] = [
   { type: "banners", title: "Featured" },
@@ -51,7 +53,7 @@ const banner: Banner = {
   product: product("Elden Ring Shadow of the Erdtree"),
 };
 
-type Routes = Partial<Record<string, () => Response>>;
+type Routes = Partial<Record<string, () => Response | Promise<Response>>>;
 
 function stubApi(overrides: Routes = {}) {
   const routes: Routes = {
@@ -96,6 +98,35 @@ function renderHome() {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+}
+
+// The real `/` route: the loader prefetches before HomePage mounts.
+function renderHomeRoute() {
+  const router = createMemoryRouter([
+    { path: "/", Component: HomePage, loader: homeLoader },
+  ]);
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+}
+
+const HOME_PATHS = [
+  "/api/v1/home",
+  "/api/v1/home/banners",
+  "/api/v1/home/best-sellers",
+  "/api/v1/home/deals",
+  "/api/v1/products",
+];
+
+// A layout response the test releases by hand, to hold the page on its skeleton.
+function heldLayout() {
+  let release = () => {};
+  const response = new Promise<Response>((resolve) => {
+    release = () => resolve(jsonResponse(200, { data: LAYOUT }));
+  });
+  return { answer: () => response, release: () => release() };
 }
 
 function band(name: string) {
@@ -354,5 +385,67 @@ describe("HomePage", () => {
     expect(links[4]).toHaveAttribute("href", "/store?platform=nintendo");
     const hero = await screen.findByRole("region", { name: "Featured" });
     expect(hero.nextElementSibling).toContainElement(nav);
+  });
+});
+
+describe("home route prefetch", () => {
+  it("starts all five requests before the layout resolves, once each", async () => {
+    const layout = heldLayout();
+    const fetchMock = stubApi({ "/api/v1/home": layout.answer });
+    renderHomeRoute();
+
+    await waitFor(() =>
+      HOME_PATHS.forEach((path) => expect(callsTo(fetchMock, path)).toBe(1)),
+    );
+    expect(
+      await screen.findByRole("heading", { level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
+
+    layout.release();
+
+    await screen.findByText("Seller 1");
+    await screen.findByText("Grid 1");
+    await screen.findByText("Deal 1");
+    HOME_PATHS.forEach((path) => expect(callsTo(fetchMock, path)).toBe(1));
+  });
+
+  it("does not fetch again while the cache is fresh", async () => {
+    const fetchMock = stubApi();
+    homeLoader();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+
+    homeLoader();
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+  });
+
+  it("shows the block's Try again when its prefetch fails", async () => {
+    const layout = heldLayout();
+    const fetchMock = stubApi({
+      "/api/v1/home": layout.answer,
+      "/api/v1/home/banners": serverError,
+    });
+    const user = userEvent.setup();
+    renderHomeRoute();
+
+    const bannersKey = HOME_BLOCK_QUERIES.banners().queryKey;
+    await waitFor(() =>
+      expect(queryClient.getQueryState(bannersKey)?.status).toBe("error"),
+    );
+    layout.release();
+
+    const tryAgain = await inBand("Featured").findTryAgain();
+    expect(await screen.findByText("Seller 1")).toBeInTheDocument();
+    // The prefetch failed, so the block's own query fetched once more on mount.
+    expect(callsTo(fetchMock, "/api/v1/home/banners")).toBe(2);
+
+    stubApi({});
+    await user.click(tryAgain);
+
+    expect(
+      await screen.findByRole("link", { name: /Shadow of the Erdtree/ }),
+    ).toBeInTheDocument();
   });
 });

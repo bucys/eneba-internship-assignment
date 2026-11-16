@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, type ComponentType } from "react";
 import { ApiError } from "../api/client";
-import { bestSellersQuery, dealsQuery, homeLayoutQuery } from "../api/home";
+import {
+  HOME_BLOCK_QUERIES,
+  homeLayoutQuery,
+  type HomeBlockType,
+} from "../api/home";
 import { HeroBanners } from "../components/home/HeroBanners";
 import { HomePageSkeleton } from "../components/home/HomePageSkeleton";
 import { PlatformShortcuts } from "../components/home/PlatformShortcuts";
@@ -16,20 +20,25 @@ import { useSlowPending } from "../lib/useSlowPending";
 type BlockProps = { title: string };
 
 function BestSellersBlock({ title }: BlockProps) {
-  return <ProductRailBlock title={title} query={bestSellersQuery()} />;
+  return (
+    <ProductRailBlock title={title} query={HOME_BLOCK_QUERIES.best_sellers()} />
+  );
 }
 
 function DealsBlock({ title }: BlockProps) {
-  return <ProductRailBlock title={title} query={dealsQuery()} />;
+  return <ProductRailBlock title={title} query={HOME_BLOCK_QUERIES.deals()} />;
 }
 
+// Typed by HOME_BLOCK_QUERIES, so a block without a prefetched query (or the reverse) fails typecheck.
+const BLOCK_COMPONENTS: Record<HomeBlockType, ComponentType<BlockProps>> = {
+  banners: HeroBanners,
+  best_sellers: BestSellersBlock,
+  deals: DealsBlock,
+  products: ProductListSection,
+};
+
 // A Map, so a layout type like "constructor" can never match an object prototype key.
-const BLOCKS = new Map<string, ComponentType<BlockProps>>([
-  ["banners", HeroBanners],
-  ["best_sellers", BestSellersBlock],
-  ["deals", DealsBlock],
-  ["products", ProductListSection],
-]);
+const BLOCKS = new Map(Object.entries(BLOCK_COMPONENTS));
 
 function HomeBody() {
   const layout = useQuery(homeLayoutQuery());

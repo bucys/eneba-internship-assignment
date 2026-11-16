@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useId } from "react";
-import { homeBannersQuery, type Banner } from "../../api/home";
+import { HOME_BLOCK_QUERIES, type Banner } from "../../api/home";
 import { cx } from "../../lib/cx";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { Container } from "../layout/Container";
@@ -100,7 +100,7 @@ export function HeroCompact({ title, banners }: HeroLayoutProps) {
 type HeroBannersProps = { title: string };
 
 export function HeroBanners({ title }: HeroBannersProps) {
-  const query = useQuery(homeBannersQuery());
+  const query = useQuery(HOME_BLOCK_QUERIES.banners());
   const isSplit = useMediaQuery(SPLIT_HERO_QUERY);
 
   return (

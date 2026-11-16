@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { productsQuery } from "../../api/products";
+import { HOME_BLOCK_QUERIES } from "../../api/home";
 import { HomeQueryBlock } from "../home/HomeQueryBlock";
 import { HomeSection } from "../home/HomeSection";
 import { ProductCard, ProductCardSkeleton } from "./ProductCard";
@@ -23,7 +23,7 @@ type ProductListSectionProps = { title: string };
 /** The homepage `products` block: page 1 of GET /products, keeping its own query key. */
 export function ProductListSection({ title }: ProductListSectionProps) {
   const query = useQuery({
-    ...productsQuery({}),
+    ...HOME_BLOCK_QUERIES.products(),
     select: (response) => response.data,
   });
 

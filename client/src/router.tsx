@@ -6,6 +6,7 @@ import { loginAction, registerAction } from "./pages/authActions";
 import { CartPage } from "./pages/CartPage";
 import { CheckoutErrorBoundary, CheckoutPage } from "./pages/CheckoutPage";
 import { HomePage } from "./pages/HomePage";
+import { homeLoader } from "./pages/homeLoader";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import {
   OrderConfirmationPage,
@@ -35,7 +36,7 @@ export const router = createBrowserRouter([
     Component: AppLayout,
     HydrateFallback: RouteHydrateFallback,
     children: [
-      { index: true, Component: HomePage },
+      { index: true, Component: HomePage, loader: homeLoader },
       { path: "store", Component: StorePage, loader: storeLoader },
       { path: "products/:slug", Component: ProductPage },
       { path: "cart", Component: CartPage, handle: { checkoutStep: 1 } },

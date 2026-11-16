@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiFetch } from "./client";
-import type { Product } from "./products";
+import { productsQuery, type Product } from "./products";
 
 // Mirrors server/app/Http/Resources/HomeBlockResource.php. `type` stays a plain string,
 // so a block type this client does not know yet is skipped, not a type error.
@@ -42,3 +42,21 @@ export function bestSellersQuery() {
 export function dealsQuery() {
   return homeQuery<Product>("deals", "/home/deals");
 }
+
+// The grid block keeps the store's own key, so the homepage and /store share page 1.
+export function homeProductsQuery() {
+  return productsQuery({});
+}
+
+/**
+ * The one map from a layout block type to its query factory. The blocks read their
+ * query from here and the `/` loader prefetches every entry, so the keys cannot drift.
+ */
+export const HOME_BLOCK_QUERIES = {
+  banners: homeBannersQuery,
+  best_sellers: bestSellersQuery,
+  deals: dealsQuery,
+  products: homeProductsQuery,
+};
+
+export type HomeBlockType = keyof typeof HOME_BLOCK_QUERIES;
