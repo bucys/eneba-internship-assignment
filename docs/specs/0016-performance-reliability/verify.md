@@ -88,6 +88,7 @@ Three `--waterfall` runs, each after at least 16 min 40 s with no traffic from t
 | 0 | Baseline (`eabd7aa`) | serial | 5577.3 | 6385.7 | | |
 | 1 | AC-5 (a) OPcache on (`PHP_OPCACHE_ENABLE=1`) | waterfall | 973.4 | 1566.4 | −83.0% (max −76.4%) | Keep |
 | 2 | AC-5 (b) rate limiter on APCu (`CACHE_LIMITER_STORE=apc`) | waterfall | 729.1 | 7959.1 | −25.1% (max +408.1%, one network stall, see Step 2) | Keep |
+| 3 (pre-check) | AC-6 simulated: `--parallel`, no code change (the request pattern the prefetch creates) | parallel | 575.0 | 744.7 | −21.1% vs step 2 waterfall (max −90.6%) | Pre-check passed: implement AC-6, then confirm it in the browser |
 
 ### Step 1: AC-5 (a) OPcache
 
@@ -161,6 +162,47 @@ Step 1 values are in brackets. The wait column is median ttfb minus median app, 
 2. **Block calls gained less, because their own queries remain.** In wave 2 the `db` share is 60 to 79% of `app`; the remaining time is the block queries themselves, run four at a time on a 0.15 CPU slice.
 3. **The client now waits mostly on wave 2.** `/home` finishes in about 150 ms; the run finish is about 150 ms plus the slowest block call (about 500 to 650 ms). That gap is what AC-6 (prefetch, run all five at once) targets next.
 4. **About 110 to 130 ms of each call is outside PHP** (ttfb minus app). That is network and edge time from Vilnius, not something the server can remove.
+
+### Step 3 pre-check: AC-6 simulated with `--parallel` (no code change)
+
+**Taken**: 2026-11-16, 10:20 UTC · **Code**: `5c8213a` on production (same runtime as Step 2: `PHP_OPCACHE_ENABLE=1`, `CACHE_LIMITER_STORE=apc`) · **Change**: none. `--parallel` fires all five calls at once, the pattern the AC-6 loader would create, so it tests whether the prefetch can help before any client code is written. Warmed the same way: one `/home` call (`desc="1 queries"`, `x-ratelimit-remaining: 119`), then 5 s. All 50 calls answered 200; no 429.
+
+**`--parallel`, 10 warm runs**, against Step 2 `--waterfall`
+
+| call | median total | change | max total | median app | change | median db | change | db share of app | median wait before PHP (ttfb − app) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `/home` | 414.0 (153.1) | +170.4% | 603.7 | 235.7 (32.3) | +629.7% | 164.9 (27.2) | +506.3% | 70% | 177.9 |
+| `/home/banners` | 550.5 (504.7) | +9.1% | 645.2 | 430.6 (372.7) | +15.5% | 320.9 (221.8) | +44.7% | 75% | 78.8 |
+| `/home/best-sellers` | 524.8 (503.8) | +4.2% | 603.8 | 410.6 (337.1) | +21.8% | 293.0 (266.2) | +10.1% | 71% | 77.8 |
+| `/home/deals` | 500.9 (520.4) | −3.7% | 744.7 | 342.4 (373.2) | −8.3% | 233.9 (229.8) | +1.8% | 68% | 123.4 |
+| `/products` | 548.2 (550.6) | −0.4% | 699.6 | 430.4 (386.6) | +11.3% | 329.6 (292.5) | +12.7% | 76% | 81.9 |
+| **run finish** | **575.0** (729.1) | **−21.1%** | **744.7** (7959.1) | | | | | | |
+
+Step 2 waterfall values are in brackets. Run finishes ranged from 528.8 to 744.7 ms.
+
+**AC-4 pre-check: passed.** The median run finish fell 21.1% (729.1 → 575.0 ms), past the 10% bar (≤ 656.2 ms). The maximum fell from 7959.1 ms (the Step 2 network stall) to 744.7 ms; against Step 2's highest run without the stall (1142.0 ms), it is −34.8%. This is a pre-check, not the AC-6 result: the kept or reverted decision under AC-4 is taken again after the loader ships, measured in the same `--parallel` mode.
+
+**What the numbers show**
+
+1. **The gain is the removed `/home` leg.** Run finish is now the slowest of five concurrent calls (about 550 ms), not `/home` (about 150 ms) plus the slowest of four.
+2. **`/home` itself gets slower in the crowd.** Alone it took 32.3 ms of server time; among five concurrent calls it takes 235.7 ms, and its `db` rises from 27.2 to 164.9 ms for the same single query. The four block calls change by −8 to +22% in `app`. The 0.15 CPU slice and the Neon connection are shared, so a fifth concurrent call costs everyone a little, but much less than the waterfall's extra round trip.
+3. **What a user would see.** Warm first visit: all blocks filled about 150 ms sooner (about 575 instead of 729 ms on the server side). The layout itself arrives later (about 414 instead of 153 ms), so the full page skeleton shows a little longer before the section skeletons, but the content is complete sooner. No change on a repeat visit within the 60 s `staleTime`, and none that matters on a cold start (23 to 35 s spin up).
+4. **Limits of this check.** The two sessions are 10 minutes apart, not interleaved, so some of the difference may be noise; the margin over the bar (81 ms) is larger than the run to run spread of the medians seen so far. `curl` from one machine does not include the browser's own work (JS download, React render), which both shapes share.
+
+### Step 3: AC-6 route loader prefetch
+
+**Change**: the `/` route gets `homeLoader` (`client/src/pages/homeLoader.ts`), which starts `prefetchQuery` for the layout and for every entry of `HOME_BLOCK_QUERIES` (`client/src/api/home.ts`), the one map the blocks also read their query from. Server and Render env unchanged.
+
+**Local check (before the push)**, production build (`vite preview`) against local `php artisan serve`, `/home` held back 1.5 s by Playwright: all five GETs started at 55 to 61 ms, once each; the `<h1>` and full page skeleton showed, then all four blocks; `/` → `/store` → back sent no home request (and `/store` reused page 1 of `/products`). In `npm run dev`, `/home`, `/auth/me` and `/cart` go out twice: React `StrictMode` unmounts once, the query's consumed `signal` aborts the first request, and the remount fetches again. Dev only, not caused by AC-6.
+
+**Browser verification on production** (after the Vercel deploy, warm API, fresh browser context, DevTools network filtered to `/api/v1/`)
+- [ ] Load `/` with `/home` slowed: `/home`, `/home/banners`, `/home/best-sellers`, `/home/deals` and `/products?…` all start before `/home` completes → AC-6
+- [ ] Each of the five is requested once; no aborted or repeated home call → AC-6
+- [ ] While `/home` is pending, the hidden `<h1>` and the full page skeleton show; then every block from the layout renders with content → AC-6
+- [ ] Within 60 s, `/` → `/store` (client link) → back: no new request to any of the five home paths → AC-6
+- [ ] A failed block prefetch still shows that block's `ErrorState` with Try again (covered by Vitest `home route prefetch`; not forced on production) → AC-6
+
+**Measurement**: `scripts/measure-home.sh https://eneba-api.onrender.com 10 --parallel`, warm, against the Step 2 `--waterfall` median 729.1 ms; keep bar ≤ 656.2 ms (AC-4).
 
 ## Raw evidence
 
@@ -703,6 +745,97 @@ x-ratelimit-remaining: 117
 4  HTTP/2 422  | x-ratelimit-remaining: 1 |  | {"message":"These credentials do not match our records.","er
 5  HTTP/2 422  | x-ratelimit-remaining: 0 |  | {"message":"These credentials do not match our records.","er
 6  HTTP/2 429  | x-ratelimit-remaining: 0 | retry-after: 59 | {     "message": "Too Many Attempts." }
+```
+
+</details>
+
+<details><summary><code>step-3-precheck-parallel</code> (2026-11-16 10:20 UTC)</summary>
+
+```text
+Warm up /home (10:20:04 UTC):
+HTTP/2 200 
+server-timing: app;dur=39.1, db;dur=34.2;desc="1 queries"
+x-ratelimit-remaining: 119
+
+Mode: parallel · runs: 10 · API: https://eneba-api.onrender.com/api/v1
+Run 1
+  /home                 200  connect    83.4  ttfb   603.4  total   603.7  app   220.0  db   119.3
+  /home/best-sellers    200  connect     0.0  ttfb   493.6  total   603.8  app   375.7  db   366.5
+  /home/banners         200  connect     0.0  ttfb   496.1  total   605.5  app   390.9  db   303.5
+  /home/deals           200  connect     0.0  ttfb   567.7  total   679.6  app   478.5  db   330.5
+  /products             200  connect     0.0  ttfb   589.4  total   699.6  app   428.6  db   229.7
+  finish               699.6 ms
+Run 2
+  /home                 200  connect    10.7  ttfb   314.3  total   316.6  app   224.8  db   218.3
+  /home/deals           200  connect     0.0  ttfb   444.4  total   472.7  app   314.4  db   205.4
+  /home/best-sellers    200  connect     0.0  ttfb   477.8  total   513.4  app   414.3  db   233.2
+  /products             200  connect     0.0  ttfb   489.8  total   528.6  app   428.5  db   417.9
+  /home/banners         200  connect     0.0  ttfb   507.0  total   536.9  app   423.0  db   216.5
+  finish               536.9 ms
+Run 3
+  /home                 200  connect    14.4  ttfb   507.7  total   508.1  app   147.8  db   143.4
+  /home/deals           200  connect     0.0  ttfb   477.1  total   509.8  app   337.2  db   208.7
+  /home/best-sellers    200  connect     0.0  ttfb   494.2  total   529.2  app   432.8  db   301.6
+  /home/banners         200  connect     0.0  ttfb   499.6  total   530.7  app   429.1  db   326.4
+  /products             200  connect     0.0  ttfb   589.1  total   622.6  app   528.0  db   431.3
+  finish               622.6 ms
+Run 4
+  /home                 200  connect    13.7  ttfb   458.3  total   458.6  app   250.0  db   166.8
+  /home/best-sellers    200  connect     0.0  ttfb   429.8  total   463.0  app   367.4  db   284.3
+  /home/deals           200  connect     0.0  ttfb   435.0  total   469.1  app   316.6  db   308.4
+  /products             200  connect     0.0  ttfb   515.9  total   551.9  app   451.0  db   363.8
+  /home/banners         200  connect     0.0  ttfb   542.4  total   576.5  app   398.8  db   315.3
+  finish               576.5 ms
+Run 5
+  /home/deals           200  connect     0.0  ttfb   454.4  total   492.0  app   311.8  db   227.1
+  /products             200  connect     0.0  ttfb   456.4  total   492.0  app   324.7  db   316.0
+  /home/best-sellers    200  connect     0.0  ttfb   483.1  total   520.5  app   410.0  db   313.1
+  /home/banners         200  connect     0.0  ttfb   488.3  total   524.0  app   415.6  db   235.2
+  /home                 200  connect    20.1  ttfb   528.7  total   528.8  app   424.4  db   419.3
+  finish               528.8 ms
+Run 6
+  /home                 200  connect    20.2  ttfb   369.0  total   369.2  app   238.2  db   232.7
+  /home/best-sellers    200  connect     0.0  ttfb   518.4  total   560.6  app   450.8  db   410.9
+  /home/banners         200  connect     0.0  ttfb   605.3  total   645.2  app   500.4  db   397.1
+  /products             200  connect     0.0  ttfb   611.5  total   658.1  app   537.6  db   497.3
+  /home/deals           200  connect     0.0  ttfb   704.4  total   744.7  app   544.9  db   240.7
+  finish               744.7 ms
+Run 7
+  /home                 200  connect    15.6  ttfb   340.3  total   340.6  app   168.5  db   163.0
+  /home/deals           200  connect     0.0  ttfb   415.4  total   454.9  app   345.2  db   137.1
+  /home/best-sellers    200  connect     0.0  ttfb   427.3  total   466.0  app   357.6  db   280.8
+  /home/banners         200  connect     0.0  ttfb   519.3  total   561.2  app   454.5  db   370.2
+  /products             200  connect     0.0  ttfb   531.6  total   573.4  app   416.9  db   311.6
+  finish               573.4 ms
+Run 8
+  /home                 200  connect    12.2  ttfb   331.6  total   331.9  app   242.1  db   157.1
+  /home/deals           200  connect     0.0  ttfb   407.0  total   438.7  app   339.6  db   330.9
+  /products             200  connect     0.0  ttfb   508.8  total   543.9  app   439.5  db   325.0
+  /home/banners         200  connect     0.0  ttfb   518.7  total   550.8  app   442.2  db   400.0
+  /home/best-sellers    200  connect     0.0  ttfb   523.4  total   553.8  app   449.7  db    52.8
+  finish               553.8 ms
+Run 9
+  /home                 200  connect    12.4  ttfb   486.2  total   486.4  app   233.2  db   149.7
+  /home/best-sellers    200  connect     0.0  ttfb   450.4  total   486.5  app   334.3  db   247.5
+  /products             200  connect     0.0  ttfb   492.6  total   532.8  app   356.2  db   321.5
+  /home/banners         200  connect     0.0  ttfb   511.9  total   550.1  app   447.5  db   410.8
+  /home/deals           200  connect     0.0  ttfb   514.1  total   553.0  app   415.0  db   143.0
+  finish               553.0 ms
+Run 10
+  /home                 200  connect    12.9  ttfb   369.0  total   369.4  app   240.3  db   234.8
+  /home/banners         200  connect     0.0  ttfb   497.6  total   534.4  app   432.2  db   258.2
+  /products             200  connect     0.0  ttfb   505.7  total   544.5  app   432.1  db   334.2
+  /home/best-sellers    200  connect     0.0  ttfb   512.8  total   549.3  app   411.1  db   307.5
+  /home/deals           200  connect     0.0  ttfb   596.7  total   630.6  app   529.0  db   403.6
+  finish               630.6 ms
+
+call (ms)             median ttfb median total    max total   median app    median db
+/home                       413.6        414.0        603.7        235.7        164.9
+/home/banners               509.4        550.5        645.2        430.6        320.9
+/home/best-sellers          488.4        524.8        603.8        410.6        293.0
+/home/deals                 465.8        500.9        744.7        342.4        233.9
+/products                   512.3        548.2        699.6        430.4        329.6
+run finish                               575.0        744.7
 ```
 
 </details>
