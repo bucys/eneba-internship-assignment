@@ -41,3 +41,15 @@ You added a layout endpoint, three block endpoints, two tables, two seeders and 
 
 ## Test coverage
 Good. Server: Pest feature tests for each endpoint (ordering, visibility, edge discounts, query counts, 429 limiter), both seeders (idempotency, real stock) and the rollback. Client: `HomePage.test.tsx` covers layout order, per block failure, empty and unknown blocks, layout failure, render crash with retry, mobile Show all with focus, and the desktop rail; `home.test.ts` covers keys and fetch paths. Not covered: `ScrollRail` arrow end states and scroll behaviour (jsdom has no layout, so this is reasonable to leave to the browser verify), and `BannerTile` image error fallback.
+
+## Resolution (feature 17, 2026-11-16)
+
+States from [spec 0016](../specs/0016-performance-reliability/rationale.md#closeout-decision-2026-11-16): DONE (resolved or fixed), DEFER (not done, carried as a follow up), SKIP (won't fix).
+
+- First load makes 5 API calls: DONE. Measured and fixed under spec 0016 AC-1 to AC-8: warm homepage 5722.5 → 574.7 ms. Cold start (23 to 35 s) stays, documented as a free tier limit.
+- `ScrollRail` re-renders on every scroll: DONE in `b8293a7`, with a regression test.
+- Band colours flip on an empty block: SKIP. Only in the empty case, which seeded data never hits.
+- `DemoOrdersSeeder` relies on the silent cap: DONE in `4959afe`. Caps are now reported in `meta.adjustments`.
+- Nit, `ListDeals` division uncommented: SKIP. Comment request; the guard is tested.
+- Nit, constant `aria-expanded`: SKIP. Comment request.
+- Nit, reseed overwrites a block title: SKIP. By design (spec 0014 AC-6).

@@ -46,3 +46,9 @@ All three minor findings were fixed after review. The original findings above ar
 Nits, no action: the `aria-disabled` span is what spec 0011 AC-4 requires; the StrictMode double effect is development only and harmless; the `checkout.ts` import order is cosmetic.
 
 Checks after the fixes: client format, lint, typecheck, 286 Vitest tests, and build pass; server Pint, PHPStan, and 328 Pest tests pass.
+
+## Resolution (feature 17, 2026-11-16)
+
+States from [spec 0016](../specs/0016-performance-reliability/rationale.md#closeout-decision-2026-11-16): DONE (resolved or fixed), DEFER (not done, carried as a follow up), SKIP (won't fix).
+
+- All six findings: DONE. Settled in the Resolution (2026-11-13) above (three fixed, three no action with reasons, which stand as SKIP).

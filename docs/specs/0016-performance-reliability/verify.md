@@ -68,6 +68,8 @@ All 150 calls answered 200. Milliseconds. `app` and `db` come from `Server-Timin
 
 ### Cold runs (after more than 15 min idle)
 
+**Pre optimization baseline** (`eabd7aa`, before OPcache, APCu, and the prefetch). These are the only cold runs taken; the closeout reuses them for AC-8.
+
 Three `--waterfall` runs, each after at least 16 min 40 s with no traffic from this machine. No restart and no Render change; the instance spun down on its own. All 15 calls answered 200.
 
 | run | started (UTC) | `/home` ttfb | `/home` app | wake time (ttfb − app) | wave 2 slowest total | run finish |
@@ -91,6 +93,7 @@ Three `--waterfall` runs, each after at least 16 min 40 s with no traffic from t
 | 3 (pre-check) | AC-6 simulated: `--parallel`, no code change (the request pattern the prefetch creates) | parallel | 575.0 | 744.7 | −21.1% vs step 2 waterfall (max −90.6%) | Pre-check passed: implement AC-6, then confirm it in the browser |
 | 3 | AC-6 route loader prefetch (`6e83f76`) | parallel | 574.7 | 926.3 | −21.2% vs step 2 waterfall (max −88.4%) | Keep |
 | 3 | AC-7 `PublicCache` on the home GETs | not measured | | | `curl` has no HTTP cache, so AC-4 cannot judge it | Skipped by decision, not built (see Step 3: AC-7) |
+| Final (AC-8) | No new run: the step 3 AC-6 row above is the final warm state (see Step 5) | parallel | 574.7 | 926.3 | | Final state |
 
 ### Step 1: AC-5 (a) OPcache
 
@@ -263,7 +266,7 @@ Run finishes, sorted: 522.5, 544.5, 555.8, 556.8, 573.7, 575.8, 667.0, 676.7, 69
 
 ### Step 3: browse journey triage rows (AC-15)
 
-**Date**: 2026-11-16 · **Code**: `HomePageSkeleton.tsx`, `FeaturedBanner.tsx`, `ScrollRail.tsx`, new `ScrollRail.test.tsx` (not committed yet) · **Browser**: Playwright Chromium against local `npm run dev` and `php artisan serve`, at 1440 px and 390 px (plus 1024 and 1280 px for the banner). The "before" numbers come from the `/check verify` run on production `3da42ae` earlier the same day.
+**Date**: 2026-11-16 · **Code**: `HomePageSkeleton.tsx`, `FeaturedBanner.tsx`, `ScrollRail.tsx`, new `ScrollRail.test.tsx` (committed in `b8293a7`) · **Browser**: Playwright Chromium against local `npm run dev` and `php artisan serve`, at 1440 px and 390 px (plus 1024 and 1280 px for the banner). The "before" numbers come from the `/check verify` run on production `3da42ae` earlier the same day.
 
 | Triage row | Before | Change | After | State |
 |---|---|---|---|---|
@@ -301,7 +304,7 @@ Reproduction: one offer with 6 unsold keys at €10.00, empty cart.
 
 ### Step 4: cart adjustments, toasts, and buy journey fixes
 
-**Date**: 2026-11-16 · **Code**: `CartAdjustment`, `UpsertCartLine` (`RETURNING quantity`), `AddCartItem` (with the `(int)` cast), `MergeGuestCart`, `CartController`; client `api/cart.ts`, `lib/cart.ts`, `lib/cartMergeNotice.ts`, `CartMergeToast.tsx`, `AddToCartButton.tsx`, `OrderConfirmationPage.tsx` (not committed yet) · **Browser**: Playwright Chromium against local `npm run dev` and `php artisan serve`, 1440 px.
+**Date**: 2026-11-16 · **Code**: `CartAdjustment`, `UpsertCartLine` (`RETURNING quantity`), `AddCartItem` (with the `(int)` cast), `MergeGuestCart`, `CartController`; client `api/cart.ts`, `lib/cart.ts`, `lib/cartMergeNotice.ts`, `CartMergeToast.tsx`, `AddToCartButton.tsx`, `OrderConfirmationPage.tsx` (committed in `4959afe`) · **Browser**: Playwright Chromium against local `npm run dev` and `php artisan serve`, 1440 px.
 
 - [x] API: add 10 to an offer with 2 keys → `meta.adjustments` `[{ offer_id: 29, requested: 10, added: 2 }]`, line 2 → AC-10
 - [x] API: add at the max → 422 "You already have the maximum for this offer." with no `meta`; `PATCH` has no `meta` → AC-10, AC-11
@@ -317,6 +320,72 @@ Reproduction: one offer with 6 unsold keys at €10.00, empty cart.
 **Tests**: Pest `CartAdjustmentsTest.php` (9 cases: the three AC-13 cases, within stock `[]`, at max 422 with no meta, merge past the line limit, merge onto a line already above the cap gives `added: 0`, empty merge, other endpoints without `meta`). Vitest: `AddToCartButton.test.tsx` (adjusted, normal, response without `meta`, 422, guest), `CartMergeToast.test.tsx` (one toast, merge before mount, no adjustments, removed on sign out or a new sign in, none when the user signed out during the merge), `cart.test.ts` (merge resolves to adjustments, `runCartWrite` with the new result shape), `OrderConfirmationPage.test.tsx` (loading and error after paying). The new add toast and confirmation tests fail on the old code and pass on the fix.
 
 **Checks**: server `php artisan test` (486 passed), `composer analyse`, `composer format:check`; client `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` (49 files, 453 tests), `npm run build`, all green.
+
+### Step 4: production smoke test (`4959afe`)
+
+**Date**: 2026-11-16, about 11:55 UTC · **Code**: `4959afe` on both Vercel (client) and Render (API) · **Account**: a temporary account made for this test (see Follow ups) · **Payment**: none submitted. No checkout ran, and no stock or key was used.
+
+| Check | Result |
+|---|---|
+| Guest adds 2 of offer 244 (2 in stock), signs in to an account already holding 1 | merge returns `added: 1` of 2 requested, cart shows 2, exactly one toast → AC-11, AC-12 |
+| Sign out within the toast's 4 s | toast removed → AC-12 |
+| Sign in again | no merge request, no toast → AC-12 |
+| Add at the maximum | "You already have the maximum for this offer." → AC-10, AC-12 |
+| Normal add (Nordic Keys) | `adjustments: []`, "Added to cart." → AC-12 |
+| Cart and checkout page, no payment | total €93.57, the "Pay €93.57" button matches |
+| Confirmation page while loading, on a 404, and on a 500 | heading "Order details", never "Payment successful" → AC-15 (confirmation heading row) |
+
+The confirmation checks used a made up order ID with a delayed or faked response, so they say nothing about a real paid order on production.
+
+**Cleanup**: the test account's cart was emptied (0 lines, 0 orders) and its tokens revoked (the API answers 401 for them). The account itself stays, because the API has no delete endpoint.
+
+**CI on `4959afe`** (run `43861167929`): the first attempt failed one server test, `StoreFiltersTest` "loads a filtered page in a fixed number of queries" (4 queries where 7 were expected). It is a known flake, not caused by this change: the test searches `q=a` over two products with random names, and about 6 in 1000 runs neither name contains an "a". Only the failed job was rerun; attempt 2 passed all three jobs (server, checkout-concurrency, client). The test was not fixed.
+
+## Step 5: closeout (AC-8, AC-14, AC-15, AC-16)
+
+**Date**: 2026-11-16 · **Mode**: finish mode, documentation only. No application code changed and nothing was deployed in this step. Decision and reasons: [rationale.md, Closeout decision](rationale.md#closeout-decision-2026-11-16).
+
+### AC-8: final run (reused, not taken again)
+
+- **Warm**: the final warm numbers are the Step 3 AC-6 `--parallel` run (`6e83f76`, 10:42 UTC), taken after all three kept fixes (OPcache, limiter on APCu, route prefetch). Commits after it (`3da42ae`, `b8293a7`, `7f2d19a`, `4959afe`) change only docs, client UI, and cart code; `git diff 6e83f76..4959afe -- server/` shows only the cart actions, the cart controller, `CartAdjustment`, and its test. No home endpoint and no server runtime setting changed.
+- **Not taken**: a final `--waterfall` run, a final `--serial` run, and new cold runs. AC-8 asked for those; the closeout amendment drops them.
+- **Cold**: the three baseline cold runs at `eabd7aa` are reused. They were taken before OPcache and APCu. The wake time they measure (time to first byte minus `app`) happens before PHP runs, so those two fixes should not change it, but this was not measured again.
+
+### Infrastructure limits
+
+This is the source for the feature 18 README performance section.
+
+- **Host**: Render free, one instance, 0.15 CPU and 512 MB RAM, Frankfurt, with the database on Neon. Render Free shows no CPU or memory graphs.
+- **Cold start: about 23 to 35 s (pre optimization baseline, `eabd7aa`, not measured again).** After 15 min with no traffic, Render spins the container down. Waking it took 23.3 to 34.5 s (median 24.4 s) before PHP ran; the first call's own server work stayed under 1 s. The full homepage finished in 29.3 to 41.5 s (median 30.6 s). By decision there is no keep alive ping (spec 0001). Measured at `eabd7aa`, see Cold runs above.
+- **Warm homepage: about 575 ms.** All five calls in parallel finish at a median of 574.7 ms (max 926.3 ms over 10 runs), against 5722.5 ms at baseline (about 90% less). OPcache gave the largest cut (−83.0%), then the limiter on APCu (−25.1%), then the prefetch (−21.2%).
+- **Server work against waiting, per call (warm, final run)**: server work (`app`) is 307 to 447 ms of a 450 to 575 ms total. The rest, about 120 to 140 ms per call (median total minus median `app`), is time outside PHP: network from the client to Cloudflare, Cloudflare to Frankfurt, NGINX, and the hand off to a PHP worker. The Step 3 pre-check, which recorded time to first byte, put that wait at 78 to 178 ms. It does not grow when calls run together, so requests are not queued for a worker (FPM allows 20).
+- **Where the server time goes now**: with five calls at once, `db` is 74 to 97% of `app`. The calls share the small CPU slice and the database, so concurrent calls slow each other. Alone, `/home` takes about 32 ms of server time; among five calls it takes about 307 ms.
+- **What would move it further**: a paid instance with more CPU, weighed and not chosen (rationale.md, Option 3). The browser cache (AC-7) was skipped by decision.
+- **Limits of these numbers**: one client machine in Vilnius, `curl` without the browser's own work, before and after sessions minutes apart, not interleaved.
+
+### AC-14: Resolution sections
+
+Each of the 11 files in `docs/reviews/` now ends with `## Resolution (feature 17, 2026-11-16)`, listing every finding with DONE, DEFER, or SKIP and a brief reason. The original findings text is unchanged.
+
+### AC-15: final state
+
+- [x] Fix and Check rows done in Step 3 (browse journey) and Step 4 (cast, confirmation heading), with the evidence above
+- [ ] **Deferred, not done**: CartPage test, ProductPage tests (including the three product parts), `otherOffersSummary` move, design.md rows, and all nine auth rows
+- [ ] **Deferred, not checked**: stepper `aria-live` with VoiceOver. No result is claimed.
+
+### AC-16: what was and was not verified
+
+- [x] CI green on `4959afe` (run `43861167929`, attempt 2, after the `StoreFiltersTest` flake): server (Pint, PHPStan, Pest), checkout-concurrency (5 rounds against a served API on Postgres 17), client (Prettier, oxlint, typecheck, Vitest, build)
+- [x] Full purchase on a local stack: merged cart, 201 `paid`, €125.37, "Payment successful" (Step 4)
+- [x] Production smoke test of `4959afe`, with no payment submitted (Step 4)
+- [ ] **NOT TESTED: a full purchase on production** after this feature's deploys (payment, key allocation, stock drop, key reveal). No purchase was placed on production during feature 17.
+- [ ] **NOT TESTED on production**: a failed block prefetch showing its `ErrorState` (AC-6). Covered by Vitest only.
+
+### Follow ups
+
+- `StoreFiltersTest` flake: about 6 in 1000 CI runs fail on random product names. Not fixed. If it fails, rerun the job; a fix is to give the two products fixed names.
+- Temporary production account `smoke-f17-1794830008@example.test` (display name "Smoke Test"): still in production, cart empty, no orders, tokens revoked. The API has no delete endpoint. Remove it by hand in the database, or keep it, before submission (feature 18).
+- The deferred AC-15 rows above.
 
 ## Raw evidence
 

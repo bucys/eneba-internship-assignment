@@ -49,3 +49,9 @@ All four findings (one major, three minor) are resolved. The original findings a
 Nits: no action. The sort cast is safe because the select only offers `STORE_SORTS`; the clamp effect is guarded by `mustClamp`; Min only error matches spec AC-6.
 
 Checks after the fixes: client format, lint, typecheck, 338 tests, build; server Pint, PHPStan, 377 Pest tests. All pass.
+
+## Resolution (feature 17, 2026-11-16)
+
+States from [spec 0016](../specs/0016-performance-reliability/rationale.md#closeout-decision-2026-11-16): DONE (resolved or fixed), DEFER (not done, carried as a follow up), SKIP (won't fix).
+
+- All seven findings: DONE. Settled in the Resolution (2026-11-13) above (four fixed, three no action with reasons, which stand as SKIP).

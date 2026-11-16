@@ -58,3 +58,20 @@ Feature 16 (spec 0015) restyles the shared price and card, collapses the header,
 
 ## Test coverage
 Good. New logic with branching is tested: `Price`, `ProductCard`, `Header`, `AppLayout` (checkout header), `Stepper`, `HeroBanners` (split, compact, errors), `SortSelect`, `BuyBox` (including null best offer), `otherOffersSummary`, `platformLinks`, `HomePage` (shortcuts, split mount), `OrderConfirmationPage` (stepper only when just paid), and `HomeSeedersTest` (featured image, missing file). Gaps: product breadcrumb, info rows and title block (see Minor); `BannersTest` is unchanged and still valid since it builds its own data. The `.webp` is 2172x724 and 249 KB, matching the amended AC-12.
+
+## Resolution (feature 17, 2026-11-16)
+
+States from [spec 0016](../specs/0016-performance-reliability/rationale.md#closeout-decision-2026-11-16): DONE (resolved or fixed), DEFER (not done, carried as a follow up), SKIP (won't fix).
+
+- `.claude/` in `.gitignore`: DONE, removed.
+- `scroll-mt` stacks with `scroll-padding-top`: DONE, removed.
+- Home skeleton lacks the shortcuts row: DONE in `b8293a7`. No layout shift at 1440 or 390 px.
+- Component imports from the pages layer: DEFER. Refactor only.
+- Featured text can overlap the art: DONE in `b8293a7`. The check found a tagline contrast failure from `xl`, and the gradient was strengthened.
+- No tests for the new product page parts: DEFER. Test coverage only.
+- Empty fourth grid row: DONE (`lg:row-span-3`).
+- Nit, `ProductInfoRows` key: SKIP. Style only.
+- Nit, money compare note: DONE, in spec 0015.
+- Nit, `CheckoutHeader` height: DONE, one row height rule.
+- Nit, `SortSelect` Space in Firefox: SKIP. Checked in Firefox 159, the problem does not occur.
+- Nit, spec 0015 follow ups: DONE, ticked.

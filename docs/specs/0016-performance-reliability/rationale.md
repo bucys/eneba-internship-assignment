@@ -125,6 +125,8 @@ Smaller calls: `Server-Timing` is always on (durations only, nothing secret; run
 
 Built from a read only check of each finding against the code at commit `0192de8` (2026-11-16). "Resolved" means the review's own resolution section or the current code already settles it. Rows marked **Check** need a real browser before deciding (AC-15).
 
+The table below is the plan as written before the build. The final state of every Fix and Check row is in [Closeout decision](#closeout-decision-2026-11-16).
+
 ### 2026-11-12-main.md (authentication)
 | Finding | State | Action or reason |
 |---|---|---|
@@ -236,6 +238,44 @@ All seven findings resolved in the review (four fixed, three no action with reas
 | 🟡 Icon only copy button | Resolved | tooltip on hover and focus |
 | ⚪ Dead `flex-1` | Resolved | removed |
 | ⚪ `sm:size-8` placement | Won't fix | style only |
+
+## Closeout decision (2026-11-16)
+
+**Decided by**: the developer, after the final completion review of Steps 4 and 5. **Mode**: finish mode. No more application code goes into this feature, and no real checkout runs on production.
+
+**Why**: the review found nothing left that is a correctness, security, or critical UX defect for the purchase flow. Each open row is test coverage, a refactor, docs polish, or a small UX or accessibility nit. Several auth rows also have weak value on their own: register already says whether an email exists (`unique:users,email`), so equal login timing hides nothing; bcrypt reads only the first 72 bytes, so a long password costs no more to check; the preview pattern comes from an env value the developer sets, never from a request. Late fixes carry regression risk with little time left before submission.
+
+**What changes in the spec**: AC-8 reuses the existing final warm run and the baseline cold runs. AC-14 uses DONE, DEFER, and SKIP. AC-15 defers the rows below. AC-16 accepts the production smoke test of `4959afe` plus local evidence, and states that a full production purchase was not tested.
+
+**Final state of each Fix and Check row**
+
+| Review file | Row | Final state |
+|---|---|---|
+| homepage blocks | Five calls on first load | DONE: AC-1 to AC-8, warm homepage 5722.5 → 574.7 ms |
+| homepage blocks | ScrollRail rerenders every scroll | DONE in `b8293a7`, with a regression test |
+| homepage blocks | Seeder relies on silent cap | DONE in `4959afe`: caps now reported in `meta.adjustments` |
+| visual fidelity | Skeleton lacks shortcuts row | DONE in `b8293a7` |
+| visual fidelity | Featured text may overlap art (Check) | DONE in `b8293a7`: check confirmed a tagline contrast failure from `xl`, gradient fixed |
+| visual fidelity | SortSelect Space in Firefox (Check) | SKIP: checked in Firefox 159, the problem does not occur |
+| visual fidelity | BuyBox imports from pages | DEFER: refactor only |
+| visual fidelity | Three product parts untested | DEFER: test coverage only |
+| checkout | "Payment successful" on failed load | DONE in `4959afe`, with tests |
+| cart | `$stored` not cast | DONE in `4959afe` |
+| cart | Cart hooks and UI untested (CartPage test) | DEFER: test coverage only; lib and button tests plus browser checks cover the behavior |
+| cart | Stepper `aria-live` may be chatty (Check) | DEFER: not checked with VoiceOver, no claim either way |
+| product page | Page states lack component tests | DEFER: test coverage only |
+| product page | design.md lacks CoverImage, OfferRow | DEFER: docs polish |
+| authentication | Login timing reveals emails | DEFER: register already reveals whether an email exists |
+| authentication | Login fields no max length | DEFER: low risk, bcrypt reads at most 72 bytes |
+| authentication | Auth logic lacks tests | DEFER: test coverage only |
+| authentication | Preview pattern `#` unescaped | DEFER: the pattern comes from an env value the developer sets |
+| authentication | Double submit after redirect | DEFER: minor UX |
+| authentication | Focus lost after sign out | DEFER: accessibility nit |
+| authentication | Tab out does not close menu | DEFER: accessibility nit |
+| authentication | Sign in link lacks redirectTo | DEFER: minor UX; the guest cart survives sign in |
+| authentication | PasswordField trailing space, mobile keyboard | DEFER: minor UX |
+
+Every Resolved row in the triage table is DONE, and every Won't fix row is SKIP with its reason as written.
 
 ## References
 

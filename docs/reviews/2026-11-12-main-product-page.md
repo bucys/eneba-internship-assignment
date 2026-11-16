@@ -36,3 +36,16 @@ Adds `GET /api/v1/products/{slug}` (route regex, `throttle:catalog`, thin contro
 
 ## Test coverage
 Server: AC-1 to AC-4 thoroughly covered (shape, order, ties, filtering, no-stock, regression vs list, 404s, rate limit, query count). Client: `formatRating`/`formatReleaseDate`, type label map and query key are unit tested; page states, OfferRow and ProductAbout logic are untested (accepted per spec, no RTL).
+
+## Resolution (feature 17, 2026-11-16)
+
+States from [spec 0016](../specs/0016-performance-reliability/rationale.md#closeout-decision-2026-11-16): DONE (resolved or fixed), DEFER (not done, carried as a follow up), SKIP (won't fix).
+
+- Refetch error replaces the loaded page: DONE, error only without data.
+- Page states have no component tests: DEFER. Test coverage only.
+- Missing title outside loaded and 404: DONE, titles render.
+- Nit, `ProductNotFound` inline: SKIP. Style only.
+- Nit, `OfferRow` span unexplained: SKIP. Comment request.
+- Nit, `cover_image_url` typed `string`: SKIP. The column is not null.
+- Nit, case sensitive seller tie break: SKIP. Seeded seller names never tie on case.
+- Nit, design.md lacks `CoverImage`, `OfferRow`: DEFER. Docs polish.

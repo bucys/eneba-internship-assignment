@@ -33,3 +33,13 @@ Mobile polish: the key row now never wraps (nowrap code that scrolls inside itse
 
 ## Test coverage
 Existing copy tests updated correctly (accessible name instead of text) and one new test covers the icon-only control. Layout classes cannot be verified in jsdom, so no 320 to 390px overflow assertion exists; `/check verify` should measure `document.documentElement.scrollWidth` at 320/360/390 on `/orders/:ulid` with a revealed 3-key item (spec 0015 AC-23). No test covers `OrderItemRow` without children (the `row-span-2` implicit row is harmless visually).
+
+## Resolution (feature 17, 2026-11-16)
+
+States from [spec 0016](../specs/0016-performance-reliability/rationale.md#closeout-decision-2026-11-16): DONE (resolved or fixed), DEFER (not done, carried as a follow up), SKIP (won't fix).
+
+- Scrollable key not keyboard reachable: DONE, `tabIndex` when it overflows.
+- Spec and design.md contradict the UI: DONE, updated.
+- Icon only copy button: DONE, tooltip on hover and focus.
+- Nit, dead `flex-1`: DONE, removed.
+- Nit, `sm:size-8` placement: SKIP. Style only.

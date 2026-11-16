@@ -258,17 +258,23 @@ spec [0015](../specs/0015-visual-fidelity-polish/index.md) · code in `client/sr
 
 ### 17. Performance & reliability · Beta · in-progress
 Investigate production homepage latency, fix confirmed bugs, and resolve the review findings that matter.
-**Done when:** homepage latency is measured before and after with recorded evidence; each fix is justified by that evidence, or the limit is documented as an infrastructure constraint (for example Render free tier workers); confirmed checkout bugs are fixed with a regression test each; every relevant finding in `docs/reviews/` is fixed or marked won't fix with a reason; CI is green.
+**Done when:** homepage latency is measured before and after with recorded evidence; each fix is justified by that evidence, or the limit is documented as an infrastructure constraint (for example Render free tier workers); confirmed checkout bugs are fixed with a regression test each; every relevant finding in `docs/reviews/` is fixed, explicitly skipped (won't fix), or deferred, each with a documented reason; CI is green.
 spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/app/Http/Middleware/ServerTiming.php`, `server/app/Support/RequestTimings.php`, `scripts/measure-home.sh`
 - [x] Design it (spec): `/architect performance & reliability`
-- [ ] Build it: `/develop performance & reliability`
+- [x] Build it: `/develop performance & reliability`
   - [x] Evidence: `Server-Timing` middleware, `scripts/measure-home.sh`, production baseline in `verify.md` (AC-1, AC-2, AC-3)
-  - [ ] Server runtime: OPcache, limiter on `file`, FPM workers if needed, each measured and kept or reverted (AC-4, AC-5)
+  - [x] Server runtime: OPcache kept, limiter on APCu (not `file`, spec amendment) kept, FPM workers skipped by its own rule (AC-4, AC-5, AC-17)
   - [x] Homepage: route loader prefetch (done, kept), browse journey triage rows (AC-6, AC-15); `PublicCache` skipped by decision, not built (AC-7, see spec 0016)
-  - [ ] Cart caps and buy journey: `/debug` the 10 for 6 case, `meta.adjustments` on add and merge, toasts, regression tests, buy journey triage rows (AC-9 to AC-13, AC-15)
-  - [ ] Account journey and close out: auth triage rows, Resolution sections in all review files, final measurement and Infrastructure limits note, CI and production purchase run (AC-8, AC-14, AC-15, AC-16)
+  - [x] Cart caps and buy journey: `/debug` the 10 for 6 case (no checkout bug), `meta.adjustments` on add and merge, toasts, regression tests, `(int)` cast, confirmation heading (`4959afe`); the other buy journey triage rows deferred (AC-9 to AC-13, AC-15)
+  - [x] Account journey and close out, as amended on 2026-11-16 (finish mode): auth triage rows deferred, Resolution sections in all 11 review files, AC-8 reuses the existing final warm and cold numbers with the Infrastructure limits note written, CI green on `4959afe`; **no production purchase run**, AC-16 rests on the production smoke test plus local purchase and concurrency evidence (AC-8, AC-14, AC-15, AC-16)
 - [ ] Verify it: `/check verify performance & reliability`
 - [ ] Test it: `/test performance & reliability`
+- Follow ups from the closeout (spec 0016 Follow-up, carried to feature 18):
+  - A full purchase on production was not tested in feature 17; decide whether to run one.
+  - `StoreFiltersTest` CI flake (about 6 in 1000 runs, random product names); not fixed, rerun the job.
+  - Temporary production account `smoke-f17-1794830008@example.test` stays (no delete endpoint); remove by hand or keep.
+  - Deferred triage rows: CartPage and ProductPage tests, `otherOffersSummary` move, design.md rows, stepper `aria-live` check, all auth rows.
+  - Spec 0015 AC-9 gradient wording is stale after `b8293a7`.
 - Carried in from feature 15 ([review](../reviews/2026-11-13-main-homepage-blocks.md)):
   - Production first load is slow: 5 API calls (layout, then 4 blocks) each took 6 to 9 s on Render while one call alone takes about 0.9 s. Check Render's PHP worker count, or add a short `Cache-Control` to the home endpoints.
   - The minor and nit findings in the review file (for example `ScrollRail` re-rendering on every scroll event, band colours flipping when a block resolves empty).

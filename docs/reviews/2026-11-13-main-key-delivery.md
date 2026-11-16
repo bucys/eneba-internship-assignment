@@ -29,3 +29,12 @@ Adds an owner-only `GET /orders/{ulid}/keys` endpoint (thin controller, `ShowOrd
 
 ## Test coverage
 Server: all new branches covered (happy path, leak check, 401/404/429, read-only, bad ULID pattern). Client: unit tests for `keysErrorMessage`, `copyHint`, `keySlotId`, API/query options; page tests for masked state, single fetch, pending clicks, failure/retry, error relocation, ULID change, copy success/timer restart, hide reset, clipboard rejected/missing, unmount drop, sign-out and invalidation. Untested: the missing-entry/short-codes case above and the status-region text after repeated reveals. Tests were read, not executed, in this review.
+
+## Resolution (feature 17, 2026-11-16)
+
+States from [spec 0016](../specs/0016-performance-reliability/rationale.md#closeout-decision-2026-11-16): DONE (resolved or fixed), DEFER (not done, carried as a follow up), SKIP (won't fix).
+
+- Live region not repeated: DONE, a new node per announcement.
+- Missing entry leaves a slot stuck: DONE, falls back to masked with an error.
+- Nit, unneeded `RateLimiter::clear`: SKIP. Test only, harmless.
+- Nit, pending set keeps failed slots: SKIP. Masked through `failed`, harmless.

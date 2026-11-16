@@ -49,3 +49,17 @@ This change adds checkout with a simulated card payment, an idempotent order cre
 
 ## Test coverage
 Server coverage is strong for the focus areas: happy path with snapshots and sold keys, replay with a bad body or empty cart, cross user replay, declines, each 409 cause including the short key read, validation per field with no value echo, access and ownership, throttle, preview block, lock ordering for every cart action, Luhn and gateway units. Gaps: real parallel behavior is only covered by the manual script, no test where the gateway throws an unexpected exception, and no client component tests (RTL not installed). Client helper logic (card formatting, validation, error mapping) is tested.
+
+## Resolution (feature 17, 2026-11-16)
+
+States from [spec 0016](../specs/0016-performance-reliability/rationale.md#closeout-decision-2026-11-16): DONE (resolved or fixed), DEFER (not done, carried as a follow up), SKIP (won't fix).
+
+- Concurrency only proven manually: DONE, the CI checkout-concurrency job.
+- Success path can lock the form: DONE (`isOpeningOrder`).
+- Charge inside the order transaction: SKIP. Simulated gateway with no network call; the rewrite risk outweighs the gain.
+- Controller carries orchestration: SKIP. Style; the flow is tested and correct.
+- Checkout pages untested: DONE, test files exist.
+- Nit, "Payment successful" on a failed load: DONE in `4959afe`, shown only once the order has loaded, with tests.
+- Nit, list key is the index: DONE, uses `item.id`.
+- Nit, Pest scaffold helpers: SKIP. Unused test helpers, no behavior.
+- Nit, afterCommit comment: DONE, comment added.
