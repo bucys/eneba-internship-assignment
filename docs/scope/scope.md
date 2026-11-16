@@ -30,7 +30,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 15 | Homepage blocks | Journey 3: Landing | done |
 | 16 | Visual fidelity & polish | Polish | done |
 | 17 | Performance & reliability | Polish | done |
-| 18 | Submission readiness | Wrap up | planned |
+| 18 | Submission readiness | Wrap up | in-progress |
 
 ## Foundations
 

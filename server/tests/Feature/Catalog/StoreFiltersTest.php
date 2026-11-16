@@ -94,8 +94,10 @@ describe('filters', function () {
     });
 
     it('loads a filtered page in a fixed number of queries', function (int $count) {
-        Product::factory()->count($count)->create(['platform_id' => $this->steam->id, 'region_id' => $this->europe->id])
-            ->each(fn (Product $product) => cartOffer(1, ['product_id' => $product->id, 'price_cents' => 900]));
+        // Fixed names that contain "a", so q=a always matches; an empty page would skip queries.
+        foreach (range(1, $count) as $number) {
+            storeProduct("Game {$number}", 900, ['platform_id' => $this->steam->id, 'region_id' => $this->europe->id]);
+        }
 
         DB::enableQueryLog();
         $this->getJson('/api/v1/products?platform=steam&region=europe&price_max=20&q=a')->assertOk();
