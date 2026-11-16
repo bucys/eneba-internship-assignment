@@ -12,6 +12,7 @@ vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
 const { queryClient } = await import("../lib/queryClient");
 const { StorePage } = await import("./StorePage");
+const { ToastProvider } = await import("../components/ui/Toast");
 const { storeLoader } = await import("./storeLoader");
 const { SearchForm } = await import("../components/layout/SearchForm");
 
@@ -99,10 +100,10 @@ function renderStore(url = "/store") {
         path: "/store",
         loader: storeLoader,
         element: (
-          <>
+          <ToastProvider>
             <SearchForm />
             <StorePage />
-          </>
+          </ToastProvider>
         ),
       },
     ],

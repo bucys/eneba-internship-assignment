@@ -79,25 +79,36 @@ export function ActiveFilterChips({
   if (chips.length === 0 && !canClear) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <ul aria-label="Active filters" className="contents">
-        {chips.map((chip) => (
-          <li key={chip.key} className="max-w-full">
-            <button
-              type="button"
-              aria-label={`Remove filter: ${chip.label}`}
-              onClick={() => onChange(chip.remove)}
-              className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-sm border border-fg-muted bg-surface px-3 text-sm font-semibold text-fg transition-colors hover:bg-surface-deep"
-            >
-              <span className="truncate">{chip.label}</span>
-              <X aria-hidden="true" className="size-4 shrink-0 text-fg-soft" />
-            </button>
-          </li>
-        ))}
-      </ul>
+    // Below lg the chips scroll in one row, with Clear all kept outside the scroller; from lg they wrap.
+    <div className="flex min-w-0 items-center gap-2 lg:flex-wrap">
+      {chips.length > 0 && (
+        // The padding gives focus outlines room inside the scroller, which clips its overflow.
+        <ul
+          aria-label="Active filters"
+          className="-m-1 flex min-w-0 flex-1 gap-2 overflow-x-auto p-1 lg:contents"
+        >
+          {chips.map((chip) => (
+            <li key={chip.key} className="max-w-64 shrink-0 lg:max-w-full">
+              <button
+                type="button"
+                aria-label={`Remove filter: ${chip.label}`}
+                onClick={() => onChange(chip.remove)}
+                className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-sm border border-fg-muted bg-surface px-3 text-sm font-semibold text-fg transition-colors hover:bg-surface-deep"
+              >
+                <span className="truncate">{chip.label}</span>
+                <X
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-fg-soft"
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {canClear && (
         <Button
           variant="ghost"
+          className="shrink-0"
           onClick={() =>
             onChange((current) => ({
               ...DEFAULT_STORE_PARAMS,

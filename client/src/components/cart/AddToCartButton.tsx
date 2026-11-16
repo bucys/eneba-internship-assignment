@@ -1,6 +1,5 @@
-import { cartErrorMessage, useCartActions } from "../../lib/cart";
 import { Button } from "../ui/Button";
-import { useToast } from "../ui/toastContext";
+import { useAddToCart } from "./useAddToCart";
 
 type AddToCartButtonProps = {
   offerId: number;
@@ -18,35 +17,13 @@ export function AddToCartButton({
   size = "md",
   className,
 }: AddToCartButtonProps) {
-  const { add, isPending } = useCartActions();
-  const toast = useToast();
-
-  async function handleClick() {
-    try {
-      const [adjustment] = await add(offerId, stock);
-      toast.show({
-        message: adjustment
-          ? `Only ${adjustment.added} available, so we added ${adjustment.added}.`
-          : "Added to cart.",
-        variant: "success",
-        action: { label: "View cart", to: "/cart" },
-      });
-    } catch (error) {
-      toast.show({
-        message: cartErrorMessage(
-          error,
-          "Could not add to cart. Please try again.",
-        ),
-        variant: "error",
-      });
-    }
-  }
+  const { addToCart, isPending } = useAddToCart();
 
   return (
     <Button
       size={size}
       loading={isPending}
-      onClick={() => void handleClick()}
+      onClick={() => void addToCart(offerId, stock)}
       className={className}
     >
       Add to cart

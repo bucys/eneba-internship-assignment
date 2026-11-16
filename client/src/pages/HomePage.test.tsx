@@ -13,6 +13,7 @@ vi.mock("../lib/env", () => ({ env: { apiUrl: "https://api.example.test" } }));
 
 const { queryClient } = await import("../lib/queryClient");
 const { HomePage } = await import("./HomePage");
+const { ToastProvider } = await import("../components/ui/Toast");
 const { homeLoader } = await import("./homeLoader");
 const { HOME_BLOCK_QUERIES } = await import("../api/home");
 
@@ -92,7 +93,16 @@ function serverError() {
 }
 
 function renderHome() {
-  const router = createMemoryRouter([{ path: "/", Component: HomePage }]);
+  const router = createMemoryRouter([
+    {
+      path: "/",
+      element: (
+        <ToastProvider>
+          <HomePage />
+        </ToastProvider>
+      ),
+    },
+  ]);
   render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
@@ -103,7 +113,15 @@ function renderHome() {
 // The real `/` route: the loader prefetches before HomePage mounts.
 function renderHomeRoute() {
   const router = createMemoryRouter([
-    { path: "/", Component: HomePage, loader: homeLoader },
+    {
+      path: "/",
+      loader: homeLoader,
+      element: (
+        <ToastProvider>
+          <HomePage />
+        </ToastProvider>
+      ),
+    },
   ]);
   render(
     <QueryClientProvider client={queryClient}>
@@ -338,7 +356,9 @@ describe("HomePage", () => {
 
     await inBand("Deals").findByText("Deal 12");
     const deals = band("Deals");
-    expect(within(deals).getAllByRole("link")).toHaveLength(12);
+    expect(
+      within(deals).getAllByRole("link", { name: /^Steam Deal \d+/ }),
+    ).toHaveLength(12);
     expect(
       within(deals).queryByRole("button", { name: "Show all" }),
     ).not.toBeInTheDocument();

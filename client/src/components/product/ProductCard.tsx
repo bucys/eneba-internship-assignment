@@ -5,6 +5,7 @@ import type { Money } from "../../lib/money";
 import { Skeleton } from "../ui/Skeleton";
 import { COVER_ASPECT_CLASS, CoverImage } from "./CoverImage";
 import { Price } from "./Price";
+import { QuickAddActions, QuickAddIconButton } from "./ProductQuickAdd";
 
 export type ProductCardLayout = "vertical" | "horizontal";
 
@@ -22,7 +23,7 @@ type ProductCardProps = {
 };
 
 const layoutClasses: Record<ProductCardLayout, string> = {
-  vertical: "h-full flex-col gap-3",
+  vertical: "flex-col gap-3",
   horizontal: "flex-row items-start gap-3",
 };
 
@@ -38,53 +39,75 @@ export function ProductCard({
   layout = "vertical",
   ref,
 }: ProductCardProps) {
+  const canBuy = price !== null;
+
   return (
-    // Inset focus outline, so a scrolling rail never clips the ring (spec 0014 AC-13).
-    <Link
-      ref={ref}
-      to={`/products/${slug}`}
+    <div
       className={cx(
-        "flex rounded-sm bg-surface p-3 transition-shadow hover:ring-1 hover:ring-accent hover:ring-inset focus-visible:-outline-offset-2 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-inset",
-        layoutClasses[layout],
+        "relative flex rounded-sm bg-surface transition-shadow hover:ring-1 hover:ring-accent hover:ring-inset",
+        layout === "vertical" && "h-full flex-col",
       )}
     >
-      <div
+      {/* Inset focus outline, so a scrolling rail never clips the ring (spec 0014 AC-13). */}
+      <Link
+        ref={ref}
+        to={`/products/${slug}`}
         className={cx(
-          "relative",
-          layout === "horizontal" ? "w-20 shrink-0" : "w-full",
+          "flex flex-1 rounded-sm p-3 focus-visible:-outline-offset-2 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-inset",
+          layoutClasses[layout],
         )}
       >
-        <CoverImage key={coverImageUrl} url={coverImageUrl} alt={name} />
-        <span className="absolute inset-x-0 bottom-0 truncate rounded-b-sm bg-black/70 px-1 py-1 text-center text-xs font-semibold text-fg">
-          {platformName}
-        </span>
-      </div>
-      <div
-        className={cx(
-          "flex flex-1 flex-col",
-          layout === "horizontal" ? "min-w-0 gap-2" : "gap-3",
-        )}
-      >
-        <div className="flex flex-1 flex-col gap-1">
-          <span className="line-clamp-2 text-sm font-semibold text-fg">
-            {name}
-          </span>
-          <span className="text-xs font-extrabold text-accent uppercase">
-            {regionName}
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          {price !== null && (
-            <span className="text-xs text-fg-muted">From</span>
+        <div
+          className={cx(
+            "relative",
+            layout === "horizontal" ? "w-20 shrink-0" : "w-full",
           )}
-          <Price
-            price={price}
-            listPrice={listPrice}
-            discountPercent={discountPercent}
-          />
+        >
+          <CoverImage key={coverImageUrl} url={coverImageUrl} alt={name} />
+          <span className="absolute inset-x-0 bottom-0 truncate rounded-b-sm bg-black/70 px-1 py-1 text-center text-xs font-semibold text-fg">
+            {platformName}
+          </span>
         </div>
-      </div>
-    </Link>
+        <div
+          className={cx(
+            "flex flex-1 flex-col",
+            layout === "horizontal" ? "min-w-0 gap-2" : "gap-3",
+          )}
+        >
+          <div className="flex flex-1 flex-col gap-1">
+            <span className="line-clamp-2 text-sm font-semibold text-fg">
+              {name}
+            </span>
+            <span className="text-xs font-extrabold text-accent uppercase">
+              {regionName}
+            </span>
+          </div>
+          {/* Right padding keeps the price clear of the pinned cart button. */}
+          <div
+            className={cx(
+              "flex flex-col gap-0.5",
+              canBuy && (layout === "horizontal" ? "pr-12" : "pr-12 md:pr-0"),
+            )}
+          >
+            {canBuy && <span className="text-xs text-fg-muted">From</span>}
+            <Price
+              price={price}
+              listPrice={listPrice}
+              discountPercent={discountPercent}
+            />
+          </div>
+        </div>
+      </Link>
+      {canBuy && layout === "horizontal" && (
+        <QuickAddIconButton slug={slug} name={name} />
+      )}
+      {canBuy && layout === "vertical" && (
+        <>
+          <QuickAddIconButton slug={slug} name={name} className="md:hidden" />
+          <QuickAddActions slug={slug} name={name} className="hidden md:flex" />
+        </>
+      )}
+    </div>
   );
 }
 
