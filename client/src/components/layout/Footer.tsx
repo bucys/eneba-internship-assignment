@@ -22,11 +22,6 @@ export function Footer() {
                 Store
               </Link>
             </li>
-            <li>
-              <Link to="/login" className={footerLinkClasses}>
-                Sign in
-              </Link>
-            </li>
           </ul>
         </nav>
       </Container>
