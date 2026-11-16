@@ -124,7 +124,7 @@ Client shape:
 
 Journey approach: the evidence comes first, then the browse journey (homepage), then the buy journey (cart and checkout), then the account journey, each finished with its tests before the next.
 
-1. **Evidence.** Add `ServerTiming` with its Pest test, write `scripts/measure-home.sh`, deploy, and record the production baseline and runtime facts in `verify.md`, satisfies **AC-1**, **AC-2**, **AC-3**
+1. [x] **Evidence.** Add `ServerTiming` with its Pest test, write `scripts/measure-home.sh`, deploy, and record the production baseline and runtime facts in `verify.md`, satisfies **AC-1**, **AC-2**, **AC-3**
 2. **Server runtime.** Try AC-5 (a), (b), (c) in order, one deploy each, measuring and keeping or reverting per AC-4; add `CACHE_LIMITER_STORE` to `config/cache.php` and `.env.example` only if (b) is kept, satisfies **AC-4**, **AC-5**
 3. **Homepage client and cache.** Route loader prefetch with its Vitest test, measured; `PublicCache` on the home group with its Pest test, checked in a browser reload; then the browse journey triage rows (ScrollRail, skeleton shortcuts row, featured banner check, SortSelect check), satisfies **AC-4**, **AC-6**, **AC-7**, **AC-15**
 4. **Cart caps and the buy journey.** `/debug` the observation and record the cause; `CartAdjustment`, `RETURNING` upsert, `meta` on add and merge, client toasts, all AC-13 tests; then the buy journey triage rows (int cast, CartPage test, stepper announcement check, confirmation heading, product page tests, `otherOffersSummary` move, design.md rows), satisfies **AC-9**, **AC-10**, **AC-11**, **AC-12**, **AC-13**, **AC-15**

@@ -262,7 +262,7 @@ Investigate production homepage latency, fix confirmed bugs, and resolve the rev
 spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/app/Http/Middleware/ServerTiming.php`, `server/app/Support/RequestTimings.php`, `scripts/measure-home.sh`
 - [x] Design it (spec): `/architect performance & reliability`
 - [ ] Build it: `/develop performance & reliability`
-  - [ ] Evidence: `Server-Timing` middleware, `scripts/measure-home.sh`, production baseline in `verify.md` (AC-1, AC-2, AC-3)
+  - [x] Evidence: `Server-Timing` middleware, `scripts/measure-home.sh`, production baseline in `verify.md` (AC-1, AC-2, AC-3)
   - [ ] Server runtime: OPcache, limiter on `file`, FPM workers if needed, each measured and kept or reverted (AC-4, AC-5)
   - [ ] Homepage: route loader prefetch, `PublicCache` on the home GETs, browse journey triage rows (AC-6, AC-7, AC-15)
   - [ ] Cart caps and buy journey: `/debug` the 10 for 6 case, `meta.adjustments` on add and merge, toasts, regression tests, buy journey triage rows (AC-9 to AC-13, AC-15)
