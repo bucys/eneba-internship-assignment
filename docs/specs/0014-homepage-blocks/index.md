@@ -5,7 +5,7 @@
 
 > **Partly superseded by [spec 0015](../0015-visual-fidelity-polish/index.md)** (visual fidelity and polish, 2026-11-14). The portrait tile strip for the `banners` block in AC-10 (`ScrollRail`, `BannerTile`, every banner shown) is replaced by a split hero from `lg` (featured slot plus two side tiles) and one compact featured banner below `lg` (spec 0015 AC-8 to AC-11); a platform shortcuts row now sits under the hero (AC-7). The block endpoints, layout order, per block loading and error states, and the other blocks are unchanged. Everything else in this spec still holds. The original text below is kept unchanged as history.
 
-> **Amended by [spec 0016](../0016-performance-reliability/index.md)** (performance and reliability, 2026-11-16). The four home endpoints answer 200 with `Cache-Control: public, max-age=30`, so AC-3's "moves on the next fetch" can lag up to 30 s across reloads. The `/` route also prefetches the layout and every block at once instead of waiting for the layout (spec 0016 AC-6, AC-7). Per block loading, errors, and isolation are unchanged.
+> **Amended by [spec 0016](../0016-performance-reliability/index.md)** (performance and reliability, 2026-11-16). The `/` route prefetches the layout and every block at once instead of waiting for the layout (spec 0016 AC-6). AC-3 is unchanged: the planned 30 s browser cache on the home endpoints (spec 0016 AC-7) was skipped. Per block loading, errors, and isolation are unchanged.
 
 ## Summary
 

@@ -90,6 +90,7 @@ Three `--waterfall` runs, each after at least 16 min 40 s with no traffic from t
 | 2 | AC-5 (b) rate limiter on APCu (`CACHE_LIMITER_STORE=apc`) | waterfall | 729.1 | 7959.1 | −25.1% (max +408.1%, one network stall, see Step 2) | Keep |
 | 3 (pre-check) | AC-6 simulated: `--parallel`, no code change (the request pattern the prefetch creates) | parallel | 575.0 | 744.7 | −21.1% vs step 2 waterfall (max −90.6%) | Pre-check passed: implement AC-6, then confirm it in the browser |
 | 3 | AC-6 route loader prefetch (`6e83f76`) | parallel | 574.7 | 926.3 | −21.2% vs step 2 waterfall (max −88.4%) | Keep |
+| 3 | AC-7 `PublicCache` on the home GETs | not measured | | | `curl` has no HTTP cache, so AC-4 cannot judge it | Skipped by decision, not built (see Step 3: AC-7) |
 
 ### Step 1: AC-5 (a) OPcache
 
@@ -235,6 +236,30 @@ Run finishes, sorted: 522.5, 544.5, 555.8, 556.8, 573.7, 575.8, 667.0, 676.7, 69
 3. **Limits.** Before and after are separate sessions (10:20 and 10:42 UTC), not interleaved. Browser times above include Vercel and the browser's own work, so they are not comparable one to one with the curl numbers.
 
 **Measurement**: `scripts/measure-home.sh https://eneba-api.onrender.com 10 --parallel`, warm, against the Step 2 `--waterfall` median 729.1 ms; keep bar ≤ 656.2 ms (AC-4).
+
+### Step 3: AC-7 browser cache (skipped)
+
+**Decided**: 2026-11-16, after the AC-6 KEEP above · **Code**: none written, nothing deployed · **Outcome**: AC-7 is closed as skipped by decision, not left incomplete. Reasons: [rationale.md, Browser cache decision](rationale.md#browser-cache-decision-ac-7-skipped-2026-11-16).
+
+**Production headers seen before deciding** (two read only `curl` calls against `https://eneba-api.onrender.com`, sent with `Origin: https://eneba-internship-assignment.vercel.app`):
+
+| Request | Header | Value |
+|---|---|---|
+| `GET /api/v1/home/deals` | `HTTP` | `200` |
+| | `cache-control` | `no-cache, private` |
+| | `cf-cache-status` | `DYNAMIC` (Cloudflare did not cache it) |
+| | `vary` | `Origin` (plus `Accept-Encoding`) |
+| | `access-control-allow-origin` | the production SPA origin |
+| `OPTIONS /api/v1/home/deals` (preflight asking for `authorization`) | `HTTP` | `204` |
+| | `access-control-allow-headers` | `authorization` |
+| | `access-control-max-age` | `0` (preflights are never reused) |
+
+**Client facts checked in code**:
+- `client/src/api/client.ts`: `apiFetch` sets `Authorization: Bearer <token>` on every request when a token is stored, home calls included.
+- `client/src/api/home.ts`: home queries use `staleTime: 60_000`; `client/src/lib/queryClient.ts` sets `refetchOnWindowFocus: false`.
+- `client/src/lib/checkout.ts`: checkout invalidates `["products"]`, not `["home"]`.
+
+**What this means for the numbers**: none of the recorded measurements change. The homepage stays at the Step 3 median of 574.7 ms (`--parallel`), and AC-6 stays KEEP.
 
 ## Raw evidence
 

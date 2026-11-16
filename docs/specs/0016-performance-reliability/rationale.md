@@ -14,7 +14,7 @@ Finally, 11 review files hold findings in mixed states: some fixed and noted, so
 
 ### Option 1: Measure first, fix in place, one change at a time
 
-Add a `Server-Timing` header and a repeatable script, record a baseline, then try a short ordered list of cheap fixes (runtime env, limiter store, client prefetch, a short browser cache), keeping only what moves the numbers.
+Add a `Server-Timing` header and a repeatable script, record a baseline, then try a short ordered list of cheap fixes (runtime env, limiter store, client prefetch, a short browser cache), keeping only what moves the numbers. The browser cache was later skipped before it was built (see *Browser cache decision* below).
 
 **Pros**:
 - Every change has evidence; nothing speculative stays.
@@ -64,7 +64,7 @@ Option 1 is chosen because the only real data point (0.9 s alone, 6 to 9 s toget
 
 The 10% keep rule exists because Render timings are noisy: a smaller gain cannot be told apart from noise in 10 runs, and a change you cannot show working is a change you have to explain without evidence. The `--waterfall` mode exists because the curl script would otherwise be blind to the one fix that is purely about request order.
 
-For the cart, reporting caps through `meta.adjustments` keeps the `Cart` shape (and every test and type built on it) unchanged, while giving the client exactly the two numbers the toast needs (runner up: rejecting over cap adds with 422, which is strict but turns a buyer adding one more at the edge into an error). Computing `added` from `RETURNING` rather than from the cap in PHP keeps it exact even if two adds race (the per user `CartLock` already serialises them, so this is belt and braces). `PublicCache` is a tiny custom middleware rather than Laravel's built in `cache.headers`, because the built in one would also mark the inner `throttle`'s 429 as cacheable for 30 s (runner up: the built in middleware placed inside throttle, which depends on middleware priority order and is easy to break).
+For the cart, reporting caps through `meta.adjustments` keeps the `Cart` shape (and every test and type built on it) unchanged, while giving the client exactly the two numbers the toast needs (runner up: rejecting over cap adds with 422, which is strict but turns a buyer adding one more at the edge into an error). Computing `added` from `RETURNING` rather than from the cap in PHP keeps it exact even if two adds race (the per user `CartLock` already serialises them, so this is belt and braces). The first draft planned `PublicCache`, a tiny custom middleware (chosen over Laravel's built in `cache.headers`, which would also mark the inner `throttle`'s 429 as cacheable). It was skipped before it was built; the next section records why.
 
 Smaller calls: `Server-Timing` is always on (durations only, nothing secret; runner up: an env flag, which adds a step every time you want to measure). The limiter moves to APCu and not the whole cache, because only the limiter runs on every request and the single instance makes per instance counts correct (runner up: keep the database store). The first draft picked the `file` store; the amendment below replaced it. The review triage follows one rule (fix bugs, accessibility, reliability, security; decline pure style and comment requests) so each won't fix has the same kind of reason. The two checkout minors (charge inside the transaction, orchestration in the controller) are declined: the gateway is simulated with no network call, so the lock time is microseconds, and rewriting the locked purchase path this late risks the most important flow for a style gain.
 
@@ -99,6 +99,27 @@ Smaller calls: `Server-Timing` is always on (durations only, nothing secret; run
 - **Resets.** Counters live in container memory: every deploy, restart, FPM reload, and free tier spin down clears them.
 - **One instance only.** Per container counts are right for Render free's single instance and wrong for more.
 - **Memory on 512 MB.** OPcache reserves up to 256 MB and APCu 32 MB; in both, only touched pages count against the instance. The limiter needs far under 1 MB, so the defaults stay; check the Render memory graph (AC-17 (iv)).
+
+## Browser cache decision (AC-7 skipped, 2026-11-16)
+
+**Decision**: skip AC-7. The four home GETs keep the framework default `Cache-Control: no-cache, private`. This is a deliberate closure, not unfinished work.
+
+**Why it was in the plan.** The feature 15 review saw 6 to 9 s first loads and suggested "add a short `Cache-Control` to the home endpoints" as one cheap option. Since then OPcache, the APCu limiter, and the route loader prefetch have brought the warm homepage median to 574.7 ms (`verify.md` Step 3), so the problem it was meant to soften is gone.
+
+**What was checked before deciding** (production headers and client code; details in `verify.md`, Step 3: AC-7):
+- **Cloudflare does not cache these responses.** `/api/v1/home/deals` answers `cf-cache-status: DYNAMIC` with `cache-control: no-cache, private`. These paths have no file extension, so Cloudflare's default rules leave them alone, and Render owns that Cloudflare setup, so the project cannot opt in. A `public` header would win nothing at the proxy.
+- **Signed in requests carry a bearer token.** `apiFetch` sends `Authorization: Bearer <token>` on every call when a token is stored, home calls included. The first draft's security model said the opposite; that is corrected in `index.md`. `public` is exactly the directive that permits a shared cache to store a response to such a request, so it added risk for no gain.
+- **The CORS preflight still runs for signed in users.** The `Authorization` header makes every signed in call need a preflight, and production answers `access-control-max-age: 0`, so preflights are never reused. A browser cache hit would still cost one trip to Render for those users; the saving would mostly reach guests.
+- **TanStack Query already covers most of it.** `staleTime` is 60 s for the home queries (`client/src/api/home.ts`) and `refetchOnWindowFocus` is off. Inside one visit, moving between pages already sends no repeat home call (checked in `verify.md` Step 3, AC-6). A 30 s HTTP cache would only help a full reload or a new tab within 30 s.
+- **It adds a freshness trap.** Any later `invalidateQueries({ queryKey: ["home"] })` (for example after checkout changes best sellers) would quietly get the browser's cached copy for up to 30 s. Today checkout invalidates only `["products"]`, so nothing breaks now, but the rule would have to be remembered forever.
+- **The keep rule cannot judge it.** AC-4 keeps a fix only on a 10% drop in the `measure-home.sh` median. That script uses `curl`, which has no HTTP cache, so AC-7 could never pass or fail the project's own bar; it would ship on a manual browser check alone.
+
+**Options**:
+- **Skip (chosen).** Nothing to build, test, or explain. Freshness stays as spec 0014 defined it. Cost: a full reload refetches five calls, about 575 ms warm.
+- **`private, max-age=30` on 200 only** (runner up). Same browser behavior as the draft, without inviting shared caches. Still a new middleware, a spec 0014 freshness amendment, an exemption from AC-4, and the invalidation trap above, for a saving on reloads that mostly reaches guests.
+- **`public, max-age=30` (the first draft).** Declined: no proxy benefit (Cloudflare does not cache these paths) and it permits shared caching of responses to token carrying requests.
+
+**What would reopen it.** A measured problem that only full reloads show (for example real users bouncing on `/` within seconds), or a proxy this project controls and can configure. Revisit with `private` first.
 
 ## Review findings triage
 

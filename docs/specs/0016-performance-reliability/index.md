@@ -3,7 +3,7 @@
 **Date**: 2026-11-16
 **Status**: In Progress
 
-> **Amends** [spec 0008](../0008-cart/index.md) AC-3 and AC-6 (caps are no longer silent: add and merge report them in `meta.adjustments`) and [spec 0014](../0014-homepage-blocks/index.md) AC-3 and AC-9 (the four home endpoints may be served from the browser cache for up to 30 s, and the `/` route prefetches every block). Everything else in those specs still holds.
+> **Amends** [spec 0008](../0008-cart/index.md) AC-3 and AC-6 (caps are no longer silent: add and merge report them in `meta.adjustments`) and [spec 0014](../0014-homepage-blocks/index.md) AC-9 (the `/` route prefetches every block). Spec 0014 AC-3 is no longer amended: the 30 s browser cache (AC-7) was skipped on 2026-11-16, so the home endpoints keep their freshness rules. Everything else in those specs still holds.
 
 > **Amended 2026-11-16**: AC-5 (b) moves the rate limiter to APCu, not the `file` store, because `FileStore::increment` loses hits under concurrent requests. AC-17 adds the limiter store guard and its evidence. Reasoning and probe results: [rationale.md](rationale.md#limiter-store-amendment-2026-11-16).
 
@@ -30,7 +30,7 @@ The public homepage is slow on the free Render host: five API calls that each ta
 - **AC-4**: A fix is **kept** only when, over 10 warm runs in the matching mode, the median run finish time drops by at least 10% against the step before it; otherwise it is reverted and recorded in `verify.md` as "no measurable effect". Every attempt, kept or reverted, has its numbers in `verify.md`.
 - **AC-5**: The server runtime candidates are tried in this order, each as its own step under AC-4: (a) `PHP_OPCACHE_ENABLE=1` in the Render container env; (b) the rate limiter on APCu (a PHP extension that keeps values in shared memory owned by the PHP FPM master process, so every worker reads and writes the same counters): `server/Dockerfile` installs the extension (`install-php-extensions apcu` as `root`, then back to `www-data`), `config/cache.php` gains an `'apc' => ['driver' => 'apc']` store and `'limiter' => env('CACHE_LIMITER_STORE') ?: null` (null falls back to the default store, so local, Pest, and CI are unchanged; the `?: null` matters because `CacheManager::store('')` does not fall back and throws "Cache store [] is not defined"), and Render sets `CACHE_LIMITER_STORE=apc`. The `file` store is never used for the limiter, because `FileStore::increment` reads, adds, and writes without a lock and loses hits under concurrent login, register, and checkout requests. If (b) is reverted under AC-4, the limiter stays on `database` (whose increment is atomic) and the Dockerfile, config, and AC-17 guard changes are reverted with it; (c) PHP FPM worker settings, only if AC-3 found fewer workers than the 5 parallel calls. The app cache stays `CACHE_STORE=database`.
 - **AC-6**: The `/` route gets a loader that starts, without awaiting, `queryClient.prefetchQuery` for the layout and for every block the client knows (`banners`, `best_sellers`, `deals`, and `products` page 1), using the exact query option factories the blocks use, so the keys match. The loader returns at once, so the hidden `<h1>`, the skeleton, and the waking notice render as before. A block the layout leaves out costs one unused request (accepted). A prefetch that fails leaves the block's query in its error state, and the block's own `useQuery` then fetches again on mount with the existing retry rules (spec 0005 AC-8). Measured with `--waterfall` (before) against `--parallel` (after).
-- **AC-7**: `GET /home`, `/home/banners`, `/home/best-sellers`, and `/home/deals` answer 200 with `Cache-Control: public, max-age=30`. Any other status (429, 5xx) gets no such header. No other route changes; `/products` and every `NoStore` route are untouched. Evidence: the header in a `curl -I`, and a browser reload within 30 s showing those four calls served from the browser cache.
+- **AC-7** (skipped by decision, 2026-11-16): Not built. This is a closed decision, not open work. The four home GETs keep the framework default `Cache-Control: no-cache, private`, and no `PublicCache` middleware exists. Reasons and the production headers behind them: [rationale.md, Browser cache decision](rationale.md#browser-cache-decision-ac-7-skipped-2026-11-16) and [verify.md, Step 3: AC-7](verify.md#step-3-ac-7-browser-cache-skipped). The original wording, kept for the record: "`GET /home`, `/home/banners`, `/home/best-sellers`, and `/home/deals` answer 200 with `Cache-Control: public, max-age=30`. Any other status (429, 5xx) gets no such header. No other route changes; `/products` and every `NoStore` route are untouched. Evidence: the header in a `curl -I`, and a browser reload within 30 s showing those four calls served from the browser cache."
 - **AC-8**: Cold starts stay as they are (no keep alive ping, spec 0001). `verify.md` ends with a final production run (same modes as AC-3) after all kept fixes, and a short "Infrastructure limits" note: the cold start time measured, and for warm loads, how much of each call's total is server work (`app`) versus waiting before PHP picks it up (time to first byte minus `app`). That note is the source for the feature 18 README.
 
 *Cart caps (the "10 units charged for 6" case)*
@@ -51,7 +51,7 @@ The public homepage is slow on the free Render host: five API calls that each ta
 
 **Chosen option**: Option 1: Measure first, fix in place, one change at a time.
 
-You measure the homepage with a script and a `Server-Timing` header, then try a short ordered list of fixes (OPcache, limiter off the database, FPM workers if needed, route loader prefetch, a 30 s browser cache on the home endpoints), keeping each only if it cuts the median by at least 10%; cart caps become visible through `meta.adjustments`; review findings are triaged by kind (fix bugs, accessibility, reliability, security; decline style).
+You measure the homepage with a script and a `Server-Timing` header, then try a short ordered list of fixes (OPcache, limiter off the database, FPM workers if needed, route loader prefetch), keeping each only if it cuts the median by at least 10%; a 30 s browser cache on the home endpoints was weighed and skipped (AC-7); cart caps become visible through `meta.adjustments`; review findings are triaged by kind (fix bugs, accessibility, reliability, security; decline style).
 
 **Implementation skills**: `laravel-best-practices` (`laravel/boost`, `.claude/skills/laravel-best-practices/`) · `tanstack-query` (`tanstack-skills/tanstack-skills`, `.claude/skills/tanstack-query/`) · `react-router-data-mode` (`remix-run/agent-skills`, `.claude/skills/react-router-data-mode/`) · `vitest` (`antfu/skills`, `.claude/skills/vitest/`)
 
@@ -67,14 +67,13 @@ Reasoning and options: see [rationale.md](rationale.md).
 | Endpoint | Method | Change | Key outputs | Auth | Key errors |
 |---|---|---|---|---|---|
 | every `/api/v1/*` | any | adds a response header | `Server-Timing` (AC-1) | unchanged | unchanged |
-| `/api/v1/home`, `/home/banners`, `/home/best-sellers`, `/home/deals` | GET | adds a header on 200 only | `Cache-Control: public, max-age=30` (AC-7) | public | 429 unchanged, no cache header |
 | `/api/v1/cart/items` | POST | adds `meta` | `{ data: Cart, meta: { adjustments } }` (AC-10) | bearer | spec 0008 AC-3 errors, same order |
 | `/api/v1/cart/merge` | POST | adds `meta` | `{ data: Cart, meta: { adjustments } }` (AC-11) | bearer | spec 0008 AC-6, unchanged |
 
 Server shape (project rule: thin controllers, Form Requests, actions, Resources):
 - `App\Support\RequestTimings`: a small holder (`queryCount`, `queryMs`, `record(float $ms)`), bound with `$this->app->scoped(...)` in `AppServiceProvider`, which also registers one `DB::listen` callback that calls `record($event->time)`. Scoped means a fresh holder per request.
 - `App\Http\Middleware\ServerTiming`: registered by `prependToGroup('api', …)` in `bootstrap/app.php`, and also put first in the priority list with `prependToPriorityList(AuthenticatesRequests::class, ServerTiming::class)` placed after the `NoStore` call (so it lands ahead of `NoStore`). Without that, Laravel sorts `throttle` and `auth` ahead of it and their 401 and 429 would skip the header (the same gotcha `NoStore` has in `server/AGENTS.md`). On the way out it reads `RequestTimings` and `LARAVEL_START` and sets the header.
-- `App\Http\Middleware\PublicCache` (takes `max_age` as a route middleware parameter): sets `Cache-Control: public, max-age=<n>` only when the status is 200. Applied to the `home.` route group with `30`. Laravel's built in `cache.headers` is not used, because it also stamps the 429 that the inner `throttle` returns.
+- No cache middleware on the `home.` route group: `PublicCache` is not built (AC-7 skipped). The home routes stay exactly as spec 0014 left them.
 - Limiter store (AC-5 (b), AC-17): `server/Dockerfile` adds `USER root` · `RUN install-php-extensions apcu` · `USER www-data` before the `composer install` layer. `config/cache.php` gains the `apc` store and the `limiter` key. `App\Support\LimiterStoreGuard::assertUsable(?string $storeName, ?array $storeConfig, bool $apcuEnabled): void` holds the AC-17 rule as a plain function (so Pest can test it without APCu) and throws the global `RuntimeException`. As the first statement of `AppServiceProvider::boot`, only when `! $this->app->runningInConsole()`, the provider reads `config('cache.limiter')` and `config("cache.stores.$name")`, narrows them with `is_string()` and `is_array()` (PHPStan level 6: `config()` returns `mixed`), and passes `function_exists('apcu_enabled') && apcu_enabled()`. The general cache (`CACHE_STORE=database`) and sessions are not touched.
 - `AddCartItem::handle` and `MergeGuestCart::handle` return a list of `CartAdjustment` value objects (`App\Support\CartAdjustment`, readonly `offerId`, `requested`, `added`). `UpsertCartLine` becomes a `selectOne` with `RETURNING quantity`, so `added` is computed from the value Postgres actually stored, under the existing `CartLock`. The controller passes the list to `CartResource` via `->additional(['meta' => ['adjustments' => …]])`.
 
@@ -94,7 +93,6 @@ Client shape:
 | `measure-home.sh` | host | first CLI argument, never hardcoded |
 | AC-3 runtime facts | OPcache, FPM, caches, CPU and RAM | Render dashboard env vars, Render deploy log, Render instance page |
 | AC-4 keep rule | "step before" median | the previous row in `verify.md` for the same mode |
-| `PublicCache` | max age | route middleware parameter `30` (AC-7) |
 | Add `meta.adjustments` | `requested` | request `quantity`, default 1 (spec 0008 AC-3) |
 | Add `meta.adjustments` | `added` | `RETURNING quantity` minus the stored quantity read under `CartLock` (0 if no row) |
 | Merge `meta.adjustments` | `requested` | the guest line's `quantity` from the request body |
@@ -106,13 +104,13 @@ Client shape:
 
 **Key invariants**:
 - No performance change ships without a before and after row in `verify.md` (AC-4).
-- `Cache-Control: public` is never set on a non 200 response, on an authenticated route, or on any route that has `NoStore`.
+- No route under `/api/v1` sends `Cache-Control: public`. The home GETs keep the framework default `no-cache, private`, and every `NoStore` route keeps `no-store`.
 - `meta.adjustments` never changes the `Cart` shape; every `Cart` field and rule in spec 0008 AC-2 holds.
 - `added` is never above `requested`, never negative, and the stored quantity is still at most `min(stock, 10)`.
 - Checkout charges exactly the effective quantities of the cart it validated against (spec 0009 unchanged).
 - The rate limiter never runs on the `file` store, and never runs on APCu while APCu is disabled (AC-17).
 
-**Security model**: No new routes and no auth changes. `Server-Timing` exposes only durations and a query count, never SQL, data, or hosts. `public, max-age=30` is limited to four anonymous catalog responses that hold no user data; the bearer token is never sent to them, and Cloudflare in front of Render does not cache JSON by default. The cart `meta` is in the owner's own response only. The triage adds three security fixes: a constant time login check for unknown emails, max lengths on login fields, and an escaped preview origin pattern (today a `#` in that env value makes `preg_match` fail, which turns the preview write guard off). No regulated data.
+**Security model**: No new routes and no auth changes. `Server-Timing` exposes only durations and a query count, never SQL, data, or hosts. No response becomes cacheable by a shared cache (AC-7 skipped). Correction to the first draft, which said the bearer token is never sent to the home endpoints: it is. `apiFetch` (`client/src/api/client.ts`) attaches `Authorization: Bearer <token>` to every request whenever a token is stored, public catalog and home calls included. The home responses hold no user data, so nothing leaks today, but this is why `public` was unsafe: it is the directive that lets a shared cache store a response to a request that carried `Authorization`. Cloudflare in front of Render answers these paths with `cf-cache-status: DYNAMIC` (not cached), and Render, not this project, controls that layer. The cart `meta` is in the owner's own response only. The triage adds three security fixes: a constant time login check for unknown emails, max lengths on login fields, and an escaped preview origin pattern (today a `#` in that env value makes `preg_match` fail, which turns the preview write guard off). No regulated data.
 
 **Configuration required**:
 - `CACHE_LIMITER_STORE`: cache store for the rate limiter; unset falls back to `CACHE_STORE`. Add to `server/.env.example` as a commented out line (`# CACHE_LIMITER_STORE=apc`), never as an empty `CACHE_LIMITER_STORE=`. Leave it unset locally: `php artisan serve` is not console but has no APCu, so the guard would refuse to boot. Render: `apc`, only if AC-5 (b) is kept. Render builds the config cache at container start (spec 0001 AUTORUN), so it sees this value.
@@ -122,7 +120,6 @@ Client shape:
 
 **Critical test scenarios**:
 - `ServerTiming` (Pest): a 200, a 404, and a 429 under `/api/v1` each carry a header matching `^app;dur=\d+(\.\d)?, db;dur=\d+(\.\d)?;desc="\d+ queries"$`; a route with 3 queries reports `3 queries`; two requests in a row each report their own count, verifies **AC-1**
-- `PublicCache` (Pest): each of the four home GETs has `Cache-Control: public, max-age=30`; the 121st call in a minute (429) has no `public`; `/products` and `/orders` unchanged, verifies **AC-7**
 - Cart adjustments (Pest): the three AC-13 cases plus "add within stock returns `adjustments: []`" and "at max still 422 with no meta", verifies **AC-10**, **AC-11**, **AC-13**
 - Checkout pin (Pest): the AC-13 end to end case, 6 keys allocated and 6 times the price charged, verifies **AC-9**, **AC-13**
 - Home prefetch (Vitest): rendering the `/` route with a mocked `apiFetch` starts all five requests before the layout resolves; a failed prefetch still shows that block's `ErrorState` with "Try again", verifies **AC-6**
@@ -137,7 +134,7 @@ Journey approach: the evidence comes first, then the browse journey (homepage), 
 
 1. [x] **Evidence.** Add `ServerTiming` with its Pest test, write `scripts/measure-home.sh`, deploy, and record the production baseline and runtime facts in `verify.md`, satisfies **AC-1**, **AC-2**, **AC-3**
 2. [x] **Server runtime.** Try AC-5 (a), (b), (c) in order, one deploy each, measuring and keeping or reverting per AC-4; for (b), build the APCu image, `config/cache.php` entries, `CACHE_LIMITER_STORE` in `.env.example`, `LimiterStoreGuard` and its Pest tests in one commit, check CI green, set `CACHE_LIMITER_STORE=apc` in Render, deploy, then record the AC-4 numbers (bar: median ≤ 876.1 ms) and the AC-17 (iv) evidence; revert all of it if not kept, satisfies **AC-4**, **AC-5**, **AC-17**
-3. **Homepage client and cache.** Route loader prefetch with its Vitest test, measured; `PublicCache` on the home group with its Pest test, checked in a browser reload; then the browse journey triage rows (ScrollRail, skeleton shortcuts row, featured banner check, SortSelect check), satisfies **AC-4**, **AC-6**, **AC-7**, **AC-15**
+3. **Homepage client.** In progress. Done: route loader prefetch with its Vitest test, measured and kept (`verify.md` Step 3, AC-4 KEEP). Closed by decision: AC-7 `PublicCache` skipped on 2026-11-16, nothing to build. Still open: the browse journey triage rows (ScrollRail fix, skeleton shortcuts row, featured banner check, SortSelect check). This step is ticked when those rows are done, satisfies **AC-4**, **AC-6**, **AC-15** (AC-7 skipped)
 4. **Cart caps and the buy journey.** `/debug` the observation and record the cause; `CartAdjustment`, `RETURNING` upsert, `meta` on add and merge, client toasts, all AC-13 tests; then the buy journey triage rows (int cast, CartPage test, stepper announcement check, confirmation heading, product page tests, `otherOffersSummary` move, design.md rows), satisfies **AC-9**, **AC-10**, **AC-11**, **AC-12**, **AC-13**, **AC-15**
 5. **Account journey and close out.** The auth triage rows with their tests; append the Resolution section to all 11 review files; final production measurement and the Infrastructure limits note; CI green and a production purchase run, satisfies **AC-8**, **AC-14**, **AC-15**, **AC-16**
 
@@ -150,7 +147,7 @@ Journey approach: the evidence comes first, then the browse journey (homepage), 
 - The review history ends with no unacknowledged finding.
 
 **Negative / tradeoffs**:
-- Best sellers and Deals can show data up to 30 s old on a reload (spec 0014 AC-3 said "moves on the next fetch"). TanStack's 60 s `staleTime` already allowed staleness within one visit, so the new cost is only across reloads.
+- A full reload of `/` always refetches the five home calls (AC-7 skipped). Accepted: they finish in about 575 ms warm, and TanStack's 60 s `staleTime` already avoids repeat calls while you move around inside the app.
 - The homepage prefetch spends one request on any block the layout has hidden.
 - `Server-Timing` adds one `DB::listen` callback to every request (tiny, but not zero).
 - If the 32 MB APCu segment ever fills, `apcu_inc` can fail and the limits fail open. Accepted: the limiter uses about 140 KB in the probe.
@@ -168,5 +165,5 @@ Journey approach: the evidence comes first, then the browse journey (homepage), 
 ## Follow-up
 
 - [x] After confirmation: add the "Amended by spec 0016" note to specs 0008 and 0014 (done 2026-11-16).
-- [ ] `/sync` after the build: record `Server-Timing`, `PublicCache`, `meta.adjustments`, and `scripts/measure-home.sh` in `server/AGENTS.md`, `client/AGENTS.md`, and the root Commands block.
+- [ ] `/sync` after the build: record `Server-Timing`, `meta.adjustments`, and `scripts/measure-home.sh` in `server/AGENTS.md`, `client/AGENTS.md`, and the root Commands block.
 - [ ] Feature 18: README performance section from the `verify.md` Infrastructure limits note.
