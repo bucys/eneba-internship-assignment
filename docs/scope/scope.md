@@ -264,7 +264,7 @@ spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/a
 - [ ] Build it: `/develop performance & reliability`
   - [x] Evidence: `Server-Timing` middleware, `scripts/measure-home.sh`, production baseline in `verify.md` (AC-1, AC-2, AC-3)
   - [ ] Server runtime: OPcache, limiter on `file`, FPM workers if needed, each measured and kept or reverted (AC-4, AC-5)
-  - [ ] Homepage: route loader prefetch (done, kept), browse journey triage rows (AC-6, AC-15); `PublicCache` skipped by decision, not built (AC-7, see spec 0016)
+  - [x] Homepage: route loader prefetch (done, kept), browse journey triage rows (AC-6, AC-15); `PublicCache` skipped by decision, not built (AC-7, see spec 0016)
   - [ ] Cart caps and buy journey: `/debug` the 10 for 6 case, `meta.adjustments` on add and merge, toasts, regression tests, buy journey triage rows (AC-9 to AC-13, AC-15)
   - [ ] Account journey and close out: auth triage rows, Resolution sections in all review files, final measurement and Infrastructure limits note, CI and production purchase run (AC-8, AC-14, AC-15, AC-16)
 - [ ] Verify it: `/check verify performance & reliability`

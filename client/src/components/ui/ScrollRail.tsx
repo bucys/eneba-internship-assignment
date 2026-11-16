@@ -47,8 +47,18 @@ export function ScrollRail({
     atEnd: true,
   });
 
+  // Returning the previous object when nothing changed lets React skip the re-render.
   const update = useCallback(() => {
-    if (listRef.current) setEnds(readEnds(listRef.current));
+    const list = listRef.current;
+    if (!list) return;
+    const next = readEnds(list);
+    setEnds((prev) =>
+      prev.overflows === next.overflows &&
+      prev.atStart === next.atStart &&
+      prev.atEnd === next.atEnd
+        ? prev
+        : next,
+    );
   }, []);
 
   useEffect(() => {

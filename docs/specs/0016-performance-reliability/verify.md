@@ -261,6 +261,26 @@ Run finishes, sorted: 522.5, 544.5, 555.8, 556.8, 573.7, 575.8, 667.0, 676.7, 69
 
 **What this means for the numbers**: none of the recorded measurements change. The homepage stays at the Step 3 median of 574.7 ms (`--parallel`), and AC-6 stays KEEP.
 
+### Step 3: browse journey triage rows (AC-15)
+
+**Date**: 2026-11-16 · **Code**: `HomePageSkeleton.tsx`, `FeaturedBanner.tsx`, `ScrollRail.tsx`, new `ScrollRail.test.tsx` (not committed yet) · **Browser**: Playwright Chromium against local `npm run dev` and `php artisan serve`, at 1440 px and 390 px (plus 1024 and 1280 px for the banner). The "before" numbers come from the `/check verify` run on production `3da42ae` earlier the same day.
+
+| Triage row | Before | Change | After | State |
+|---|---|---|---|---|
+| Skeleton lacks shortcuts row | Cards jump down by the shortcuts row when the layout arrives: 140 px at 1440, 124 px at 390; layout shift 0.05 at 1440, 0.0995 at 390 | Placeholder after `HeroSkeleton` with the row's padding (`py-6 md:py-8`) and content height (`h-19`) | `/home` held 2.5 s: placeholder top and height equal the loaded row exactly (453 px / 140 px at 1440, 364 px / 124 px at 390); layout shift 0.0006 at 1440, 0 at 390 | Fixed |
+| Featured text may overlap art (Check) | 1024 and 1100 px pass (tagline hidden below `xl`). 1280 and 1440 px fail: 3.8% of tagline letter pixels below 4.5:1, worst 2.49:1 | Gradient middle stop: `from-surface-deep/95 via-surface-deep/70 via-45% to-transparent to-70%` | 1280 px: 0 of 2787 letter pixels below 4.5:1, worst 6.82:1. 1440 px: 0 of 2785, worst 6.80:1. 1024 px: tagline still hidden. Subject still fully visible in the screenshot | Check confirmed the problem, so Fixed |
+| ScrollRail rerenders every scroll | 30 small scroll steps away from both ends: 30 React re-renders | `setEnds` keeps the previous object when `overflows`, `atStart`, `atEnd` are all equal | Same 30 steps at 1440 px: 0 React commits; scrolling to the end: 1 commit, right arrow `aria-disabled="true"`. Not mounted at 390 px (vertical lists) | Fixed, with a Vitest regression test |
+| SortSelect Space in Firefox (Check) | Chromium and a 390 px touch phone already passed in `/check verify` | None | Checked by hand in Firefox 159 at 1440 px and 390 px: Space opens the list and it stays open | NO CHANGE (Won't fix: the problem does not occur) |
+
+**Regression test**: `client/src/components/ui/ScrollRail.test.tsx` counts React commits with a `Profiler`. It fails on the old code (7 commits instead of 3) and passes on the fix; a second case checks that reaching the end still updates the arrows.
+
+**Checks**: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` (47 files, 439 tests), `npm run build`, all green.
+
+- [x] Load `/` with `/home` held: the shortcuts placeholder sits where the loaded row will be, no jump at 1440 or 390 px → AC-15
+- [x] At 1280 and 1440 px, the featured tagline has no letter pixel below 4.5:1; at 1024 px it stays hidden → AC-15
+- [x] Scroll a rail between its ends: no re-render; reach an end: the arrow updates → AC-15
+- [x] Firefox 159, Space on the closed sort control at 1440 and 390 px: the list opens and stays open → AC-15
+
 ## Raw evidence
 
 The full output of each `scripts/measure-home.sh` call, unedited.

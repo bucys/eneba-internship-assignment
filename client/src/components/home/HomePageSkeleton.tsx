@@ -9,6 +9,10 @@ export function HomePageSkeleton() {
   return (
     <div aria-hidden="true">
       <HeroSkeleton />
+      {/* Same padding and height as PlatformShortcuts, so the cards don't jump when it arrives. */}
+      <Container className="py-6 md:py-8">
+        <div data-testid="shortcuts-placeholder" className="h-19" />
+      </Container>
       <Container className="py-10 md:py-14">
         <div className="mb-4 h-8 w-48 animate-pulse rounded-sm bg-surface-deep" />
         <div className="flex gap-4 overflow-hidden">

@@ -36,7 +36,8 @@ export function FeaturedBanner({ banner, className }: FeaturedBannerProps) {
           className="absolute inset-0 size-full object-cover object-right transition-transform duration-300 motion-safe:group-hover:scale-105"
         />
       )}
-      <div className="absolute inset-0 bg-linear-to-r from-surface-deep/95 to-transparent to-60%" />
+      {/* The 70% middle stop keeps the tagline at 4.5:1 over the art from xl (spec 0016 Step 3). */}
+      <div className="absolute inset-0 bg-linear-to-r from-surface-deep/95 via-surface-deep/70 via-45% to-transparent to-70%" />
       <div className="relative flex h-full max-w-[26rem] flex-col justify-center gap-4 p-8 xl:p-10">
         <span className="text-3xl leading-tight font-extrabold text-fg xl:text-4xl">
           {banner.title}
