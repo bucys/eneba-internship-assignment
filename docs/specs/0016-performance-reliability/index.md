@@ -1,13 +1,15 @@
 # 0016. Performance and reliability: measure the homepage first, keep only the fixes the numbers justify, tell buyers when the cart caps, and close every open review finding
 
 **Date**: 2026-11-16
-**Status**: In Progress
+**Status**: In Progress (verified 2026-11-16 with `/check verify` at `72c0bcf`, see [verify.md, Step 6](verify.md#step-6-final-verification-recheck-2026-11-16); stays In Progress until `/test` passes; a full purchase on production is **NOT TESTED**)
 
 > **Amends** [spec 0008](../0008-cart/index.md) AC-3 and AC-6 (caps are no longer silent: add and merge report them in `meta.adjustments`) and [spec 0014](../0014-homepage-blocks/index.md) AC-9 (the `/` route prefetches every block). Spec 0014 AC-3 is no longer amended: the 30 s browser cache (AC-7) was skipped on 2026-11-16, so the home endpoints keep their freshness rules. Everything else in those specs still holds.
 
 > **Amended 2026-11-16**: AC-5 (b) moves the rate limiter to APCu, not the `file` store, because `FileStore::increment` loses hits under concurrent requests. AC-17 adds the limiter store guard and its evidence. Reasoning and probe results: [rationale.md](rationale.md#limiter-store-amendment-2026-11-16).
 
 > **Amended 2026-11-16 (closeout, finish mode)**: AC-8 reuses the existing final warm run and the baseline cold runs instead of a new production run. AC-14 uses the states DONE, DEFER, and SKIP. AC-15 defers every remaining Fix and Check row (no more application code in this feature). AC-16 accepts the production smoke test of `4959afe` plus the local full purchase and the checkout concurrency evidence; **a full purchase on production was not tested**. Reasoning: [rationale.md, Closeout decision](rationale.md#closeout-decision-2026-11-16). Evidence: [verify.md, Step 5](verify.md#step-5-closeout-ac-8-ac-14-ac-15-ac-16).
+
+> **Amended 2026-11-16 (final verification)**: AC-1 covers matched `/api/v1` routes only; the 404 for an unmatched path is excluded, because Laravel's `api` group middleware never runs for it. Evidence: [verify.md, Step 6](verify.md#step-6-final-verification-recheck-2026-11-16).
 
 ## Summary
 
@@ -24,7 +26,7 @@ The public homepage is slow on the free Render host: five API calls that each ta
 **Acceptance criteria**:
 
 *Measurement*
-- **AC-1**: Every response under `/api/v1` (success and error alike, including 401, 404, 422, 429, 500) carries `Server-Timing: app;dur=<ms>, db;dur=<ms>;desc="<n> queries"`. `app` is the milliseconds from `LARAVEL_START` to the moment the response leaves the middleware; `db` is the sum of `QueryExecuted::$time` for that request; `<n>` is the number of queries. Durations have at most one decimal. No other value (no SQL, no hostnames, no versions) appears in the header.
+- **AC-1**: Every response from a matched `/api/v1` route (success and error alike, including 401, 404, 422, 429, 500) carries `Server-Timing: app;dur=<ms>, db;dur=<ms>;desc="<n> queries"`. `app` is the milliseconds from `LARAVEL_START` to the moment the response leaves the middleware; `db` is the sum of `QueryExecuted::$time` for that request; `<n>` is the number of queries. Durations have at most one decimal. No other value (no SQL, no hostnames, no versions) appears in the header. *Amended 2026-11-16 (final verification)*: the 404 for a path that matches no route (for example `GET /api/v1/nope-route`) is excluded and carries no `Server-Timing`. `ServerTiming` is in the `api` middleware group, and Laravel runs a group's middleware only after the router has matched a route. When nothing matches, the router throws `NotFoundHttpException` first, and the exception handler renders the 404 with only the global middleware applied. Covering that case would need `ServerTiming` as global middleware, which is out of scope here. A 404 from a matched route (for example `GET /api/v1/products/no-such-game`) still carries the header.
 - **AC-2**: `scripts/measure-home.sh <api-base-url> [runs]` (default 10 runs) measures the five homepage calls the client makes: `/home`, `/home/banners`, `/home/best-sellers`, `/home/deals`, and the grid's `/products` page 1 request (its exact query string taken from `client/src/api/products.ts`). Three modes: `--parallel` (default: all five at once, like the client after AC-6), `--waterfall` (`/home` first, then the other four at once, like the client today), and `--serial` (one after another, to show single call cost). Per run it prints each call's connect time, time to first byte, total time, and the `Server-Timing` `app` and `db` values; at the end it prints the median and the maximum per call and for the run's finish time (when the last call ended). It uses only `bash`, `curl`, and `awk`, takes the host only as an argument, runs one mode per call, and sleeps 2 s between runs so a 10 run session stays well under the `catalog` limit (120 per minute per IP). It exits non zero if any call is not 200, and on a 429 it prints "Rate limited: wait a minute, then run again."
 - **AC-3**: The spec's `verify.md` records a baseline taken on production before any fix: date, commit, 10 warm `--waterfall` runs, 10 warm `--parallel` runs, 10 warm `--serial` runs, and 3 cold runs (after more than 15 min idle). It also records the runtime facts found: `PHP_OPCACHE_ENABLE` as set in Render (or unset, meaning the image default), the PHP FPM process settings in effect, whether the Render deploy log shows Laravel's config and route caches being built, and the instance CPU and RAM shown in the Render dashboard.
 
@@ -68,7 +70,7 @@ Reasoning and options: see [rationale.md](rationale.md).
 **API surface**:
 | Endpoint | Method | Change | Key outputs | Auth | Key errors |
 |---|---|---|---|---|---|
-| every `/api/v1/*` | any | adds a response header | `Server-Timing` (AC-1) | unchanged | unchanged |
+| every matched `/api/v1/*` route | any | adds a response header | `Server-Timing` (AC-1) | unchanged | unchanged |
 | `/api/v1/cart/items` | POST | adds `meta` | `{ data: Cart, meta: { adjustments } }` (AC-10) | bearer | spec 0008 AC-3 errors, same order |
 | `/api/v1/cart/merge` | POST | adds `meta` | `{ data: Cart, meta: { adjustments } }` (AC-11) | bearer | spec 0008 AC-6, unchanged |
 

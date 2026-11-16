@@ -94,6 +94,7 @@ Three `--waterfall` runs, each after at least 16 min 40 s with no traffic from t
 | 3 | AC-6 route loader prefetch (`6e83f76`) | parallel | 574.7 | 926.3 | −21.2% vs step 2 waterfall (max −88.4%) | Keep |
 | 3 | AC-7 `PublicCache` on the home GETs | not measured | | | `curl` has no HTTP cache, so AC-4 cannot judge it | Skipped by decision, not built (see Step 3: AC-7) |
 | Final (AC-8) | No new run: the step 3 AC-6 row above is the final warm state (see Step 5) | parallel | 574.7 | 926.3 | | Final state |
+| Recheck | `/check verify` on `72c0bcf` (see Step 6) | parallel | 585.8 | 2793.5 | +1.9% vs final (within noise) | Confirms the final state |
 
 ### Step 1: AC-5 (a) OPcache
 
@@ -205,7 +206,7 @@ Step 2 waterfall values are in brackets. Run finishes ranged from 528.8 to 744.7
 - [x] Each of the five is requested once; no aborted or repeated home call → AC-6
 - [x] While `/home` is pending, the hidden `<h1>` and the full page skeleton show; then every block from the layout renders with content → AC-6
 - [x] Within 60 s, `/` → `/store` (client link) → back: no new request to any of the five home paths → AC-6
-- [ ] **Not verified on production.** A failed block prefetch still shows that block's `ErrorState` with Try again → AC-6
+- [x] A failed block prefetch still shows that block's `ErrorState` with Try again → AC-6 (verified on production in Step 6, with a simulated `/home/deals` 500)
 
 **Taken**: 2026-11-16, 10:40 to 10:42 UTC · **Code**: `6e83f76` (client bundle `index-_dDjeDDl.js`, confirmed to contain the loader) · **Browser**: Playwright Chromium, 390 × 844, a new context per session, API warm. All times are ms after navigation start.
 
@@ -215,7 +216,7 @@ Step 2 waterfall values are in brackets. Run finishes ranged from 528.8 to 744.7
 | `/home` held 1.5 s (Playwright route delay, client side only) | load `/`, check at 1.2 s, wait | all five start at 279 to 280; blocks end 735 to 854; `/home` ends 1903 | at 1.2 s: one `<h1>` ("Buy game keys at the best prices"), no `<h2>`, 33 skeleton shapes; then all four blocks with content |
 | navigate | `/` loaded → All games (client link) → wait for `/store` → back; 3.1 s away and back | first load: five GETs at 307; on `/store`: only `/catalog/filters` (page 1 of `/products` reused from the home cache); after back: none | home rendered from cache, all four blocks |
 
-**Error state on production: unverified.** Forcing a block 5xx on production needs a server change, so the last box stays open. Separate evidence, not a substitute for it: the Vitest test `home route prefetch > shows the block's Try again when its prefetch fails` (`client/src/pages/HomePage.test.tsx`) passes at `6e83f76` (CI client job green), and fails when the loader's prefetch is removed.
+**Error state on production: verified later, in Step 6**, by answering `/home/deals` with a 500 inside the browser (Playwright route), so no server change was needed. Further evidence: the Vitest test `home route prefetch > shows the block's Try again when its prefetch fails` (`client/src/pages/HomePage.test.tsx`) passes at `6e83f76` (CI client job green), and fails when the loader's prefetch is removed.
 
 **`--parallel`, 10 warm runs** (`6e83f76`), 2026-11-16 10:42 UTC. Warmed as before: one `/home` (`desc="1 queries"`, `x-ratelimit-remaining: 119`), then 5 s. All 50 calls answered 200; no 429.
 
@@ -379,13 +380,50 @@ Each of the 11 files in `docs/reviews/` now ends with `## Resolution (feature 17
 - [x] Full purchase on a local stack: merged cart, 201 `paid`, €125.37, "Payment successful" (Step 4)
 - [x] Production smoke test of `4959afe`, with no payment submitted (Step 4)
 - [ ] **NOT TESTED: a full purchase on production** after this feature's deploys (payment, key allocation, stock drop, key reveal). No purchase was placed on production during feature 17.
-- [ ] **NOT TESTED on production**: a failed block prefetch showing its `ErrorState` (AC-6). Covered by Vitest only.
+- [x] A failed block prefetch showing its `ErrorState` on production (AC-6): verified in Step 6 with a simulated `/home/deals` 500.
 
 ### Follow ups
 
 - `StoreFiltersTest` flake: about 6 in 1000 CI runs fail on random product names. Not fixed. If it fails, rerun the job; a fix is to give the two products fixed names.
 - Temporary production account `smoke-f17-1794830008@example.test` (display name "Smoke Test"): still in production, cart empty, no orders, tokens revoked. The API has no delete endpoint. Remove it by hand in the database, or keep it, before submission (feature 18).
 - The deferred AC-15 rows above.
+
+## Step 6: final verification recheck (2026-11-16)
+
+**Result**: verified. Every AC is met as amended; the scope's `Verify it` box is ticked. The feature stays In Progress until `/test` passes. A full purchase on production is still **NOT TESTED** (see AC-16 above).
+
+**Code**: `72c0bcf` (CI green) · **Mode**: `/check verify`, documentation only. No application code changed and nothing was deployed. Production API `https://eneba-api.onrender.com`, client `https://eneba-internship-assignment.vercel.app`, Playwright Chromium at 1440 × 900.
+
+### Production performance (AC-8 recheck)
+
+`scripts/measure-home.sh https://eneba-api.onrender.com 10 --parallel`, warm (API woken with `/up` first). All 50 calls answered 200.
+
+| call | median ttfb | median total | max total | median app | median db |
+|---|---:|---:|---:|---:|---:|
+| `/home` | 459.8 | 460.1 | 2748.4 | 273.8 | 230.9 |
+| `/home/banners` | 472.6 | 515.8 | 2750.2 | 374.7 | 296.1 |
+| `/home/best-sellers` | 491.7 | 538.7 | 2778.4 | 404.6 | 322.1 |
+| `/home/deals` | 498.7 | 543.8 | 2786.3 | 406.9 | 331.6 |
+| `/products` | 509.5 | 559.2 | 2793.5 | 429.2 | 382.1 |
+| **run finish** | | **585.8** | **2793.5** | | |
+
+The median run finish of **585.8 ms** is within 2% of the final 574.7 ms, so the final warm state holds. One run stalled at about 2.8 s across all five calls together (a shared stall, as in Step 3), which sets the max. Only the summary table was kept from this run, not the per run lines.
+
+### AC-1: unmatched route (spec amended)
+
+- Matched routes carry the header. Locally: 200 `/home`, 401 `/cart`, 404 `/products/does-not-exist-xyz`, 422 `/auth/login`, and 429 on the 6th failed login. On production: 200 `/home`, 422 on five failed logins, and 429 on the 6th (`retry-after: 59`). The 500 case is covered by Pest only. Production `/home`: `app;dur=41.7, db;dur=36.8;desc="1 queries"`.
+- `GET /api/v1/nope-route` answers 404 with **no** `Server-Timing`, locally and on production. That is expected: `ServerTiming` is in the `api` group, and group middleware runs only after a route matches. AC-1 now excludes this case (amended 2026-11-16, see index.md).
+
+### AC-6: failed block prefetch on production
+
+Fresh load of `/` with `/home/deals` answered by a Playwright route with 500 `{"message":"Server Error"}`. All five GETs started at 374 to 376 ms. `/home/deals` failed at once, and the block's own query retried once at 3382 ms (500 again). The Deals section then showed "Something went wrong", "Server Error" and a **Try again** button; the other blocks rendered normally. The 500 is simulated in the browser; the production server never returned it.
+
+### `/store` filters: aborted `/catalog/filters` request: NO ISSUE
+
+During the recheck, one `/catalog/filters` request showed `net::ERR_ABORTED` after `/` → `/store` → back. Focused check on production, a new browser context each try: load `/`, click Store, watch 6 s.
+
+- 5 of 5 tries: one `/catalog/filters` request, 200 in about 110 to 120 ms, and the filters render (Platform, Region, Price (EUR), 7 checkboxes). No abort, no error state.
+- The abort comes from the test, not the app. Playwright's `networkidle` wait returned at once because the page was already idle before the click, so the script called `goBack()` before the response arrived. Leaving the page cancels its pending requests. Going forward again fetched `/catalog/filters` (200) and all 7 checkboxes rendered.
 
 ## Raw evidence
 

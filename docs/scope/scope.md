@@ -267,7 +267,7 @@ spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/a
   - [x] Homepage: route loader prefetch (done, kept), browse journey triage rows (AC-6, AC-15); `PublicCache` skipped by decision, not built (AC-7, see spec 0016)
   - [x] Cart caps and buy journey: `/debug` the 10 for 6 case (no checkout bug), `meta.adjustments` on add and merge, toasts, regression tests, `(int)` cast, confirmation heading (`4959afe`); the other buy journey triage rows deferred (AC-9 to AC-13, AC-15)
   - [x] Account journey and close out, as amended on 2026-11-16 (finish mode): auth triage rows deferred, Resolution sections in all 11 review files, AC-8 reuses the existing final warm and cold numbers with the Infrastructure limits note written, CI green on `4959afe`; **no production purchase run**, AC-16 rests on the production smoke test plus local purchase and concurrency evidence (AC-8, AC-14, AC-15, AC-16)
-- [ ] Verify it: `/check verify performance & reliability`
+- [x] Verify it: `/check verify performance & reliability` (2026-11-16, `72c0bcf`, AC-1 amended to matched routes; full production purchase still NOT TESTED; spec 0016 verify.md Step 6)
 - [ ] Test it: `/test performance & reliability`
 - Follow ups from the closeout (spec 0016 Follow-up, carried to feature 18):
   - A full purchase on production was not tested in feature 17; decide whether to run one.
