@@ -66,7 +66,39 @@ The 10% keep rule exists because Render timings are noisy: a smaller gain cannot
 
 For the cart, reporting caps through `meta.adjustments` keeps the `Cart` shape (and every test and type built on it) unchanged, while giving the client exactly the two numbers the toast needs (runner up: rejecting over cap adds with 422, which is strict but turns a buyer adding one more at the edge into an error). Computing `added` from `RETURNING` rather than from the cap in PHP keeps it exact even if two adds race (the per user `CartLock` already serialises them, so this is belt and braces). `PublicCache` is a tiny custom middleware rather than Laravel's built in `cache.headers`, because the built in one would also mark the inner `throttle`'s 429 as cacheable for 30 s (runner up: the built in middleware placed inside throttle, which depends on middleware priority order and is easy to break).
 
-Smaller calls: `Server-Timing` is always on (durations only, nothing secret; runner up: an env flag, which adds a step every time you want to measure). The limiter moves to the `file` store and not the whole cache, because only the limiter runs on every request and the single instance makes per instance counts correct (runner up: keep the database store). The review triage follows one rule (fix bugs, accessibility, reliability, security; decline pure style and comment requests) so each won't fix has the same kind of reason. The two checkout minors (charge inside the transaction, orchestration in the controller) are declined: the gateway is simulated with no network call, so the lock time is microseconds, and rewriting the locked purchase path this late risks the most important flow for a style gain.
+Smaller calls: `Server-Timing` is always on (durations only, nothing secret; runner up: an env flag, which adds a step every time you want to measure). The limiter moves to APCu and not the whole cache, because only the limiter runs on every request and the single instance makes per instance counts correct (runner up: keep the database store). The first draft picked the `file` store; the amendment below replaced it. The review triage follows one rule (fix bugs, accessibility, reliability, security; decline pure style and comment requests) so each won't fix has the same kind of reason. The two checkout minors (charge inside the transaction, orchestration in the controller) are declined: the gateway is simulated with no network call, so the lock time is microseconds, and rewriting the locked purchase path this late risks the most important flow for a style gain.
+
+## Limiter store amendment (2026-11-16)
+
+**Why not `file`.** In the installed Laravel (v13.42.0), `RateLimiter::increment` calls `add` (counter to 0), then the store's `increment`. `FileStore::add` takes a file lock, but `FileStore::increment` does not: it reads the payload, adds one, and writes it back, so two requests that read the same value both write the same next value and one hit is lost. Login (5 per minute), register (10 per hour), and checkout (10 per minute) are the limits where a lost hit matters most. `DatabaseStore::increment` is atomic (`lockForUpdate` in a transaction), so today's limiter is correct, only slow.
+
+**Options**:
+- **APCu (chosen).** `ApcStore::increment` is `apcu_inc`, one atomic operation in shared memory. No network, no disk, no new service. Same single instance limits as `file`.
+- **Keep `database`** (runner up). Correct, but it is the 6 to 10 extra Neon round trips per call found in the baseline. This is also the fallback if (b) fails the AC-4 bar.
+- **Redis or Memcached.** Atomic and shared across instances, but a new service the free plan does not include. Not worth it for one instance.
+- **APCu plus a custom store with an atomic `add`** (`apcu_add`, through `Cache::extend`). Closes the window start gap below, but adds a class the framework does not ship, for a gap smaller than the check then count overshoot that `ThrottleRequests` has on every store. Declined.
+
+**Evidence** (throwaway local container `serversideup/php:8.4-fpm-nginx`, PHP 8.4.27, plus `install-php-extensions apcu`, `PHP_OPCACHE_ENABLE=1`; image and container removed afterwards):
+
+| Check | Result |
+|---|---|
+| APCu in the base image | Not installed. `install-php-extensions apcu` installs 5.1.28 and writes `docker-php-ext-apcu.ini` with no other change. |
+| Laravel 13 driver | `CacheManager::createApcDriver` builds `ApcStore(new ApcWrapper)`. The app's `config/cache.php` has no `apc` store, so one must be added. `ApcStore` has no `add` method, so `Repository::add` falls back to `get` then `put` (not atomic). |
+| Defaults | `apc.shm_size=32M` (mmap), `apc.enable_cli=0`, `apc.use_request_time=0`, `apc.ttl=0`, `apc.gc_ttl=3600`. |
+| Shared across FPM workers | 400 raw `apcu_inc` calls, 40 at a time, served by 4 worker PIDs: final value 400, no duplicate values. The segment belongs to the FPM master, so `pm = ondemand` workers ending does not drop counters. |
+| `apcu_inc` details | Keeps the key's TTL (store with 3 s TTL, increment, TTL still 3). On a missing key it creates the value 1. |
+| Laravel `RateLimiter::hit`, steady state | 200 hits, 20 at a time, 3 rounds: APCu 200, 200, 200; `file` 196, 199, 195. |
+| Laravel `RateLimiter::hit`, fresh window | 30 fresh keys, 10 concurrent first hits each: APCu lost 1 of 300; `file` lost 36 of 300. |
+| Memory | About 140 KB of the 32 MB segment used after roughly 70 limiter keys. Whole container 89 MiB after about 1,100 requests with OPcache and APCu on (local, not Render). |
+
+**Limits of the choice**:
+- **Silent failure mode.** If APCu is loaded but disabled, `apcu_inc` returns false, `(int) false` is 0, and `tooManyAttempts` never fires: limits off with no error. If the extension is missing, `apcu_fetch` is undefined and every throttled route returns 500 (loud). AC-17 (i) turns the silent case into a failed boot, so Render's health check keeps the previous deploy live.
+- **CLI sees no APCu** (`apc.enable_cli=0`). Pest and CI keep the limiter on the default `array` store, so the guard is tested as a plain function and the APCu path is proven on production (AC-17 (iv)), not in CI.
+- **Empty env value.** `CacheManager::store()` falls back only on null (`enum_value($name) ?? default`), so `CACHE_LIMITER_STORE=` (an empty string) would make every throttled route throw. The config uses `?: null`, and `.env.example` ships the line commented out.
+- **Full segment.** If APCu runs out of memory, `apcu_inc` can fail and the limits fail open. Accepted at about 140 KB used of 32 MB.
+- **Resets.** Counters live in container memory: every deploy, restart, FPM reload, and free tier spin down clears them.
+- **One instance only.** Per container counts are right for Render free's single instance and wrong for more.
+- **Memory on 512 MB.** OPcache reserves up to 256 MB and APCu 32 MB; in both, only touched pages count against the instance. The limiter needs far under 1 MB, so the defaults stay; check the Render memory graph (AC-17 (iv)).
 
 ## Review findings triage
 
@@ -189,6 +221,7 @@ All seven findings resolved in the review (four fixed, three no action with reas
 **Project sources**:
 - Spec 0001 (hosting, direct Neon connection, cold starts, no keep alive pings), spec 0005 (Render env, retry rules), spec 0008 (cart caps, AC-2, AC-3, AC-6, AC-8), spec 0014 (home endpoints, per block isolation)
 - `docs/reviews/2026-11-13-main-homepage-blocks.md` (the 0.9 s versus 6 to 9 s observation)
+- Installed Laravel v13.42.0 source: `Illuminate/Cache/FileStore.php` (`add`, `increment`), `ApcStore.php`, `ApcWrapper.php`, `DatabaseStore.php`, `Repository::add`, `RateLimiter::increment`, `Illuminate/Routing/Middleware/ThrottleRequests::handleRequest`
 - `server/Dockerfile`, `server/config/cache.php`, `server/app/Actions/Cart/`, `server/app/Http/Middleware/BlockPreviewWrites.php`, `client/src/pages/HomePage.tsx`, `client/src/router.tsx`
 - `serversideup/php` documentation (OPcache off by default, FPM worker env vars): cited by name; the exact defaults were not confirmed on the spec page during this design, so read them for the installed tag before setting anything
 

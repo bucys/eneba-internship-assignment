@@ -86,6 +86,36 @@ Three `--waterfall` runs, each after at least 16 min 40 s with no traffic from t
 | 0 | Baseline (`eabd7aa`) | waterfall | 5722.5 | 6631.0 | | |
 | 0 | Baseline (`eabd7aa`) | parallel | 5679.5 | 6693.7 | | |
 | 0 | Baseline (`eabd7aa`) | serial | 5577.3 | 6385.7 | | |
+| 1 | AC-5 (a) OPcache on (`PHP_OPCACHE_ENABLE=1`) | waterfall | 973.4 | 1566.4 | −83.0% (max −76.4%) | Keep |
+
+### Step 1: AC-5 (a) OPcache
+
+**Taken**: 2026-11-16, 09:32 UTC · **Code**: `1932372` (no code change since the baseline; `eabd7aa` plus docs) · **Change**: Render env `PHP_OPCACHE_ENABLE=1` only. The startup log shows `OPcache: ✅ Enabled`. Warmed the same way as the baseline: one `/home` call, then 5 s. All 50 calls answered 200; no 429.
+
+Before the experiment, a throwaway local container of `serversideup/php:8.4-fpm-nginx` showed that the variable switches OPcache on for FPM. Its `serversideup-docker-php.ini` has `opcache.enable=${PHP_OPCACHE_ENABLE}`, and a live FPM request reported `enabled=true` with hits counting up. Unset, it reported `enabled=false`. The other settings stay at the image defaults: 256 MB memory, `validate_timestamps=0` (safe here, because every deploy starts a fresh container), JIT off.
+
+**`--waterfall`, 10 warm runs**, against step 0 waterfall
+
+| call | median total | change | max total | median app | change | median db | change | db share of app |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `/home` | 238.0 (842.8) | −71.8% | 382.0 | 107.5 (631.7) | −83.0% | 92.8 (156.5) | −40.7% | 86% |
+| `/home/banners` | 694.8 (4578.7) | −84.8% | 1007.1 | 548.8 (4430.5) | −87.6% | 437.1 (830.0) | −47.3% | 80% |
+| `/home/best-sellers` | 674.7 (4245.8) | −84.1% | 1118.6 | 423.9 (3974.6) | −89.3% | 349.5 (828.2) | −57.8% | 82% |
+| `/home/deals` | 703.2 (4390.8) | −84.0% | 1118.6 | 533.2 (4149.1) | −87.1% | 385.6 (598.6) | −35.6% | 72% |
+| `/products` | 720.9 (4768.2) | −84.9% | 1184.4 | 561.2 (4619.9) | −87.9% | 398.9 (787.2) | −49.3% | 71% |
+| **run finish** | **973.4** (5722.5) | **−83.0%** | **1566.4** (6631.0) | | | | | |
+
+Baseline values are in brackets.
+
+**AC-4 decision: Keep.** The median run finish fell 83.0% (5722.5 → 973.4 ms), far past the 10% bar (≤ 5150 ms). The maximum fell 76.4%. Run 1 (1566.4 ms) is the slowest because the warm up compiled only `/home`'s files; the four block endpoints' files were compiled into OPcache during that run. Runs 2 to 10 sit between 914.7 and 1113.3 ms.
+
+**What changed in the picture**
+
+1. **PHP compile time was the main cost.** Server time alone (`app` on `/home`) fell from 631.7 to 107.5 ms. Per call, roughly 520 ms of every request was PHP compiling Laravel's files again, on a 0.15 CPU slice.
+2. **The database is now the larger part of server time.** `db` is 71 to 86% of `app` on every call (it was about 17% before). `db` also dropped (by 36 to 58%), because a query's measured time includes PDO and PHP work on the same starved CPU.
+3. **The concurrency penalty is much smaller.** In wave 2, each call's `app` is 420 to 560 ms against about 110 ms for `/home` alone, so running four together still costs about 4 times per call, but on a much smaller base.
+4. **Next candidate.** `/home` still runs 7 to 11 queries where its action needs 1, and those queries now dominate. That makes AC-5 (b) (limiter off the `database` store) the logical next step, measured against this step's 973.4 ms (keep bar: ≤ 876.1 ms).
+5. **Watch item.** OPcache reserves up to 256 MB of shared memory on a 512 MB instance; only the pages in use count. Check the Render memory graph. A lower `PHP_OPCACHE_MEMORY_CONSUMPTION` would be its own measured step.
 
 ## Raw evidence
 
@@ -418,6 +448,92 @@ call (ms)             median ttfb median total    max total   median app    medi
 /products                  5967.5       6021.2       6021.2       5832.9        934.7
 run finish                             41542.6      41542.6
 exit=0
+```
+
+</details>
+
+<details><summary><code>step-1-opcache-waterfall</code> (2026-11-16 09:32 UTC)</summary>
+
+```text
+Mode: waterfall · runs: 10 · API: https://eneba-api.onrender.com/api/v1
+Run 1
+  /home                 200  connect    16.2  ttfb   381.6  total   382.0  app   116.5  db    95.7
+  /home/banners         200  connect    77.1  ttfb  1005.0  total  1007.1  app   787.9  db   640.7
+  /home/best-sellers    200  connect     0.0  ttfb  1023.8  total  1118.6  app   891.2  db   468.2
+  /home/deals           200  connect     0.0  ttfb  1023.3  total  1118.6  app   780.7  db   636.4
+  /products             200  connect     0.0  ttfb  1083.2  total  1184.4  app   925.3  db   356.5
+  finish               1566.4 ms
+Run 2
+  /home                 200  connect    11.6  ttfb   226.8  total   227.2  app   110.8  db    96.4
+  /home/best-sellers    200  connect     0.0  ttfb   546.2  total   596.7  app   370.2  db   295.1
+  /home/banners         200  connect    13.4  ttfb   683.8  total   689.1  app   553.8  db   412.2
+  /home/deals           200  connect     0.0  ttfb   650.1  total   705.7  app   558.4  db   385.1
+  /products             200  connect     0.0  ttfb   660.5  total   713.6  app   522.9  db   246.7
+  finish               940.8 ms
+Run 3
+  /home                 200  connect    15.2  ttfb   237.5  total   239.8  app   120.7  db   107.2
+  /home/best-sellers    200  connect     0.0  ttfb   611.3  total   648.2  app   473.4  db   457.3
+  /products             200  connect     0.0  ttfb   613.5  total   648.2  app   472.9  db   374.9
+  /home/banners         200  connect    12.3  ttfb   679.8  total   684.5  app   578.3  db   428.5
+  /home/deals           200  connect     0.0  ttfb   726.3  total   763.9  app   551.6  db   312.8
+  finish               1003.6 ms
+Run 4
+  /home                 200  connect    15.3  ttfb   232.6  total   236.3  app   115.5  db   100.3
+  /home/banners         200  connect    14.8  ttfb   695.0  total   700.5  app   598.6  db   454.2
+  /home/deals           200  connect     0.0  ttfb   666.0  total   700.7  app   587.5  db   490.6
+  /products             200  connect     0.0  ttfb   666.9  total   706.5  app   594.9  db   570.9
+  /home/best-sellers    200  connect     0.0  ttfb   691.1  total   727.9  app   616.8  db   455.3
+  finish               964.2 ms
+Run 5
+  /home                 200  connect    86.1  ttfb   320.5  total   320.8  app   101.7  db    87.2
+  /home/banners         200  connect    16.7  ttfb   576.5  total   582.1  app   463.9  db   378.7
+  /home/deals           200  connect     0.0  ttfb   564.9  total   613.4  app   466.3  db   413.6
+  /home/best-sellers    200  connect     0.0  ttfb   654.8  total   699.8  app   551.7  db   359.7
+  /products             200  connect     0.0  ttfb   743.6  total   792.5  app   605.7  db   582.2
+  finish               1113.3 ms
+Run 6
+  /home                 200  connect    13.3  ttfb   208.0  total   210.8  app   101.1  db    89.2
+  /home/best-sellers    200  connect     0.0  ttfb   510.5  total   596.7  app   366.0  db   348.4
+  /home/banners         200  connect    64.4  ttfb   612.6  total   617.1  app   464.8  db   301.6
+  /home/deals           200  connect     0.0  ttfb   533.0  total   618.3  app   464.1  db   380.1
+  /products             200  connect     0.0  ttfb   630.7  total   722.4  app   527.6  db   313.6
+  finish               933.2 ms
+Run 7
+  /home                 200  connect    25.9  ttfb   194.9  total   195.2  app    84.7  db    72.9
+  /home/banners         200  connect    12.1  ttfb   718.7  total   718.9  app   438.9  db   351.9
+  /home/best-sellers    200  connect     0.0  ttfb   689.2  total   719.5  app   425.9  db   350.6
+  /home/deals           200  connect     0.0  ttfb   686.3  total   719.5  app   411.9  db   394.4
+  /products             200  connect     0.0  ttfb   688.8  total   719.5  app   525.2  db   503.9
+  finish               914.7 ms
+Run 8
+  /home                 200  connect    79.2  ttfb   304.3  total   306.3  app   117.9  db   104.9
+  /home/best-sellers    200  connect     0.0  ttfb   660.3  total   694.1  app   421.9  db   336.3
+  /home/deals           200  connect     0.0  ttfb   658.2  total   694.1  app   435.3  db   333.2
+  /home/banners         200  connect    13.8  ttfb   793.1  total   793.4  app   634.9  db   539.3
+  /products             200  connect     0.0  ttfb   759.8  total   795.2  app   632.8  db   531.7
+  finish               1101.5 ms
+Run 9
+  /home                 200  connect    58.8  ttfb   248.1  total   250.7  app    86.8  db    73.8
+  /home/banners         200  connect    15.8  ttfb   655.2  total   655.5  app   543.8  db   445.6
+  /home/best-sellers    200  connect     0.0  ttfb   617.4  total   655.4  app   335.4  db   317.2
+  /home/deals           200  connect     0.0  ttfb   619.5  total   655.4  app   535.5  db   386.2
+  /products             200  connect     0.0  ttfb   690.0  total   731.9  app   616.3  db   422.8
+  finish               982.6 ms
+Run 10
+  /home                 200  connect    17.4  ttfb   212.4  total   212.7  app   104.3  db    89.8
+  /home/best-sellers    200  connect     0.0  ttfb   609.8  total   653.0  app   412.2  db   149.4
+  /products             200  connect     0.0  ttfb   612.0  total   653.0  app   427.9  db   340.4
+  /home/banners         200  connect    18.5  ttfb   718.4  total   721.5  app   540.4  db   446.5
+  /home/deals           200  connect     0.0  ttfb   686.1  total   729.1  app   531.0  db   354.4
+  finish               941.8 ms
+
+call (ms)             median ttfb median total    max total   median app    median db
+/home                       235.1        238.0        382.0        107.5         92.8
+/home/banners               689.4        694.8       1007.1        548.8        437.1
+/home/best-sellers          636.1        674.7       1118.6        423.9        349.5
+/home/deals                 662.1        703.2       1118.6        533.2        385.6
+/products                   677.9        720.9       1184.4        561.2        398.9
+run finish                               973.4       1566.4
 ```
 
 </details>
