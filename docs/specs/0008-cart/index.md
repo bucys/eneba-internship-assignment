@@ -3,6 +3,8 @@
 **Date**: 2026-11-12
 **Status**: Accepted
 
+> **Amended by [spec 0016](../0016-performance-reliability/index.md)** (performance and reliability, 2026-11-16). Caps in AC-3 (add) and AC-6 (merge) are no longer silent: both endpoints now return `meta.adjustments` listing every line that got less than was requested, and the client shows a toast (spec 0016 AC-10 to AC-12). The `Cart` shape, the line rules, and the error order are unchanged. The original text below is kept as history.
+
 ## Summary
 
 This spec builds the cart. A guest keeps a small list of offer ids and quantities in the browser (`localStorage`). A signed in buyer keeps the same list in the existing `cart_items` table. Both kinds of cart are shown through one server built cart shape, which always has live prices, stock, totals, and a status per line, so the browser never does money math. On sign in, the guest list merges into the account (quantities add up, then get capped), and the cart page's Checkout button leads into the sign in flow and a guarded checkout placeholder that feature 10 replaces.

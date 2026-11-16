@@ -29,7 +29,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 14 | Search with typo tolerance | Journey 2: Discovery | done |
 | 15 | Homepage blocks | Journey 3: Landing | done |
 | 16 | Visual fidelity & polish | Polish | done |
-| 17 | Performance & reliability | Polish | planned |
+| 17 | Performance & reliability | Polish | in-progress |
 | 18 | Submission readiness | Wrap up | planned |
 
 ## Foundations
@@ -250,16 +250,25 @@ spec [0015](../specs/0015-visual-fidelity-polish/index.md) · code in `client/sr
   - [x] Account pass, full checks, paired screenshots in verify.md (AC-21 to AC-25)
 - [x] Verify it: `/check verify visual fidelity & polish`
 - Supplied: `server/public/images/banners/cyberpunk-2077-featured.webp` (text free, 3:1 WebP, 2172 by 724, 249 KB, subject on the right; approved minimum per spec 0015 AC-12)
-- Deferred follow ups (non blocking minors from the [review](../reviews/2026-11-15-main-visual-fidelity-polish.md); not part of feature 17 unless enrolled there):
+- Deferred follow ups (non blocking minors from the [review](../reviews/2026-11-15-main-visual-fidelity-polish.md)); now enrolled in feature 17 through the spec 0016 triage table:
   - `HomePageSkeleton` has no placeholder for the platform shortcuts row, so content shifts when the page loads.
   - `BuyBox` imports `otherOffersSummary` from `pages/productPageView`; move it to `lib/` or beside the offer components.
   - No tests for `ProductBreadcrumb`, `ProductInfoRows`, `ProductTitleBlock` (AC-15, AC-17 rely on the manual verify pass).
   - Featured banner text may overlap the art's subject around 1024 to 1100px; check and cap the text column or extend the gradient if it does.
 
-### 17. Performance & reliability · Beta · needs a decision
+### 17. Performance & reliability · Beta · in-progress
 Investigate production homepage latency, fix confirmed bugs, and resolve the review findings that matter.
 **Done when:** homepage latency is measured before and after with recorded evidence; each fix is justified by that evidence, or the limit is documented as an infrastructure constraint (for example Render free tier workers); confirmed checkout bugs are fixed with a regression test each; every relevant finding in `docs/reviews/` is fixed or marked won't fix with a reason; CI is green.
-- [ ] Design it (spec): `/architect performance & reliability`
+spec [0016](../specs/0016-performance-reliability/index.md) · code in `server/app/Http/Middleware/ServerTiming.php`, `server/app/Support/RequestTimings.php`, `scripts/measure-home.sh`
+- [x] Design it (spec): `/architect performance & reliability`
+- [ ] Build it: `/develop performance & reliability`
+  - [ ] Evidence: `Server-Timing` middleware, `scripts/measure-home.sh`, production baseline in `verify.md` (AC-1, AC-2, AC-3)
+  - [ ] Server runtime: OPcache, limiter on `file`, FPM workers if needed, each measured and kept or reverted (AC-4, AC-5)
+  - [ ] Homepage: route loader prefetch, `PublicCache` on the home GETs, browse journey triage rows (AC-6, AC-7, AC-15)
+  - [ ] Cart caps and buy journey: `/debug` the 10 for 6 case, `meta.adjustments` on add and merge, toasts, regression tests, buy journey triage rows (AC-9 to AC-13, AC-15)
+  - [ ] Account journey and close out: auth triage rows, Resolution sections in all review files, final measurement and Infrastructure limits note, CI and production purchase run (AC-8, AC-14, AC-15, AC-16)
+- [ ] Verify it: `/check verify performance & reliability`
+- [ ] Test it: `/test performance & reliability`
 - Carried in from feature 15 ([review](../reviews/2026-11-13-main-homepage-blocks.md)):
   - Production first load is slow: 5 API calls (layout, then 4 blocks) each took 6 to 9 s on Render while one call alone takes about 0.9 s. Check Render's PHP worker count, or add a short `Cache-Control` to the home endpoints.
   - The minor and nit findings in the review file (for example `ScrollRail` re-rendering on every scroll event, band colours flipping when a block resolves empty).

@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Payments\PaymentGateway;
 use App\Payments\SimulatedPaymentGateway;
+use App\Support\RequestTimings;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Simulated payments only (spec 0009 AC-5); a real provider's test mode would be bound here.
         $this->app->bind(PaymentGateway::class, SimulatedPaymentGateway::class);
+
+        $this->app->scoped(RequestTimings::class);
     }
 
     /**
@@ -28,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Render has no shell, so a mistaken migrate:fresh or db:wipe in production would lose real orders.
         DB::prohibitDestructiveCommands($this->app->isProduction());
+
+        DB::listen(fn (QueryExecuted $event) => $this->app->make(RequestTimings::class)->record($event->time));
 
         RateLimiter::for('catalog', fn (Request $request) => Limit::perMinute(120)->by((string) $request->ip()));
 

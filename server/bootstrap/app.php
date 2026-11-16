@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\BlockPreviewWrites;
 use App\Http\Middleware\NoStore;
+use App\Http\Middleware\ServerTiming;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,6 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Before throttling and auth:sanctum, so a preview write gets 403 rather than 401 or 429.
         $middleware->prependToGroup('api', BlockPreviewWrites::class);
 
+        // Outermost in the api group, so the preview 403 also carries Server-Timing (spec 0016 AC-1).
+        $middleware->prependToGroup('api', ServerTiming::class);
+
         // The store price params must reach ListProductsRequest untrimmed, so " 5" fails its pattern (spec 0012 AC-3).
         $middleware->trimStrings(except: ['price_min', 'price_max']);
 
@@ -36,6 +40,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Laravel sorts auth and throttle ahead of unlisted route middleware, so NoStore joins the
         // priority list before them; otherwise their 401 and 429 would skip it (spec 0010 AC-3).
         $middleware->prependToPriorityList(AuthenticatesRequests::class, NoStore::class);
+
+        // Laravel inserts each prepend right before the earliest anchor it finds, so naming both
+        // anchors puts ServerTiming ahead of NoStore as well as auth and throttle (spec 0016 AC-1).
+        $middleware->prependToPriorityList([NoStore::class, AuthenticatesRequests::class], ServerTiming::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Defence in depth: card fields never reach the session flash (spec 0009 AC-7).
